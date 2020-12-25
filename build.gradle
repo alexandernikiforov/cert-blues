@@ -1,0 +1,31 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'org.unbroken-dome.test-sets' version '3.0.1' apply false
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+
+    ext {
+        buildNumber = System.getenv('TRAVIS') ? System.getenv('TRAVIS_BUILD_NUMBER') : '0'
+        buildVersion = version + '.' + buildNumber
+    }
+}
+
+subprojects {
+    project.plugins.withType(JavaPlugin) {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+wrapper {
+    gradleVersion = '6.7.1'
+}

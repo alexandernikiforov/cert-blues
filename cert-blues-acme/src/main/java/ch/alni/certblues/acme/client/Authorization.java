@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
@@ -69,6 +70,20 @@ public abstract class Authorization {
     @JsonGetter
     @Nullable
     public abstract Boolean wildcard();
+
+    @JsonIgnore
+    public boolean hasChallenge(String type) {
+        return challenges().stream()
+                .anyMatch(value -> value.type().equals(type));
+    }
+
+    @JsonIgnore
+    public Challenge getChallenge(String type) {
+        return challenges().stream()
+                .filter(value -> value.type().equals(type))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("cannot find the challenge of type " + type));
+    }
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")

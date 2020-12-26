@@ -27,11 +27,11 @@ package ch.alni.certblues.acme.client;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -52,28 +52,21 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * The test against the Pebble server running in a local Docker container.
  */
-@Testcontainers
 class PebbleBasedTest {
     private static final Logger LOG = getLogger(PebbleBasedTest.class);
-    @Container
-    private static final GenericContainer<?> pebble =
-            new GenericContainer<>(DockerImageName.parse("letsencrypt/pebble:v2.3.1"))
-                    .withExposedPorts(14000, 15000)
-                    .withCommand("pebble");
-    @Container
-    private static final GenericContainer<?> challtestsrv =
-            new GenericContainer<>(DockerImageName.parse("letsencrypt/pebble-challtestsrv:v2.3.1"))
-                    .withExposedPorts(8055);
+
+    private static final int PEBBLE_MGMT_PORT = 14000;
+    private static final int CHALL_TEST_SRV_MGMT_PORT = 8055;
+
     private final AcmeClient client = new AcmeClientBuilder()
             .setSslContext(getSslContext())
             .build();
 
     @Test
     public void testContainerStart() throws Exception {
-        LOG.info("Hello, the challenge server listens on port: {}", challtestsrv.getMappedPort(8055));
+        final String directoryUrl = String.format("https://localhost:%s/dir", PEBBLE_MGMT_PORT);
 
-        final Integer pebbleMappedPort = pebble.getMappedPort(14000);
-        final String directoryUrl = String.format("https://localhost:%s/dir", pebbleMappedPort);
+        final String challengeUrl = String.format("http://localhost:%s/add-http01", CHALL_TEST_SRV_MGMT_PORT);
 
         final DirectoryHandle directoryHandle = client.getDirectory(directoryUrl);
 
@@ -103,8 +96,7 @@ class PebbleBasedTest {
 
         final var orderHandle = accountHandle.createOrder(OrderRequest.builder()
                 .identifiers(List.of(
-                        Identifier.builder().type("dns").value("cloudalni.com").build(),
-                        Identifier.builder().type("dns").value("www.cloudalni.com").build()
+                        Identifier.builder().type("dns").value("testserver.com").build()
                 ))
                 .build());
 
@@ -115,13 +107,50 @@ class PebbleBasedTest {
         assertThat(order.status()).isEqualTo(OrderStatus.PENDING);
 
         final List<AuthorizationHandle> authorizations = orderHandle.getAuthorizations();
-        assertThat(authorizations).hasSize(2);
+        assertThat(authorizations).hasSize(1);
 
-        authorizations.get(0).provisionChallenge("http-01");
+        final AuthorizationHandle authorizationHandle = authorizations.get(0);
 
-        authorizations.get(0).reloadAuthorization();
+        // create the key authorization
+        final Challenge challenge = authorizationHandle.getAuthorization().getChallenge("http-01");
+        final var keyAuth = authorizationHandle.getKeyAuthorization("http-01");
+
+        submitChallenge(challengeUrl, challenge, keyAuth);
+
+        authorizationHandle.provisionChallenge("http-01");
+
+        // poll authorization at most 10 times
+        for (int i = 0; i < 10; i++) {
+            final Authorization authorization = authorizationHandle.reloadAuthorization();
+            if (authorization.status() == AuthorizationStatus.VALID) {
+                LOG.info("authorization validated");
+                break;
+            }
+
+            Thread.sleep(1000);
+        }
+
+        assertThat(authorizationHandle.getAuthorization().status()).isEqualTo(AuthorizationStatus.VALID);
 
         accountHandle.deactivateAccount();
+    }
+
+    private void submitChallenge(String challengeUrl, Challenge challenge, String keyAuth) throws Exception {
+        final HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+
+        final String payload = String.format("{\"token\":\"%s\", \"content\": \"%s\"}",
+                challenge.token(), keyAuth);
+
+        final HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(challengeUrl))
+                .header("Content-Type", "application/jose+json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
+
+        final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        LOG.info("challenge submitted, response status is {}", response.statusCode());
     }
 
     private SSLContext getSslContext() {

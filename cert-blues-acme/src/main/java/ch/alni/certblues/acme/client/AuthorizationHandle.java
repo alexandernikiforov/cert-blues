@@ -41,5 +41,13 @@ public interface AuthorizationHandle {
      */
     void provisionChallenge(String type);
 
+    /**
+     * Returns the key authorization for the challenge of the given type.
+     *
+     * @param type the type of the challenge
+     * @return token || '.' || base64url(Thumbprint(accountKey))
+     */
+    String getKeyAuthorization(String type);
+
     Authorization reloadAuthorization();
 }

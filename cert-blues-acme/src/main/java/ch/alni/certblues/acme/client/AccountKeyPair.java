@@ -53,4 +53,5 @@ public interface AccountKeyPair {
      */
     JwsObject sign(String requestUri, String keyId, Object request, String nonce);
 
+    String getPublicKeyThumbprint();
 }

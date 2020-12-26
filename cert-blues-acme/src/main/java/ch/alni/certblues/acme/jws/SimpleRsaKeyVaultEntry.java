@@ -32,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -44,6 +45,26 @@ public class SimpleRsaKeyVaultEntry implements KeyVaultEntry {
 
     public SimpleRsaKeyVaultEntry(KeyPair keyPair) {
         this.keyPair = keyPair;
+    }
+
+    private static byte[] getModulus(RSAPublicKey publicKey) {
+        final byte[] byteArray = publicKey.getModulus().toByteArray();
+        final int byteLength = publicKey.getModulus().bitLength() / 8;
+        if (byteArray.length > byteLength) {
+            // a nasty fix
+            /*
+             Note that implementers have found that some cryptographic libraries
+             prefix an extra zero-valued octet to the modulus representations they
+             return, for instance, returning 257 octets for a 2048-bit key, rather
+             than 256.  Implementations using such libraries will need to take
+             care to omit the extra octet from the base64url-encoded
+             representation.
+             */
+            return Arrays.copyOfRange(byteArray, byteArray.length - byteLength, byteArray.length);
+        }
+        else {
+            return byteArray;
+        }
     }
 
     @Override
@@ -65,7 +86,7 @@ public class SimpleRsaKeyVaultEntry implements KeyVaultEntry {
         final RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 
         final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-        final String n = encoder.encodeToString(publicKey.getModulus().toByteArray());
+        final String n = encoder.encodeToString(getModulus(publicKey));
         final String e = encoder.encodeToString(publicKey.getPublicExponent().toByteArray());
 
         return RsaPublicJwk.builder()

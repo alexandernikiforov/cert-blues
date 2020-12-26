@@ -67,6 +67,11 @@ public abstract class Challenge {
     @Nullable
     public abstract OffsetDateTime validated();
 
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Nullable
+    public abstract Error error();
+
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
     public abstract static class Builder {
@@ -90,6 +95,9 @@ public abstract class Challenge {
 
         @JsonSetter
         public abstract Builder validated(OffsetDateTime value);
+
+        @JsonSetter
+        public abstract Builder error(Error value);
 
         public abstract Challenge build();
     }

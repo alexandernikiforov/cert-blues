@@ -78,10 +78,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
         LOG.info("provisioning the challenge of type {}", type);
 
         final var nonce = session.getNonce();
-        final var challenge = authRef.get().challenges().stream()
-                .filter(value -> value.type().equals(type))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("cannot find the challenge of type " + type));
+        final var challenge = authRef.get().getChallenge(type);
 
         final JwsObject jwsObject = keyPair.sign(challenge.url(), accountUrl, "{}", nonce);
 
@@ -113,6 +110,12 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
 
             throw new AcmeServerException(response.body());
         }
+    }
+
+    @Override
+    public String getKeyAuthorization(String type) {
+        final var challenge = authRef.get().getChallenge(type);
+        return challenge.token() + '.' + keyPair.getPublicKeyThumbprint();
     }
 
     @Override

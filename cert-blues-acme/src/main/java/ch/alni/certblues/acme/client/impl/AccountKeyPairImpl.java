@@ -32,6 +32,7 @@ import ch.alni.certblues.acme.client.AcmeRequest;
 import ch.alni.certblues.acme.client.JwsObject;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.KeyVaultEntry;
+import ch.alni.certblues.acme.jws.Thumbprints;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -87,5 +88,10 @@ class AccountKeyPairImpl implements AccountKeyPair {
         LOG.info("creating a JSON web signature over '{}' with kid={}", payload, keyId);
 
         return Jws.createJws(keyVaultEntry, header, payload);
+    }
+
+    @Override
+    public String getPublicKeyThumbprint() {
+        return Thumbprints.getSha256Thumbprint(keyVaultEntry.getPublicJwk());
     }
 }

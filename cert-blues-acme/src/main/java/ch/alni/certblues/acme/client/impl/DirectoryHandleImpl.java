@@ -35,13 +35,13 @@ import java.time.Duration;
 
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountKeyPair;
 import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Directory;
 import ch.alni.certblues.acme.client.DirectoryHandle;
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -64,7 +64,7 @@ class DirectoryHandleImpl implements DirectoryHandle {
     }
 
     @Override
-    public AccountHandle getAccount(AccountKeyPair keyPair, AccountRequest accountRequest) {
+    public AccountHandle getAccount(SigningKeyPair keyPair, AccountRequest accountRequest) {
         final String newAccountUri = directory.newAccount();
 
         // on first call retrieve a nonce
@@ -118,7 +118,7 @@ class DirectoryHandleImpl implements DirectoryHandle {
         return directory;
     }
 
-    private AccountHandle toAccountHandle(AccountKeyPair keyPair, HttpResponse<String> response,
+    private AccountHandle toAccountHandle(SigningKeyPair keyPair, HttpResponse<String> response,
                                           Session session) {
         final var location = Payloads.findLocation(response)
                 .orElseThrow(() -> new AcmeClientException("cannot find Location header in the response"));

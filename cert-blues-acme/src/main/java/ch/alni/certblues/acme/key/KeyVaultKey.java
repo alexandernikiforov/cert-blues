@@ -23,39 +23,25 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.key;
 
-import com.google.auto.value.AutoValue;
+/**
+ * Abstraction over a key entry in the key vault that holds a key pair and is used to create signatures.
+ */
+public interface KeyVaultKey {
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+    /**
+     * Signs the given content with the provided algorithm and returns the result.
+     *
+     * @param alg     the algorithm to use
+     * @param content the content to be signed.
+     * @return the cryptographic signature as base64-urlencoded string
+     */
+    String sign(String alg, String content);
 
-@AutoValue
-@JsonDeserialize(builder = OrderFinalizationRequest.Builder.class)
-public abstract class OrderFinalizationRequest implements AcmeRequest {
+    /**
+     * Returns the JSON representation of the public key used by this entry.
+     */
+    PublicJwk getPublicJwk();
 
-    public static Builder builder() {
-        return new AutoValue_OrderFinalizationRequest.Builder();
-    }
-
-    @JsonGetter
-    public abstract String csr();
-
-    @AutoValue.Builder
-    @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
-
-        @JsonCreator
-        static Builder create() {
-            return builder();
-        }
-
-        @JsonSetter
-        public abstract Builder csr(String value);
-
-        public abstract OrderFinalizationRequest build();
-    }
 }

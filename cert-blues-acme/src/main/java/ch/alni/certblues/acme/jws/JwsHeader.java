@@ -36,6 +36,8 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import org.jetbrains.annotations.Nullable;
 
+import ch.alni.certblues.acme.key.PublicJwk;
+
 /**
  * Content of the header. One of the kid or jwk must be present.
  */

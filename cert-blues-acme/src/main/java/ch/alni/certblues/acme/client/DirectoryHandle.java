@@ -39,7 +39,7 @@ public interface DirectoryHandle {
      * @param request account request
      * @return interface to work with the account object (existing or newly created)
      */
-    AccountHandle getAccount(AccountKeyPair keyPair, AccountRequest request);
+    AccountHandle getAccount(SigningKeyPair keyPair, AccountRequest request);
 
     Directory getDirectory();
 }

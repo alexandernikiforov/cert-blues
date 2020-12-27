@@ -25,37 +25,35 @@
 
 package ch.alni.certblues.acme.client;
 
-import com.google.auto.value.AutoValue;
+import ch.alni.certblues.acme.jws.JwsObject;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+/**
+ * Account key pair is used to sign the ACME requests on behalf of an account holding a pair of keys.
+ */
+public interface SigningKeyPair {
 
-@AutoValue
-@JsonDeserialize(builder = OrderFinalizationRequest.Builder.class)
-public abstract class OrderFinalizationRequest implements AcmeRequest {
+    /**
+     * Signs the following ACME request by wrapping it into a JWS and passing the public key as 'jwk' attribute in the
+     * protected header.
+     *
+     * @param requestUri the URI this request should be sent to
+     * @param request    ACME request
+     * @param nonce      the nonce received from the server
+     * @return the signed request
+     */
+    JwsObject sign(String requestUri, Object request, String nonce);
 
-    public static Builder builder() {
-        return new AutoValue_OrderFinalizationRequest.Builder();
-    }
+    /**
+     * Signs the following ACME request by wrapping it into a JWS and using the 'kid' attribute in the protected
+     * header.
+     *
+     * @param requestUri the URI this request should be sent to
+     * @param keyId      the key ID to be used
+     * @param request    ACME request
+     * @param nonce      the nonce received from the server
+     * @return the signed request
+     */
+    JwsObject sign(String requestUri, String keyId, Object request, String nonce);
 
-    @JsonGetter
-    public abstract String csr();
-
-    @AutoValue.Builder
-    @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
-
-        @JsonCreator
-        static Builder create() {
-            return builder();
-        }
-
-        @JsonSetter
-        public abstract Builder csr(String value);
-
-        public abstract OrderFinalizationRequest build();
-    }
+    String getPublicKeyThumbprint();
 }

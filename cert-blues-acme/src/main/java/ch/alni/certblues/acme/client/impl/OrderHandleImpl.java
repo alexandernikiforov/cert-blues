@@ -25,6 +25,8 @@
 
 package ch.alni.certblues.acme.client.impl;
 
+import com.google.common.base.Preconditions;
+
 import org.slf4j.Logger;
 
 import java.net.URI;
@@ -36,13 +38,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import ch.alni.certblues.acme.client.AccountKeyPair;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Authorization;
 import ch.alni.certblues.acme.client.AuthorizationHandle;
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.client.CertKeyPair;
 import ch.alni.certblues.acme.client.Order;
+import ch.alni.certblues.acme.client.OrderFinalizationRequest;
 import ch.alni.certblues.acme.client.OrderHandle;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -53,16 +57,17 @@ class OrderHandleImpl implements OrderHandle {
     private final Duration requestTimout;
     private final Session session;
     private final AtomicReference<Order> orderRef;
-    private final AccountKeyPair keyPair;
+    private final SigningKeyPair keyPair;
     private final String accountUrl;
+    private final CertKeyPair certKeyPair;
     private final String orderUrl;
 
     OrderHandleImpl(HttpClient httpClient,
                     Duration requestTimout,
                     Session session,
                     Order order,
-                    AccountKeyPair keyPair,
-                    String accountUrl, String orderUrl) {
+                    SigningKeyPair keyPair,
+                    String accountUrl, CertKeyPair certKeyPair, String orderUrl) {
 
         this.httpClient = httpClient;
         this.requestTimout = requestTimout;
@@ -70,6 +75,7 @@ class OrderHandleImpl implements OrderHandle {
         this.orderRef = new AtomicReference<>(order);
         this.keyPair = keyPair;
         this.accountUrl = accountUrl;
+        this.certKeyPair = certKeyPair;
         this.orderUrl = orderUrl;
     }
 
@@ -124,6 +130,94 @@ class OrderHandleImpl implements OrderHandle {
         LOG.info("retrieving authorization");
         final var order = orderRef.get();
         return order.authorizations().stream().map(this::doGetAuthorization).collect(Collectors.toList());
+    }
+
+    @Override
+    public Order finalizeOrder() {
+        LOG.info("finalizing the certificate order");
+
+        final var nonce = session.getNonce();
+        final var order = orderRef.get();
+        final var finalizationRequest = OrderFinalizationRequest.builder()
+                .csr(certKeyPair.createCsr())
+                .build();
+
+        final JwsObject jwsObject = keyPair.sign(order.finalizeUrl(), accountUrl, finalizationRequest, nonce);
+
+        final var body = Payloads.serialize(jwsObject);
+
+        final HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(order.finalizeUrl()))
+                .header("Content-Type", "application/jose+json")
+                .timeout(requestTimout)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        final HttpResponse<String> response = session.executeRequest(
+                () -> httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        );
+
+        final int statusCode = response.statusCode();
+        if (statusCode == 200) {
+            LOG.info("order finalization request accepted: {}", response.body());
+            return replaceOrder(response);
+        }
+        else if (statusCode < 400) {
+            LOG.warn("unexpected status code {} returned", statusCode);
+            return replaceOrder(response);
+        }
+        else {
+            Payloads.extractError(response).ifPresent(
+                    error -> {
+                        throw new AcmeServerException(error);
+                    });
+
+            throw new AcmeServerException(response.body());
+        }
+    }
+
+    @Override
+    public String downloadCertificate() {
+        LOG.info("downloading the certificate");
+        final Order order = orderRef.get();
+
+        Preconditions.checkState(order.certificate() != null, "certificate is not yer ready");
+
+        final var nonce = session.getNonce();
+
+        // POST-as-GET request
+        final JwsObject jwsObject = keyPair.sign(order.certificate(), accountUrl, "", nonce);
+
+        final var body = Payloads.serialize(jwsObject);
+
+        final HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(order.certificate()))
+                .header("Content-Type", "application/jose+json")
+                .timeout(requestTimout)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        final HttpResponse<String> response = session.executeRequest(
+                () -> httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        );
+
+        final int statusCode = response.statusCode();
+        if (statusCode == 200) {
+            LOG.info("a new certificate has been successfully returned: {}", response.body());
+            return response.body();
+        }
+        else if (statusCode < 400) {
+            LOG.warn("unexpected status code {} returned", statusCode);
+            return response.body();
+        }
+        else {
+            Payloads.extractError(response).ifPresent(
+                    error -> {
+                        throw new AcmeServerException(error);
+                    });
+
+            throw new AcmeServerException(response.body());
+        }
     }
 
     private AuthorizationHandle doGetAuthorization(String authorizationUrl) {

@@ -23,25 +23,24 @@
  *
  */
 
-package ch.alni.certblues.acme.jws;
+package ch.alni.certblues.acme.cert;
+
+import ch.alni.certblues.acme.key.KeyVaultKey;
 
 /**
- * Abstraction over an entry in the key vault that holds a key pair and is used to create signatures.
+ * Abstraction over a certificate entry in the key vault.
  */
-public interface KeyVaultEntry {
+public interface KeyVaultCert {
 
     /**
-     * Signs the given content with the provided algorithm and returns the result.
+     * The key pair associated with this certificate entry.
+     */
+    KeyVaultKey getKey();
+
+    /**
+     * Creates a new certificate signing request.
      *
-     * @param alg     the algorithm to use
-     * @param content the content to be signed.
-     * @return the cryptographic signature as base64-urlencoded string
+     * @return a new CSR in the DER format.
      */
-    String sign(String alg, String content);
-
-    /**
-     * Returns the JSON representation of the public key used by this entry.
-     */
-    PublicJwk getPublicJwk();
-
+    String createCsr();
 }

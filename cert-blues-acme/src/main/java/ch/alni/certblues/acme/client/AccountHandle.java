@@ -48,8 +48,9 @@ public interface AccountHandle {
     /**
      * Creates a new order with the given parameters.
      *
+     * @param certKeyPair  the key pair to use for certificate signing request
      * @param orderRequest the order parameters
      * @return the interface to work with the order lifecycle
      */
-    OrderHandle createOrder(OrderRequest orderRequest);
+    OrderHandle createOrder(CertKeyPair certKeyPair, OrderRequest orderRequest);
 }

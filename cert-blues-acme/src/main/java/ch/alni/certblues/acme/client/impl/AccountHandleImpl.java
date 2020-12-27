@@ -37,14 +37,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountDeactivationRequest;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountKeyPair;
 import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.client.CertKeyPair;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderHandle;
 import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -58,13 +59,13 @@ class AccountHandleImpl implements AccountHandle {
     private final Duration requestTimout;
     private final Session session;
     private final AtomicReference<Account> accountRef;
-    private final AccountKeyPair keyPair;
+    private final SigningKeyPair keyPair;
     private final String accountUrl;
 
     AccountHandleImpl(HttpClient httpClient,
                       Duration requestTimout,
                       Session session, Account account,
-                      AccountKeyPair keyPair,
+                      SigningKeyPair keyPair,
                       String accountUrl) {
         this.httpClient = httpClient;
         this.requestTimout = requestTimout;
@@ -120,7 +121,7 @@ class AccountHandleImpl implements AccountHandle {
     }
 
     @Override
-    public OrderHandle createOrder(OrderRequest orderRequest) {
+    public OrderHandle createOrder(CertKeyPair certKeyPair, OrderRequest orderRequest) {
         LOG.info("creating a new order with parameters {}", orderRequest);
 
         final var directory = session.getDirectory();
@@ -145,11 +146,11 @@ class AccountHandleImpl implements AccountHandle {
         final int statusCode = response.statusCode();
         if (statusCode == 201) {
             LOG.info("a new order has been created {}", response.body());
-            return toOrderHandle(response);
+            return toOrderHandle(certKeyPair, response);
         }
         else if (statusCode < 400) {
             LOG.warn("unexpected status code {} returned", statusCode);
-            return toOrderHandle(response);
+            return toOrderHandle(certKeyPair, response);
         }
         else {
             Payloads.extractError(response).ifPresent(
@@ -210,14 +211,14 @@ class AccountHandleImpl implements AccountHandle {
         return account;
     }
 
-    private OrderHandle toOrderHandle(HttpResponse<String> response) {
+    private OrderHandle toOrderHandle(CertKeyPair certKeyPair, HttpResponse<String> response) {
         final Order order = Payloads.deserialize(response.body(), Order.class);
         final String orderUrl = Payloads.findLocation(response)
                 .orElseThrow(() -> new AcmeClientException("cannot find Location header in the response"));
 
         return RetryableHandle.create(
                 session,
-                new OrderHandleImpl(httpClient, requestTimout, session, order, keyPair, accountUrl, orderUrl),
+                new OrderHandleImpl(httpClient, requestTimout, session, order, keyPair, accountUrl, certKeyPair, orderUrl),
                 OrderHandle.class
         );
     }

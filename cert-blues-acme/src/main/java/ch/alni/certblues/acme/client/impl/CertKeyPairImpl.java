@@ -25,29 +25,19 @@
 
 package ch.alni.certblues.acme.client.impl;
 
-import com.google.common.base.Preconditions;
+import ch.alni.certblues.acme.cert.KeyVaultCert;
+import ch.alni.certblues.acme.client.CertKeyPair;
 
-import ch.alni.certblues.acme.client.AccountKeyPair;
-import ch.alni.certblues.acme.jws.KeyVaultEntry;
+class CertKeyPairImpl extends KeyPairImpl implements CertKeyPair {
+    private final KeyVaultCert keyVaultCert;
 
-public class AccountKeyPairBuilder {
-
-    private String algorithm;
-    private KeyVaultEntry keyVaultEntry;
-
-    public AccountKeyPairBuilder setAlgorithm(String algorithm) {
-        this.algorithm = algorithm;
-        return this;
+    CertKeyPairImpl(KeyVaultCert keyVaultCert, String algorithm) {
+        super(keyVaultCert.getKey(), algorithm);
+        this.keyVaultCert = keyVaultCert;
     }
 
-    public AccountKeyPairBuilder setKeyVaultEntry(KeyVaultEntry keyVaultEntry) {
-        this.keyVaultEntry = keyVaultEntry;
-        return this;
-    }
-
-    public AccountKeyPair build() {
-        Preconditions.checkNotNull(algorithm, "algorithm cannot be null");
-        Preconditions.checkNotNull(keyVaultEntry, "the key vault entry cannot be null");
-        return new AccountKeyPairImpl(keyVaultEntry, algorithm);
+    @Override
+    public String createCsr() {
+        return keyVaultCert.createCsr();
     }
 }

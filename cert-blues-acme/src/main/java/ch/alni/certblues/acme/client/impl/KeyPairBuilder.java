@@ -23,39 +23,31 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.client.impl;
 
-import com.google.auto.value.AutoValue;
+import com.google.common.base.Preconditions;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.key.KeyVaultKey;
 
-@AutoValue
-@JsonDeserialize(builder = OrderFinalizationRequest.Builder.class)
-public abstract class OrderFinalizationRequest implements AcmeRequest {
+public class KeyPairBuilder {
 
-    public static Builder builder() {
-        return new AutoValue_OrderFinalizationRequest.Builder();
+    private String algorithm;
+    private KeyVaultKey keyVaultKey;
+
+    public KeyPairBuilder setAlgorithm(String algorithm) {
+        this.algorithm = algorithm;
+        return this;
     }
 
-    @JsonGetter
-    public abstract String csr();
+    public KeyPairBuilder setKeyVaultKey(KeyVaultKey keyVaultKey) {
+        this.keyVaultKey = keyVaultKey;
+        return this;
+    }
 
-    @AutoValue.Builder
-    @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
-
-        @JsonCreator
-        static Builder create() {
-            return builder();
-        }
-
-        @JsonSetter
-        public abstract Builder csr(String value);
-
-        public abstract OrderFinalizationRequest build();
+    public SigningKeyPair build() {
+        Preconditions.checkNotNull(algorithm, "algorithm cannot be null");
+        Preconditions.checkNotNull(keyVaultKey, "the key vault key cannot be null");
+        return new KeyPairImpl(keyVaultKey, algorithm);
     }
 }

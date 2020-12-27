@@ -41,10 +41,13 @@ import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import ch.alni.certblues.acme.client.impl.AccountKeyPairBuilder;
+import ch.alni.certblues.acme.cert.KeyVaultCert;
+import ch.alni.certblues.acme.cert.SimpleCertEntry;
 import ch.alni.certblues.acme.client.impl.AcmeClientBuilder;
-import ch.alni.certblues.acme.jws.KeyVaultEntry;
-import ch.alni.certblues.acme.jws.SimpleRsaKeyVaultEntry;
+import ch.alni.certblues.acme.client.impl.CertKeyPairBuilder;
+import ch.alni.certblues.acme.client.impl.KeyPairBuilder;
+import ch.alni.certblues.acme.key.KeyVaultKey;
+import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -78,11 +81,11 @@ class PebbleBasedTest {
         keyPairGenerator.initialize(2048);
 
         final KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        final KeyVaultEntry keyVaultEntry = new SimpleRsaKeyVaultEntry(keyPair);
+        final KeyVaultKey keyVaultKey = new SimpleRsaKeyEntry(keyPair);
 
-        final var accountKeyPair = new AccountKeyPairBuilder()
+        final var accountKeyPair = new KeyPairBuilder()
                 .setAlgorithm("RS256")
-                .setKeyVaultEntry(keyVaultEntry)
+                .setKeyVaultKey(keyVaultKey)
                 .build();
 
         final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountRequest.builder()
@@ -94,7 +97,14 @@ class PebbleBasedTest {
         final Account account = accountHandle.reloadAccount();
         assertThat(account.status()).isEqualTo(AccountStatus.VALID);
 
-        final var orderHandle = accountHandle.createOrder(OrderRequest.builder()
+        final KeyPair certKeys = keyPairGenerator.generateKeyPair();
+        final KeyVaultCert keyVaultCert = new SimpleCertEntry(certKeys, "CN=testserver.com", "testserver.com");
+        final var certKeyPair = new CertKeyPairBuilder()
+                .setAlgorithm("RS256")
+                .setKeyVaultCert(keyVaultCert)
+                .build();
+
+        final var orderHandle = accountHandle.createOrder(certKeyPair, OrderRequest.builder()
                 .identifiers(List.of(
                         Identifier.builder().type("dns").value("testserver.com").build()
                 ))
@@ -102,9 +112,9 @@ class PebbleBasedTest {
 
         assertThat(orderHandle.getOrder()).isNotNull();
 
-        final var order = orderHandle.reloadOrder();
+        orderHandle.reloadOrder();
 
-        assertThat(order.status()).isEqualTo(OrderStatus.PENDING);
+        assertThat(orderHandle.getOrder().status()).isEqualTo(OrderStatus.PENDING);
 
         final List<AuthorizationHandle> authorizations = orderHandle.getAuthorizations();
         assertThat(authorizations).hasSize(1);
@@ -131,6 +141,27 @@ class PebbleBasedTest {
         }
 
         assertThat(authorizationHandle.getAuthorization().status()).isEqualTo(AuthorizationStatus.VALID);
+
+        // check if the order is ready
+        orderHandle.reloadOrder();
+        assertThat(orderHandle.getOrder().status()).isEqualTo(OrderStatus.READY);
+
+        orderHandle.finalizeOrder();
+
+        for (int i = 0; i < 10; i++) {
+            final Order order = orderHandle.reloadOrder();
+            if (order.status() == OrderStatus.VALID) {
+                LOG.info("order validated");
+                break;
+            }
+
+            Thread.sleep(1000);
+        }
+
+        assertThat(orderHandle.getOrder().certificate()).isNotNull();
+
+        // download the certificate
+        orderHandle.downloadCertificate();
 
         accountHandle.deactivateAccount();
     }

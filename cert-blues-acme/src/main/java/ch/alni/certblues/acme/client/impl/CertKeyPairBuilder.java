@@ -23,46 +23,31 @@
  *
  */
 
-package ch.alni.certblues.acme.jws;
+package ch.alni.certblues.acme.client.impl;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeId;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.base.Preconditions;
 
-import org.jetbrains.annotations.Nullable;
+import ch.alni.certblues.acme.cert.KeyVaultCert;
+import ch.alni.certblues.acme.client.CertKeyPair;
 
-@JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        property = "kty")
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = RsaPublicJwk.class, name = "RSA"),
-        @JsonSubTypes.Type(value = EcPublicJwk.class, name = "EC")
-})
-public interface PublicJwk {
+public class CertKeyPairBuilder {
 
-    @JsonTypeId
-    @JsonGetter
-    String kty();
+    private String algorithm;
+    private KeyVaultCert keyVaultCert;
 
-    @JsonGetter
-    @Nullable
-    String kid();
+    public CertKeyPairBuilder setAlgorithm(String algorithm) {
+        this.algorithm = algorithm;
+        return this;
+    }
 
-    @JsonGetter
-    @Nullable
-    String use();
+    public CertKeyPairBuilder setKeyVaultCert(KeyVaultCert keyVaultCert) {
+        this.keyVaultCert = keyVaultCert;
+        return this;
+    }
 
-    interface Builder<BuilderType> {
-
-        @JsonSetter
-        BuilderType kty(String value);
-
-        @JsonSetter
-        BuilderType kid(String value);
-
-        @JsonSetter
-        BuilderType use(String value);
+    public CertKeyPair build() {
+        Preconditions.checkNotNull(algorithm, "algorithm cannot be null");
+        Preconditions.checkNotNull(keyVaultCert, "the key vault cert cannot be null");
+        return new CertKeyPairImpl(keyVaultCert, algorithm);
     }
 }

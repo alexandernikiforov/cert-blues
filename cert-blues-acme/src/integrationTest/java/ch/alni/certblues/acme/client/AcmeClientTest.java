@@ -42,7 +42,7 @@ class AcmeClientTest {
             .build();
 
     @Test
-    void getAccount() throws Exception {
+    void getAccount() {
         final DirectoryHandle directoryHandle = client.getDirectory(DIRECTORY_URL);
 
         final Directory directory = directoryHandle.getDirectory();

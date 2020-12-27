@@ -30,10 +30,11 @@ import org.junit.jupiter.api.Test;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.jws.Jws;
 import ch.alni.certblues.acme.jws.JwsHeader;
-import ch.alni.certblues.acme.jws.KeyVaultEntry;
-import ch.alni.certblues.acme.jws.SimpleRsaKeyVaultEntry;
+import ch.alni.certblues.acme.jws.JwsObject;
+import ch.alni.certblues.acme.key.KeyVaultKey;
+import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
 import io.jsonwebtoken.Jwts;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,7 +50,7 @@ class JwsTest {
         keyPairGenerator.initialize(2048);
 
         final KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        final KeyVaultEntry keyVaultEntry = new SimpleRsaKeyVaultEntry(keyPair);
+        final KeyVaultKey keyVaultKey = new SimpleRsaKeyEntry(keyPair);
 
         final String accountRequest = "hello, world!";
 
@@ -60,13 +61,13 @@ class JwsTest {
                 .kid("kid")
                 .build();
 
-        final JwsObject jwsObject = Jws.createJws(keyVaultEntry, header, accountRequest);
+        final JwsObject jwsObject = Jws.createJws(keyVaultKey, header, accountRequest);
         assertThat(jwsObject).isNotNull();
 
         // verify with the JWS library
         Jwts.parserBuilder()
                 .setSigningKey(keyPair.getPublic())
                 .build()
-                .parse(Jws.createJwt(keyVaultEntry, header, accountRequest));
+                .parse(Jws.createJwt(keyVaultKey, header, accountRequest));
     }
 }

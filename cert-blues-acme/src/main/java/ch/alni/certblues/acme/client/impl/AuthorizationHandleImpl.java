@@ -34,11 +34,11 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
-import ch.alni.certblues.acme.client.AccountKeyPair;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Authorization;
 import ch.alni.certblues.acme.client.AuthorizationHandle;
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -49,7 +49,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
     private final Duration requestTimout;
     private final Session session;
     private final AtomicReference<Authorization> authRef;
-    private final AccountKeyPair keyPair;
+    private final SigningKeyPair keyPair;
     private final String accountUrl;
     private final String authUrl;
 
@@ -57,7 +57,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
                             Duration requestTimout,
                             Session session,
                             Authorization auth,
-                            AccountKeyPair keyPair,
+                            SigningKeyPair keyPair,
                             String accountUrl, String authUrl) {
         this.httpClient = httpClient;
         this.requestTimout = requestTimout;

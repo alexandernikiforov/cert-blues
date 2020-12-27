@@ -27,24 +27,25 @@ package ch.alni.certblues.acme.client.impl;
 
 import org.slf4j.Logger;
 
-import ch.alni.certblues.acme.client.AccountKeyPair;
 import ch.alni.certblues.acme.client.AcmeRequest;
-import ch.alni.certblues.acme.client.JwsObject;
+import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.jws.Jws;
 import ch.alni.certblues.acme.jws.JwsHeader;
-import ch.alni.certblues.acme.jws.KeyVaultEntry;
-import ch.alni.certblues.acme.jws.Thumbprints;
+import ch.alni.certblues.acme.jws.JwsObject;
+import ch.alni.certblues.acme.key.KeyVaultKey;
+import ch.alni.certblues.acme.key.Thumbprints;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-class AccountKeyPairImpl implements AccountKeyPair {
+class KeyPairImpl implements SigningKeyPair {
 
-    private static final Logger LOG = getLogger(AccountKeyPairImpl.class);
+    private static final Logger LOG = getLogger(KeyPairImpl.class);
 
-    private final KeyVaultEntry keyVaultEntry;
+    private final KeyVaultKey keyVaultKey;
     private final String algorithm;
 
-    AccountKeyPairImpl(KeyVaultEntry keyVaultEntry, String algorithm) {
-        this.keyVaultEntry = keyVaultEntry;
+    KeyPairImpl(KeyVaultKey keyVaultKey, String algorithm) {
+        this.keyVaultKey = keyVaultKey;
         this.algorithm = algorithm;
     }
 
@@ -63,7 +64,7 @@ class AccountKeyPairImpl implements AccountKeyPair {
     @Override
     public JwsObject sign(String requestUrl, Object request, String nonce) {
         final JwsHeader header = JwsHeader.builder()
-                .jwk(keyVaultEntry.getPublicJwk())
+                .jwk(keyVaultKey.getPublicJwk())
                 .alg(algorithm)
                 .url(requestUrl)
                 .nonce(nonce)
@@ -72,7 +73,7 @@ class AccountKeyPairImpl implements AccountKeyPair {
         final String payload = toPayload(request);
         LOG.info("creating a JSON web signature over '{}'", payload);
 
-        return Jws.createJws(keyVaultEntry, header, payload);
+        return Jws.createJws(keyVaultKey, header, payload);
     }
 
     @Override
@@ -87,11 +88,11 @@ class AccountKeyPairImpl implements AccountKeyPair {
         final String payload = toPayload(request);
         LOG.info("creating a JSON web signature over '{}' with kid={}", payload, keyId);
 
-        return Jws.createJws(keyVaultEntry, header, payload);
+        return Jws.createJws(keyVaultKey, header, payload);
     }
 
     @Override
     public String getPublicKeyThumbprint() {
-        return Thumbprints.getSha256Thumbprint(keyVaultEntry.getPublicJwk());
+        return Thumbprints.getSha256Thumbprint(keyVaultKey.getPublicJwk());
     }
 }

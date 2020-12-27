@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.jws;
 
 import com.google.auto.value.AutoValue;
 
@@ -32,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 
 /**
  * All ACME requests with a non-empty body MUST encapsulate their payload in a JSON Web Signature (JWS) [RFC7515]

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.jws;
+package ch.alni.certblues.acme.key;
 
 import org.slf4j.Logger;
 

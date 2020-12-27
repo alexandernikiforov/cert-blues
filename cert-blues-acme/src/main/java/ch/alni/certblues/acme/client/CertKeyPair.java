@@ -25,37 +25,15 @@
 
 package ch.alni.certblues.acme.client;
 
-import com.google.auto.value.AutoValue;
+/**
+ * A key pair associated with a certificate.
+ */
+public interface CertKeyPair extends SigningKeyPair {
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
-@AutoValue
-@JsonDeserialize(builder = OrderFinalizationRequest.Builder.class)
-public abstract class OrderFinalizationRequest implements AcmeRequest {
-
-    public static Builder builder() {
-        return new AutoValue_OrderFinalizationRequest.Builder();
-    }
-
-    @JsonGetter
-    public abstract String csr();
-
-    @AutoValue.Builder
-    @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
-
-        @JsonCreator
-        static Builder create() {
-            return builder();
-        }
-
-        @JsonSetter
-        public abstract Builder csr(String value);
-
-        public abstract OrderFinalizationRequest build();
-    }
+    /**
+     * Creates a new CSR by using this key pair.
+     *
+     * @return base64-urlencoded CSR in DER format
+     */
+    String createCsr();
 }

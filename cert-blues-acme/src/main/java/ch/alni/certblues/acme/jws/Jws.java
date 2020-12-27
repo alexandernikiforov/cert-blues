@@ -23,34 +23,32 @@
  *
  */
 
-package ch.alni.certblues.acme.client.impl;
+package ch.alni.certblues.acme.jws;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import ch.alni.certblues.acme.client.JwsObject;
 import ch.alni.certblues.acme.json.ObjectMapperFactory;
-import ch.alni.certblues.acme.jws.JwsHeader;
-import ch.alni.certblues.acme.jws.KeyVaultEntry;
+import ch.alni.certblues.acme.key.KeyVaultKey;
 
 /**
  * Static utility class to create the JSON web signatures.
  */
-final class Jws {
+public final class Jws {
 
     private Jws() {
         // static utility class
     }
 
-    public static JwsObject createJws(KeyVaultEntry keyVaultEntry, JwsHeader header, String payload) {
+    public static JwsObject createJws(KeyVaultKey keyVaultKey, JwsHeader header, String payload) {
         // create the signature
         final String protectedHeader = encode(serialize(header));
         final String encodedPayload = encode(payload);
 
         final String content = protectedHeader + '.' + encodedPayload;
-        final String signature = keyVaultEntry.sign(header.alg(), content);
+        final String signature = keyVaultKey.sign(header.alg(), content);
 
         return JwsObject.builder()
                 .protectedHeader(protectedHeader)
@@ -59,8 +57,8 @@ final class Jws {
                 .build();
     }
 
-    public static String createJwt(KeyVaultEntry keyVaultEntry, JwsHeader header, String payload) {
-        final JwsObject jwsObject = createJws(keyVaultEntry, header, payload);
+    public static String createJwt(KeyVaultKey keyVaultKey, JwsHeader header, String payload) {
+        final JwsObject jwsObject = createJws(keyVaultKey, header, payload);
 
         final String protectedHeader = jwsObject.protectedHeader();
         final String encodedPayload = jwsObject.payload();

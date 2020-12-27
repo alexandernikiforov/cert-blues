@@ -40,4 +40,8 @@ public interface OrderHandle {
      * Retrieves the current challenges.
      */
     List<AuthorizationHandle> getAuthorizations();
+
+    Order finalizeOrder();
+
+    String downloadCertificate();
 }

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.jws;
+package ch.alni.certblues.acme.key;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -39,11 +39,11 @@ import java.util.UUID;
 /**
  * A simple key vault entry wrapping an RSA asymmetric key pair.
  */
-public class SimpleRsaKeyVaultEntry implements KeyVaultEntry {
+public class SimpleRsaKeyEntry implements KeyVaultKey {
     private final String kid = UUID.randomUUID().toString();
     private final KeyPair keyPair;
 
-    public SimpleRsaKeyVaultEntry(KeyPair keyPair) {
+    public SimpleRsaKeyEntry(KeyPair keyPair) {
         this.keyPair = keyPair;
     }
 

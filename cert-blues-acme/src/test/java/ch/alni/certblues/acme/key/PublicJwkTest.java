@@ -23,12 +23,11 @@
  *
  */
 
-package ch.alni.certblues.acme.jws;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+package ch.alni.certblues.acme.key;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
@@ -36,26 +35,28 @@ import ch.alni.certblues.acme.json.ObjectMapperFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ThumbprintsTest {
+class PublicJwkTest {
 
     @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
+    void testRsaPublicKey() throws IOException {
+        final var mapper = ObjectMapperFactory.getObjectMapper();
+        final PublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
+                getClass().getResourceAsStream("/rsa-public-key.json"), StandardCharsets.UTF_8
+        ));
 
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+        String result = mapper.writeValueAsString(publicJwk);
+
+        assertThat(publicJwk).isInstanceOf(RsaPublicJwk.class);
     }
 
     @Test
-    void getSha256ThumbprintForPebble() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example-pebble.json"), StandardCharsets.UTF_8)
-        );
+    void testEcPublicKey() throws IOException {
+        final var mapper = ObjectMapperFactory.getObjectMapper();
+        final EcPublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
+                getClass().getResourceAsStream("/ec-public-key.json"), StandardCharsets.UTF_8
+        ));
 
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("s-aVZBN444ZRQPQyZw66-mDh2nVd_fJ7Ed6T--6Pzyo");
+        assertThat(publicJwk).isInstanceOf(EcPublicJwk.class);
     }
 
 }

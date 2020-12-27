@@ -23,35 +23,46 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.key;
 
-/**
- * Account key pair is used to sign the ACME requests on behalf of an account holding a pair of keys.
- */
-public interface AccountKeyPair {
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeId;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-    /**
-     * Signs the following ACME request by wrapping it into a JWS and passing the public key as 'jwk' attribute in the
-     * protected header.
-     *
-     * @param requestUri the URI this request should be sent to
-     * @param request    ACME request
-     * @param nonce      the nonce received from the server
-     * @return the signed request
-     */
-    JwsObject sign(String requestUri, Object request, String nonce);
+import org.jetbrains.annotations.Nullable;
 
-    /**
-     * Signs the following ACME request by wrapping it into a JWS and using the 'kid' attribute in the protected
-     * header.
-     *
-     * @param requestUri the URI this request should be sent to
-     * @param keyId      the key ID to be used
-     * @param request    ACME request
-     * @param nonce      the nonce received from the server
-     * @return the signed request
-     */
-    JwsObject sign(String requestUri, String keyId, Object request, String nonce);
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        property = "kty")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = RsaPublicJwk.class, name = "RSA"),
+        @JsonSubTypes.Type(value = EcPublicJwk.class, name = "EC")
+})
+public interface PublicJwk {
 
-    String getPublicKeyThumbprint();
+    @JsonTypeId
+    @JsonGetter
+    String kty();
+
+    @JsonGetter
+    @Nullable
+    String kid();
+
+    @JsonGetter
+    @Nullable
+    String use();
+
+    interface Builder<BuilderType> {
+
+        @JsonSetter
+        BuilderType kty(String value);
+
+        @JsonSetter
+        BuilderType kid(String value);
+
+        @JsonSetter
+        BuilderType use(String value);
+    }
 }

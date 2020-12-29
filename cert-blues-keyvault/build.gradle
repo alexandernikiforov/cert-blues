@@ -23,29 +23,29 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+plugins {
+    id 'java-library'
+    id 'org.unbroken-dome.test-sets'
+}
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+testSets {
+    integrationTest
+}
 
-import org.junit.jupiter.api.Test;
+integrationTest {
+    useJUnitPlatform()
+}
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+dependencies {
+    compileOnly 'org.slf4j:slf4j-api:1.7.30'
 
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
+    implementation 'com.microsoft.azure:msal4j:1.8.1'
+    // https://mvnrepository.com/artifact/org.springframework/spring-expression
+    implementation 'org.springframework:spring-expression:5.3.2'
 
-import static org.assertj.core.api.Assertions.assertThat;
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+    testImplementation 'org.assertj:assertj-core:3.18.1'
+    testImplementation 'org.mockito:mockito-core:3.6.28'
 
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
-    }
-
+    testImplementation 'ch.qos.logback:logback-classic:1.2.3'
 }

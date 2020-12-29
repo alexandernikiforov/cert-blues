@@ -7,10 +7,6 @@ testSets {
     integrationTest
 }
 
-test {
-    useJUnitPlatform()
-}
-
 integrationTest {
     useJUnitPlatform()
 }

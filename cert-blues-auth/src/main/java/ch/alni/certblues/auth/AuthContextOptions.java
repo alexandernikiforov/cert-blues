@@ -23,29 +23,36 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auto.value.AutoValue;
 
-import org.junit.jupiter.api.Test;
+import java.util.concurrent.ExecutorService;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+/**
+ * Options to create the auth context.
+ */
+@AutoValue
+public abstract class AuthContextOptions {
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    public static Builder builder() {
+        return new AutoValue_AuthContextOptions.Builder();
     }
 
+    public abstract ExecutorService getExecutorService();
+
+    public abstract ConnectionOptions getConnectionOptions();
+
+    @AutoValue.Builder
+    public abstract static class Builder {
+
+        /**
+         * Sets the executor service to perform requests to issue tokens.
+         */
+        public abstract Builder setExecutorService(ExecutorService value);
+
+        public abstract Builder setConnectionOptions(ConnectionOptions value);
+
+        public abstract AuthContextOptions build();
+    }
 }

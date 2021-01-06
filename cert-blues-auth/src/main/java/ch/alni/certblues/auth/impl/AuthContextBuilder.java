@@ -23,29 +23,35 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 
-import org.junit.jupiter.api.Test;
+import java.util.concurrent.ScheduledExecutorService;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import ch.alni.certblues.auth.AuthContext;
+import ch.alni.certblues.auth.ConnectionOptions;
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
+public class AuthContextBuilder {
 
-import static org.assertj.core.api.Assertions.assertThat;
+    private ScheduledExecutorService executorService;
 
-class ThumbprintsTest {
+    private ConnectionOptions connectionOptions;
 
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    public AuthContextBuilder setExecutorService(ScheduledExecutorService executorService) {
+        this.executorService = executorService;
+        return this;
     }
 
+    public AuthContextBuilder setConnectionOptions(ConnectionOptions connectionOptions) {
+        this.connectionOptions = connectionOptions;
+        return this;
+    }
+
+    public AuthContext build() {
+        Preconditions.checkArgument(executorService != null, "executor service cannot be null");
+        Preconditions.checkArgument(connectionOptions != null, "connection options cannot be null");
+
+        return new AuthContextImpl(executorService, connectionOptions);
+    }
 }

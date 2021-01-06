@@ -23,29 +23,30 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.jupiter.api.Test;
-
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
+import ch.alni.certblues.auth.AuthContextException;
 import ch.alni.certblues.common.json.ObjectMapperFactory;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/**
+ * Static utility class to work with ACME request and response payloads.
+ */
+final class Payloads {
 
-class ThumbprintsTest {
+    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperFactory.getObjectMapper();
 
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    private Payloads() {
     }
 
+    static <T> T deserialize(String value, Class<T> clazz) {
+        try {
+            return OBJECT_MAPPER.readerFor(clazz).readValue(value);
+        }
+        catch (JsonProcessingException e) {
+            throw new AuthContextException("error while parsing the server response: " + value, e);
+        }
+    }
 }

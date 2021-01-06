@@ -23,29 +23,44 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auto.value.AutoValue;
 
-import org.junit.jupiter.api.Test;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+/**
+ * Managed identity parameters.
+ */
+@AutoValue
+public abstract class ManagedIdentity {
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    public static Builder builder() {
+        return new AutoValue_ManagedIdentity.Builder();
     }
 
+    public abstract String getResource();
+
+    @Nullable
+    public abstract String getObjectId();
+
+    @Nullable
+    public abstract String getClientId();
+
+    @Nullable
+    public abstract String getManagedIdentityResourceId();
+
+    @AutoValue.Builder
+    public abstract static class Builder {
+
+        public abstract Builder setResource(String value);
+
+        public abstract Builder setObjectId(String value);
+
+        public abstract Builder setClientId(String value);
+
+        public abstract Builder setManagedIdentityResourceId(String value);
+
+        public abstract ManagedIdentity build();
+    }
 }

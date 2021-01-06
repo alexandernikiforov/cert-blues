@@ -23,27 +23,30 @@
  *
  */
 
-package ch.alni.certblues.acme.json;
+package ch.alni.certblues.auth.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.IOException;
+import java.util.concurrent.Callable;
+
+import ch.alni.certblues.auth.AuthContextException;
 
 /**
- * Creates the object mapper to use in this project.
+ * Static utility class to work with ACME requests.
  */
-public final class ObjectMapperFactory {
+final class Requests {
 
-    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
-
-    private static ObjectMapper createObjectMapper() {
-        final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return objectMapper;
+    private Requests() {
     }
 
-    public static ObjectMapper getObjectMapper() {
-        return OBJECT_MAPPER;
+    static <T> T withErrorHandling(Callable<T> callable) {
+        try {
+            return callable.call();
+        }
+        catch (IOException e) {
+            throw new AuthContextException("IO error while sending token request", e);
+        }
+        catch (Exception e) {
+            throw new AuthContextException("unexpected exception while calling the token endpoint", e);
+        }
     }
 }

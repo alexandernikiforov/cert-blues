@@ -37,7 +37,21 @@ integrationTest {
 }
 
 dependencies {
+    compileOnly "com.google.auto.value:auto-value-annotations:1.7.4"
+    annotationProcessor "com.google.auto.value:auto-value:1.7.4"
+
+    compileOnly 'org.jetbrains:annotations:20.1.0'
+
+    api(group: 'com.google.guava', name: 'guava', version: '30.1-jre') {
+        transitive = false
+    }
+
+    api 'com.fasterxml.jackson.core:jackson-annotations:2.12.0'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.12.0'
+
     compileOnly 'org.slf4j:slf4j-api:1.7.30'
+
+    implementation project(':cert-blues-common')
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
     testImplementation 'org.assertj:assertj-core:3.18.1'

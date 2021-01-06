@@ -23,29 +23,25 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.concurrent.CompletableFuture;
 
-import org.junit.jupiter.api.Test;
+/**
+ * Recurring token request created by the authentication context.
+ */
+public interface TokenHandle {
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+    /**
+     * Returns a future that will be resolved with a valid token. If there is a token that is currently valid, it will
+     * be returned.
+     */
+    CompletableFuture<TokenResponse> getToken();
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
-    }
+    /**
+     * Returns a future that will be resolved with a valid token. This method will start a new request to get a fresh
+     * token.
+     */
+    CompletableFuture<TokenResponse> renewToken();
 
 }

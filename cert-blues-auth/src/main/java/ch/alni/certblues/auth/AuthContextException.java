@@ -23,29 +23,19 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+/**
+ * Exception thrown when the auth context cannot acquire a new token because of some problem on the client side
+ * (connection error, programmatic error, etc.)
+ */
+public class AuthContextException extends RuntimeException {
 
-import org.junit.jupiter.api.Test;
-
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    public AuthContextException(String message) {
+        super(message);
     }
 
+    public AuthContextException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

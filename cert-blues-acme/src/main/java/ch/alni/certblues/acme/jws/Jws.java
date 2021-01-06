@@ -30,8 +30,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
 import ch.alni.certblues.acme.key.KeyVaultKey;
+import ch.alni.certblues.common.json.ObjectMapperFactory;
 
 /**
  * Static utility class to create the JSON web signatures.

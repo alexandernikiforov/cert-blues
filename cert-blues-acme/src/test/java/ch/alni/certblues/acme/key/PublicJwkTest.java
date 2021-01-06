@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
+import ch.alni.certblues.common.json.ObjectMapperFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

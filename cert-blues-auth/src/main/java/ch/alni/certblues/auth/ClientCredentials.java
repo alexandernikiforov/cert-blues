@@ -23,29 +23,39 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auto.value.AutoValue;
 
-import org.junit.jupiter.api.Test;
+/**
+ * Client credentials.
+ */
+@AutoValue
+public abstract class ClientCredentials {
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    public static Builder builder() {
+        return new AutoValue_ClientCredentials.Builder();
     }
 
+    public abstract String getTenant();
+
+    public abstract String getClientId();
+
+    public abstract String getScope();
+
+    public abstract String getClientSecret();
+
+    @AutoValue.Builder
+    public abstract static class Builder {
+
+        public abstract Builder setTenant(String value);
+
+        public abstract Builder setClientId(String value);
+
+        public abstract Builder setScope(String value);
+
+        public abstract Builder setClientSecret(String value);
+
+        public abstract ClientCredentials build();
+    }
 }

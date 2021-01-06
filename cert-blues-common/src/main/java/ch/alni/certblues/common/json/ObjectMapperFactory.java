@@ -23,29 +23,27 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.common.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import org.junit.jupiter.api.Test;
+/**
+ * Creates the object mapper to use in this project.
+ */
+public final class ObjectMapperFactory {
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ThumbprintsTest {
-
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
-
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    private static ObjectMapper createObjectMapper() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return objectMapper;
     }
 
+    public static ObjectMapper getObjectMapper() {
+        return OBJECT_MAPPER;
+    }
 }

@@ -33,7 +33,7 @@ import java.util.Optional;
 
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.Error;
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
+import ch.alni.certblues.common.json.ObjectMapperFactory;
 
 /**
  * Static utility class to work with ACME request and response payloads.

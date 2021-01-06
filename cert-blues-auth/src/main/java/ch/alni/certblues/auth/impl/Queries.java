@@ -23,29 +23,33 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.auth.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.junit.jupiter.api.Test;
-
-import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
+final class Queries {
 
-import static org.assertj.core.api.Assertions.assertThat;
+    private Queries() {
+    }
 
-class ThumbprintsTest {
+    public static URI create(String baseUrl, Map<String, String> params) {
+        final String queryString = concatenateParams(params);
+        return URI.create(URLEncoder.encode(baseUrl + '?' + queryString, StandardCharsets.UTF_8));
+    }
 
-    @Test
-    void getSha256Thumbprint() throws Exception {
-        final ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = objectMapper.readerFor(PublicJwk.class).readValue(
-                new InputStreamReader(getClass().getResourceAsStream("/jwk-example.json"), StandardCharsets.UTF_8)
-        );
+    public static String toQueryString(Map<String, String> params) {
+        return URLEncoder.encode(concatenateParams(params), StandardCharsets.UTF_8);
+    }
 
-        assertThat(Thumbprints.getSha256Thumbprint(publicJwk)).isEqualTo("NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+    private static String concatenateParams(Map<String, String> params) {
+        return params.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .map(entry -> String.format("%s=%s", entry.getKey(), entry.getValue()))
+                .collect(Collectors.joining("&"));
     }
 
 }

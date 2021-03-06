@@ -27,12 +27,14 @@ package ch.alni.certblues.auth.impl;
 
 import org.slf4j.Logger;
 
+import java.net.http.HttpClient;
 import java.util.concurrent.ScheduledExecutorService;
 
 import ch.alni.certblues.auth.AuthContext;
 import ch.alni.certblues.auth.ClientCredentials;
 import ch.alni.certblues.auth.ConnectionOptions;
 import ch.alni.certblues.auth.ManagedIdentity;
+import ch.alni.certblues.auth.RetryStrategy;
 import ch.alni.certblues.auth.TokenHandle;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -44,9 +46,10 @@ class AuthContextImpl implements AuthContext {
     private final RequestExecutor requestExecutor;
     private final TokenEndpointClient endpointClient;
 
-    AuthContextImpl(ScheduledExecutorService executorService, ConnectionOptions connectionOptions) {
-        this.requestExecutor = new RequestExecutor(executorService, connectionOptions);
-        this.endpointClient = new TokenEndpointClient(connectionOptions);
+    AuthContextImpl(RetryStrategy retryStrategy, ScheduledExecutorService executorService,
+                    ConnectionOptions connectionOptions, HttpClient httpClient) {
+        this.requestExecutor = new RequestExecutor(executorService, retryStrategy);
+        this.endpointClient = new TokenEndpointClient(httpClient, connectionOptions);
     }
 
     @Override

@@ -39,7 +39,7 @@ integrationTest {
 dependencies {
     compileOnly 'org.slf4j:slf4j-api:1.7.30'
 
-    implementation 'com.microsoft.azure:msal4j:1.8.1'
+    implementation 'com.azure:azure-identity:1.2.3'
     // https://mvnrepository.com/artifact/org.springframework/spring-expression
     implementation 'org.springframework:spring-expression:5.3.2'
 

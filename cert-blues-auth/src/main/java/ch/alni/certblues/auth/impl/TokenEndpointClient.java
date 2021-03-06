@@ -50,15 +50,13 @@ class TokenEndpointClient {
     private final static String MANAGED_IDENTITY_URI = "http://169.254.169.254/metadata/identity/oauth2/token";
     private final static String CLIENT_CREDENTIALS_URI = "https://login.microsoftonline.com/%s/oauth2/v2.0/token";
 
-    private final ConnectionOptions options;
     private final HttpClient httpClient;
 
-    TokenEndpointClient(ConnectionOptions options) {
-        this.options = options;
+    private final ConnectionOptions connectionOptions;
 
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(options.getConnectionTimeout())
-                .build();
+    TokenEndpointClient(HttpClient httpClient, ConnectionOptions connectionOptions) {
+        this.httpClient = httpClient;
+        this.connectionOptions = connectionOptions;
     }
 
     /**
@@ -78,7 +76,7 @@ class TokenEndpointClient {
                 .uri(Queries.create(MANAGED_IDENTITY_URI, params))
                 .header("Metadata", "true")
                 .GET()
-                .timeout(options.getRequestTimeout())
+                .timeout(connectionOptions.getRequestTimeout())
                 .build();
 
         return getTokenResponse(httpRequest);
@@ -102,7 +100,7 @@ class TokenEndpointClient {
                 .uri(URI.create(url))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(Queries.toQueryString(params)))
-                .timeout(options.getRequestTimeout())
+                .timeout(connectionOptions.getRequestTimeout())
                 .build();
 
         return getTokenResponse(httpRequest);

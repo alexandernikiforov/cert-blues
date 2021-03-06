@@ -32,7 +32,7 @@ public interface DirectoryHandle {
 
     /**
      * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account
+     * interface to work with the returned account.
      *
      * @param keyPair the key pair that should be used to identify the account and sign requests to get the
      *                account-related resources

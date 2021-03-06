@@ -27,14 +27,13 @@ package ch.alni.certblues.auth.impl;
 
 import org.slf4j.Logger;
 
-import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import ch.alni.certblues.auth.AuthContextException;
-import ch.alni.certblues.auth.ConnectionOptions;
+import ch.alni.certblues.auth.RetryStrategy;
 import ch.alni.certblues.auth.TokenEndpointException;
 import ch.alni.certblues.auth.TokenResponse;
 
@@ -47,13 +46,11 @@ class RequestExecutor {
     private static final Logger LOG = getLogger(RequestExecutor.class);
 
     private final ScheduledExecutorService executorService;
-    private final int numberOfRetries;
-    private final Duration retryInterval;
+    private final RetryStrategy retryStrategy;
 
-    RequestExecutor(ScheduledExecutorService executorService, ConnectionOptions options) {
+    RequestExecutor(ScheduledExecutorService executorService, RetryStrategy retryStrategy) {
         this.executorService = executorService;
-        this.numberOfRetries = options.getNumberOfRetries();
-        this.retryInterval = options.getRetryInterval();
+        this.retryStrategy = retryStrategy;
     }
 
     /**
@@ -63,11 +60,11 @@ class RequestExecutor {
      * @param request request to be run to acquire the token
      */
     void requestToken(CompletableFuture<TokenResponse> future, Callable<TokenResponse> request) {
-        executorService.execute(() -> doRequestToken(future, request, numberOfRetries));
+        executorService.execute(() -> doRequestToken(future, request));
     }
 
-    private void doRequestToken(CompletableFuture<TokenResponse> future, Callable<TokenResponse> request, int retryCount) {
-        LOG.info("executing request, attempt {} of {}", retryCount, numberOfRetries);
+    private void doRequestToken(CompletableFuture<TokenResponse> future, Callable<TokenResponse> request) {
+        LOG.info("executing request");
 
         try {
             final TokenResponse response = request.call();
@@ -76,11 +73,11 @@ class RequestExecutor {
         }
         catch (TokenEndpointException e) {
             LOG.error("token endpoint returned an error while getting a new token", e);
-            if (retryCount < numberOfRetries) {
+            if (e.isRetryable() && retryStrategy.hasNextAttempt()) {
                 LOG.debug("token request will be retried");
-                int newRetryCount = retryCount - 1;
-                executorService.schedule(() -> doRequestToken(future, request, newRetryCount),
-                        retryInterval.toMillis(), TimeUnit.MILLISECONDS
+                final var nextAttemptDelay = retryStrategy.getNextAttemptDelay();
+                executorService.schedule(() -> doRequestToken(future, request),
+                        nextAttemptDelay.toMillis(), TimeUnit.MILLISECONDS
                 );
             }
             else {

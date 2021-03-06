@@ -25,37 +25,20 @@
 
 package ch.alni.certblues.auth;
 
-import com.google.auto.value.AutoValue;
-
 import java.time.Duration;
 
 /**
- * Connection options.
+ * Describes the retry strategy for the requests to the token endpoints.
  */
-@AutoValue
-public abstract class ConnectionOptions {
-
-    public static Builder builder() {
-        return new AutoValue_ConnectionOptions.Builder();
-    }
+public interface RetryStrategy {
 
     /**
-     * Returns the timeout to open the connection.
+     * Returns the delay for the next attempt.
      */
-    public abstract Duration getConnectTimeout();
+    Duration getNextAttemptDelay();
 
     /**
-     * Returns the timeout to wait for the request to come.
+     * Returns true if a next attempt is possible.
      */
-    public abstract Duration getRequestTimeout();
-
-    @AutoValue.Builder
-    public abstract static class Builder {
-
-        public abstract Builder setConnectTimeout(Duration value);
-
-        public abstract Builder setRequestTimeout(Duration value);
-
-        public abstract ConnectionOptions build();
-    }
+    boolean hasNextAttempt();
 }

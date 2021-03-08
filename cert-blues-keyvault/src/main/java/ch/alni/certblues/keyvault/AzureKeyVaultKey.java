@@ -51,11 +51,9 @@ public class AzureKeyVaultKey implements KeyVaultKey {
     private static final Logger LOG = getLogger(AzureKeyVaultKey.class);
 
     private final CryptographyClient client;
-    private final com.azure.security.keyvault.keys.models.KeyVaultKey key;
 
-    public AzureKeyVaultKey(CryptographyClient client, com.azure.security.keyvault.keys.models.KeyVaultKey key) {
+    public AzureKeyVaultKey(CryptographyClient client) {
         this.client = client;
-        this.key = key;
     }
 
     private static byte[] createDigest(byte[] data) {
@@ -83,6 +81,7 @@ public class AzureKeyVaultKey implements KeyVaultKey {
 
     @Override
     public PublicJwk getPublicJwk() {
+        final var key = client.getKey();
         final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
         final KeyType keyType = key.getKeyType();
 

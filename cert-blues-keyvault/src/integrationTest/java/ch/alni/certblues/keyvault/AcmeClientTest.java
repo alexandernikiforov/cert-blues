@@ -23,12 +23,23 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.keyvault;
+
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.security.keyvault.keys.KeyClientBuilder;
+import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.security.keyvault.keys.models.KeyVaultKey;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import ch.alni.certblues.acme.client.AccountRequest;
+import ch.alni.certblues.acme.client.AcmeClient;
+import ch.alni.certblues.acme.client.Directory;
+import ch.alni.certblues.acme.client.DirectoryHandle;
 import ch.alni.certblues.acme.client.impl.AcmeClientBuilder;
+import ch.alni.certblues.acme.client.impl.KeyPairBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -37,6 +48,8 @@ class AcmeClientTest {
     private static final Logger LOG = getLogger(AcmeClientTest.class);
 
     private static final String DIRECTORY_URL = "https://acme-staging-v02.api.letsencrypt.org/directory";
+    private static final String KEY_VAULT_URL = "https://cert-blues-dev.vault.azure.net";
+    private static final String ACCOUNT_KEY = "accountKey";
 
     private final AcmeClient client = new AcmeClientBuilder()
             .build();
@@ -46,9 +59,35 @@ class AcmeClientTest {
         final DirectoryHandle directoryHandle = client.getDirectory(DIRECTORY_URL);
 
         final Directory directory = directoryHandle.getDirectory();
-        assertThat(directory.meta()).isNotNull();
-        assertThat(directory.meta().caaIdentities()).contains("letsencrypt.org");
 
         LOG.debug("directory: {}", directory);
+
+        // initialize the Azure client
+        final var credential = new DefaultAzureCredentialBuilder()
+                .build();
+
+        // Azure SDK client builders accept the credential as a parameter
+        final var client = new KeyClientBuilder()
+                .vaultUrl(KEY_VAULT_URL)
+                .credential(credential)
+                .buildClient();
+
+        final KeyVaultKey existingKey = client.getKey(ACCOUNT_KEY);
+
+        final CryptographyClient cryptographyClient = new CryptographyClientBuilder()
+                .credential(credential)
+                .keyIdentifier(existingKey.getId())
+                .buildClient();
+
+        final var accountKeyPair = new KeyPairBuilder()
+                .setAlgorithm("RS256")
+                .setKeyVaultKey(new AzureKeyVaultKey(cryptographyClient))
+                .build();
+
+        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountRequest.builder()
+                .termsOfServiceAgreed(true)
+                .build());
+
+        assertThat(accountHandle.getAccount()).isNotNull();
     }
 }

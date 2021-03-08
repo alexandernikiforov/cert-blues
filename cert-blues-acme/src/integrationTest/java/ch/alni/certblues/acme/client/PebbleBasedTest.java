@@ -185,11 +185,11 @@ class PebbleBasedTest {
 
     private SSLContext getSslContext() {
         try {
-            final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(getClass().getResourceAsStream("/truststore.p12"), "123456".toCharArray());
+            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            trustStore.load(getClass().getResourceAsStream("/truststore.p12"), "123456".toCharArray());
 
             final var tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(keyStore);
+            tmf.init(trustStore);
 
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());

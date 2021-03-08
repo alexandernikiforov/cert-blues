@@ -40,7 +40,6 @@ import ch.alni.certblues.acme.client.AccountHandle;
 import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
-import ch.alni.certblues.acme.client.CertKeyPair;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderHandle;
 import ch.alni.certblues.acme.client.OrderRequest;
@@ -121,7 +120,7 @@ class AccountHandleImpl implements AccountHandle {
     }
 
     @Override
-    public OrderHandle createOrder(CertKeyPair certKeyPair, OrderRequest orderRequest) {
+    public OrderHandle createOrder(OrderRequest orderRequest) {
         LOG.info("creating a new order with parameters {}", orderRequest);
 
         final var directory = session.getDirectory();
@@ -146,11 +145,11 @@ class AccountHandleImpl implements AccountHandle {
         final int statusCode = response.statusCode();
         if (statusCode == 201) {
             LOG.info("a new order has been created {}", response.body());
-            return toOrderHandle(certKeyPair, response);
+            return toOrderHandle(response);
         }
         else if (statusCode < 400) {
             LOG.warn("unexpected status code {} returned", statusCode);
-            return toOrderHandle(certKeyPair, response);
+            return toOrderHandle(response);
         }
         else {
             Payloads.extractError(response).ifPresent(
@@ -211,14 +210,14 @@ class AccountHandleImpl implements AccountHandle {
         return account;
     }
 
-    private OrderHandle toOrderHandle(CertKeyPair certKeyPair, HttpResponse<String> response) {
+    private OrderHandle toOrderHandle(HttpResponse<String> response) {
         final Order order = Payloads.deserialize(response.body(), Order.class);
         final String orderUrl = Payloads.findLocation(response)
                 .orElseThrow(() -> new AcmeClientException("cannot find Location header in the response"));
 
         return RetryableHandle.create(
                 session,
-                new OrderHandleImpl(httpClient, requestTimout, session, order, keyPair, accountUrl, certKeyPair, orderUrl),
+                new OrderHandleImpl(httpClient, requestTimout, session, order, keyPair, accountUrl, orderUrl),
                 OrderHandle.class
         );
     }

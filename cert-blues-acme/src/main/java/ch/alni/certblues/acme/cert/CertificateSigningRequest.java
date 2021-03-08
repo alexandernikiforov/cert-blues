@@ -23,31 +23,46 @@
  *
  */
 
-package ch.alni.certblues.acme.client.impl;
+package ch.alni.certblues.acme.cert;
 
-import com.google.common.base.Preconditions;
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 
-import ch.alni.certblues.acme.cert.KeyVaultCert;
-import ch.alni.certblues.acme.client.CertKeyPair;
+import java.security.KeyPair;
+import java.util.List;
 
-public class CertKeyPairBuilder {
+/**
+ * The value object representing a CSR.
+ */
+@AutoValue
+public abstract class CertificateSigningRequest {
 
-    private String algorithm;
-    private KeyVaultCert keyVaultCert;
-
-    public CertKeyPairBuilder setAlgorithm(String algorithm) {
-        this.algorithm = algorithm;
-        return this;
+    public static Builder builder() {
+        return new AutoValue_CertificateSigningRequest.Builder()
+                .setSubjectAltNames(List.of());
     }
 
-    public CertKeyPairBuilder setKeyVaultCert(KeyVaultCert keyVaultCert) {
-        this.keyVaultCert = keyVaultCert;
-        return this;
-    }
+    /**
+     * The key pair used to create the certificate.
+     */
+    public abstract KeyPair getKeyPair();
 
-    public CertKeyPair build() {
-        Preconditions.checkNotNull(algorithm, "algorithm cannot be null");
-        Preconditions.checkNotNull(keyVaultCert, "the key vault cert cannot be null");
-        return new CertKeyPairImpl(keyVaultCert, algorithm);
+    /**
+     * Returns the subject distinguished name.
+     */
+    public abstract String getSubjectDn();
+
+    public abstract ImmutableList<SubjectAltName> getSubjectAltNames();
+
+    @AutoValue.Builder
+    public abstract static class Builder {
+
+        public abstract Builder setKeyPair(KeyPair keyPair);
+
+        public abstract Builder setSubjectDn(String subjectDn);
+
+        public abstract Builder setSubjectAltNames(List<SubjectAltName> subjectAltNames);
+
+        public abstract CertificateSigningRequest build();
     }
 }

@@ -49,9 +49,6 @@ public abstract class RsaPublicJwk implements PublicJwk {
     }
 
     @JsonGetter
-    public abstract String alg();
-
-    @JsonGetter
     public abstract String n();
 
     @JsonGetter
@@ -69,9 +66,6 @@ public abstract class RsaPublicJwk implements PublicJwk {
 
         @JsonSetter
         public abstract Builder n(String value);
-
-        @JsonSetter
-        public abstract Builder alg(String value);
 
         @JsonSetter
         public abstract Builder e(String value);

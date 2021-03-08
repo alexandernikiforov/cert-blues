@@ -37,8 +37,8 @@ integrationTest {
 }
 
 dependencies {
-    compileOnly "com.google.auto.value:auto-value-annotations:1.7.4"
-    annotationProcessor "com.google.auto.value:auto-value:1.7.4"
+    compileOnly 'com.google.auto.value:auto-value-annotations:1.7.4'
+    annotationProcessor 'com.google.auto.value:auto-value:1.7.4'
 
     compileOnly 'org.jetbrains:annotations:20.1.0'
 

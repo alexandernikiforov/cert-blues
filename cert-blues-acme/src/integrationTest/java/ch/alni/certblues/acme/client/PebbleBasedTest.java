@@ -41,10 +41,9 @@ import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import ch.alni.certblues.acme.cert.KeyVaultCert;
-import ch.alni.certblues.acme.cert.SimpleCertEntry;
+import ch.alni.certblues.acme.cert.CertificateSigningRequest;
+import ch.alni.certblues.acme.cert.SubjectAltName;
 import ch.alni.certblues.acme.client.impl.AcmeClientBuilder;
-import ch.alni.certblues.acme.client.impl.CertKeyPairBuilder;
 import ch.alni.certblues.acme.client.impl.KeyPairBuilder;
 import ch.alni.certblues.acme.key.KeyVaultKey;
 import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
@@ -97,14 +96,7 @@ class PebbleBasedTest {
         final Account account = accountHandle.reloadAccount();
         assertThat(account.status()).isEqualTo(AccountStatus.VALID);
 
-        final KeyPair certKeys = keyPairGenerator.generateKeyPair();
-        final KeyVaultCert keyVaultCert = new SimpleCertEntry(certKeys, "CN=testserver.com", "testserver.com");
-        final var certKeyPair = new CertKeyPairBuilder()
-                .setAlgorithm("RS256")
-                .setKeyVaultCert(keyVaultCert)
-                .build();
-
-        final var orderHandle = accountHandle.createOrder(certKeyPair, OrderRequest.builder()
+        final var orderHandle = accountHandle.createOrder(OrderRequest.builder()
                 .identifiers(List.of(
                         Identifier.builder().type("dns").value("testserver.com").build()
                 ))
@@ -146,7 +138,14 @@ class PebbleBasedTest {
         orderHandle.reloadOrder();
         assertThat(orderHandle.getOrder().status()).isEqualTo(OrderStatus.READY);
 
-        orderHandle.finalizeOrder();
+        final KeyPair certKeys = keyPairGenerator.generateKeyPair();
+        final CertificateSigningRequest csr = CertificateSigningRequest.builder()
+                .setKeyPair(certKeys)
+                .setSubjectDn("CN=testserver.com")
+                .setSubjectAltNames(List.of(SubjectAltName.dns("testserver.com")))
+                .build();
+
+        orderHandle.finalizeOrder(csr);
 
         for (int i = 0; i < 10; i++) {
             final Order order = orderHandle.reloadOrder();

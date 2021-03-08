@@ -25,22 +25,36 @@
 
 package ch.alni.certblues.acme.cert;
 
-import ch.alni.certblues.acme.key.KeyVaultKey;
+import com.google.auto.value.AutoValue;
 
 /**
- * Abstraction over a certificate entry in the key vault.
+ * Value object for subject alt names.
  */
-public interface KeyVaultCert {
+@AutoValue
+public abstract class SubjectAltName {
+
+    public static final int TYPE_DNS = 2;
+    public static final int TYPE_IP_ADDRESS = 7;
+
+    public static SubjectAltName create(int type, String value) {
+        return new AutoValue_SubjectAltName(type, value);
+    }
+
+    public static SubjectAltName dns(String value) {
+        return new AutoValue_SubjectAltName(TYPE_DNS, value);
+    }
+
+    public static SubjectAltName ipAddress(String value) {
+        return new AutoValue_SubjectAltName(TYPE_IP_ADDRESS, value);
+    }
 
     /**
-     * The key pair associated with this certificate entry.
+     * Type of the SAN.
      */
-    KeyVaultKey getKey();
+    public abstract int getType();
 
     /**
-     * Creates a new certificate signing request.
-     *
-     * @return a new CSR in the DER format.
+     * The SAN value.
      */
-    String createCsr();
+    public abstract String getValue();
 }

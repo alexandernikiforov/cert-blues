@@ -41,45 +41,32 @@ import java.util.Base64;
 
 import javax.security.auth.x500.X500Principal;
 
-import ch.alni.certblues.acme.key.KeyVaultKey;
-import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
-
 /**
- * Simple certificate entry wrapping an RSA key pair.
+ * Static utility class to work with CSRs.
  */
-public class SimpleCertEntry implements KeyVaultCert {
+public final class CertificateSigningRequests {
     private static final String CSR_SIGNING_ALG = "SHA256withRSA";
 
-    private final KeyPair keyPair;
-    private final String distinguishedName;
-    private final String dns;
-    private final KeyVaultKey rsaKeyEntry;
-
-    public SimpleCertEntry(KeyPair keyPair, String distinguishedName, String dns) {
-        this.keyPair = keyPair;
-        this.rsaKeyEntry = new SimpleRsaKeyEntry(keyPair);
-        this.distinguishedName = distinguishedName;
-        this.dns = dns;
+    private CertificateSigningRequests() {
     }
 
-    @Override
-    public KeyVaultKey getKey() {
-        return rsaKeyEntry;
-    }
+    /**
+     * Creates a new CSR as base64-urlencoded string.
+     */
+    public static String toUrlEncodedString(CertificateSigningRequest request) {
+        final KeyPair keyPair = request.getKeyPair();
 
-    @Override
-    public String createCsr() {
         try {
             final var p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                    new X500Principal(distinguishedName), keyPair.getPublic()
+                    new X500Principal(request.getSubjectDn()), keyPair.getPublic()
             );
 
             final var csBuilder = new JcaContentSignerBuilder(CSR_SIGNING_ALG);
             final ContentSigner signer = csBuilder.build(keyPair.getPrivate());
 
-            final GeneralName[] subjectAltNames = new GeneralName[]{
-                    new GeneralName(GeneralName.dNSName, dns)
-            };
+            final GeneralName[] subjectAltNames = request.getSubjectAltNames().stream()
+                    .map(san -> new GeneralName(san.getType(), san.getValue()))
+                    .toArray(GeneralName[]::new);
 
             final Extension[] extensions = new Extension[]{
                     Extension.create(Extension.subjectAlternativeName, true, new GeneralNames(subjectAltNames))

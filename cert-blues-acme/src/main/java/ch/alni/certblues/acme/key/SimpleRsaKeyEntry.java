@@ -92,7 +92,6 @@ public class SimpleRsaKeyEntry implements KeyVaultKey {
         return RsaPublicJwk.builder()
                 .kid(kid)
                 .use("sig")
-                .alg("RS256")
                 .n(n)
                 .e(e)
                 .build();

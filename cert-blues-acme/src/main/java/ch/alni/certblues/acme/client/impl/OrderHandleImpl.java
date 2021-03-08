@@ -38,10 +38,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import ch.alni.certblues.acme.cert.CertificateSigningRequest;
+import ch.alni.certblues.acme.cert.CertificateSigningRequests;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Authorization;
 import ch.alni.certblues.acme.client.AuthorizationHandle;
-import ch.alni.certblues.acme.client.CertKeyPair;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderFinalizationRequest;
 import ch.alni.certblues.acme.client.OrderHandle;
@@ -59,7 +60,6 @@ class OrderHandleImpl implements OrderHandle {
     private final AtomicReference<Order> orderRef;
     private final SigningKeyPair keyPair;
     private final String accountUrl;
-    private final CertKeyPair certKeyPair;
     private final String orderUrl;
 
     OrderHandleImpl(HttpClient httpClient,
@@ -67,7 +67,8 @@ class OrderHandleImpl implements OrderHandle {
                     Session session,
                     Order order,
                     SigningKeyPair keyPair,
-                    String accountUrl, CertKeyPair certKeyPair, String orderUrl) {
+                    String accountUrl,
+                    String orderUrl) {
 
         this.httpClient = httpClient;
         this.requestTimout = requestTimout;
@@ -75,7 +76,6 @@ class OrderHandleImpl implements OrderHandle {
         this.orderRef = new AtomicReference<>(order);
         this.keyPair = keyPair;
         this.accountUrl = accountUrl;
-        this.certKeyPair = certKeyPair;
         this.orderUrl = orderUrl;
     }
 
@@ -133,13 +133,13 @@ class OrderHandleImpl implements OrderHandle {
     }
 
     @Override
-    public Order finalizeOrder() {
-        LOG.info("finalizing the certificate order");
+    public Order finalizeOrder(CertificateSigningRequest csr) {
+        LOG.info("finalizing the certificate order for CSR {}", csr);
 
         final var nonce = session.getNonce();
         final var order = orderRef.get();
         final var finalizationRequest = OrderFinalizationRequest.builder()
-                .csr(certKeyPair.createCsr())
+                .csr(CertificateSigningRequests.toUrlEncodedString(csr))
                 .build();
 
         final JwsObject jwsObject = keyPair.sign(order.finalizeUrl(), accountUrl, finalizationRequest, nonce);
@@ -181,7 +181,7 @@ class OrderHandleImpl implements OrderHandle {
         LOG.info("downloading the certificate");
         final Order order = orderRef.get();
 
-        Preconditions.checkState(order.certificate() != null, "certificate is not yer ready");
+        Preconditions.checkState(order.certificate() != null, "certificate is not yet ready");
 
         final var nonce = session.getNonce();
 

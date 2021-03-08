@@ -28,7 +28,7 @@ package ch.alni.certblues.acme.client;
 /**
  * A key pair associated with a certificate.
  */
-public interface CertKeyPair extends SigningKeyPair {
+public interface CertKeyPair {
 
     /**
      * Creates a new CSR by using this key pair.

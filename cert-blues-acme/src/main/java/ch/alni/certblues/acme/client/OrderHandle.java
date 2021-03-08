@@ -27,6 +27,8 @@ package ch.alni.certblues.acme.client;
 
 import java.util.List;
 
+import ch.alni.certblues.acme.cert.CertificateSigningRequest;
+
 /**
  * Interface to work with the order lifecycle.
  */
@@ -41,7 +43,7 @@ public interface OrderHandle {
      */
     List<AuthorizationHandle> getAuthorizations();
 
-    Order finalizeOrder();
+    Order finalizeOrder(CertificateSigningRequest csr);
 
     String downloadCertificate();
 }

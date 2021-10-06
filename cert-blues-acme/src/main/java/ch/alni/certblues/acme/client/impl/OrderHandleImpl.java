@@ -47,6 +47,7 @@ import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderFinalizationRequest;
 import ch.alni.certblues.acme.client.OrderHandle;
 import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -93,7 +94,7 @@ class OrderHandleImpl implements OrderHandle {
         // POST-as-GET request
         final JwsObject jwsObject = keyPair.sign(orderUrl, accountUrl, "", nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(orderUrl))
@@ -144,7 +145,7 @@ class OrderHandleImpl implements OrderHandle {
 
         final JwsObject jwsObject = keyPair.sign(order.finalizeUrl(), accountUrl, finalizationRequest, nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(order.finalizeUrl()))
@@ -188,7 +189,7 @@ class OrderHandleImpl implements OrderHandle {
         // POST-as-GET request
         final JwsObject jwsObject = keyPair.sign(order.certificate(), accountUrl, "", nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(order.certificate()))
@@ -227,7 +228,7 @@ class OrderHandleImpl implements OrderHandle {
         // POST-as-GET request
         final JwsObject jwsObject = keyPair.sign(authorizationUrl, accountUrl, "", nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(authorizationUrl))
@@ -260,7 +261,7 @@ class OrderHandleImpl implements OrderHandle {
     }
 
     private AuthorizationHandle toAuthorizationHandle(HttpResponse<String> response, String authorizationUrl) {
-        final Authorization authorization = Payloads.deserialize(response.body(), Authorization.class);
+        final Authorization authorization = JsonObjects.deserialize(response.body(), Authorization.class);
 
         return RetryableHandle.create(
                 session,
@@ -270,7 +271,7 @@ class OrderHandleImpl implements OrderHandle {
     }
 
     private Order replaceOrder(HttpResponse<String> response) {
-        final Order order = Payloads.deserialize(response.body(), Order.class);
+        final Order order = JsonObjects.deserialize(response.body(), Order.class);
         orderRef.set(order);
         return order;
     }

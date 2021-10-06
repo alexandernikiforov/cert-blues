@@ -5,7 +5,11 @@ buildscript {
 }
 
 plugins {
-    id 'org.unbroken-dome.test-sets' version '3.0.1' apply false
+    id 'org.unbroken-dome.test-sets' version '4.0.0' apply false
+}
+
+wrapper {
+    gradleVersion = '7.1.1'
 }
 
 allprojects {
@@ -32,6 +36,3 @@ subprojects {
     }
 }
 
-wrapper {
-    gradleVersion = '6.7.1'
-}

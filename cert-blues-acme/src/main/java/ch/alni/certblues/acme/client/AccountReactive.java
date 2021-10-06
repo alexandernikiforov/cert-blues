@@ -25,21 +25,12 @@
 
 package ch.alni.certblues.acme.client;
 
+import reactor.core.publisher.Mono;
+
 /**
- * Interface to work with ACME server directory.
+ * Reactive interface to read the account.
  */
-public interface DirectoryHandle {
+public interface AccountReactive {
 
-    /**
-     * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account.
-     *
-     * @param keyPair the key pair that should be used to identify the account and sign requests to get the
-     *                account-related resources
-     * @param request account request
-     * @return interface to work with the account object (existing or newly created)
-     */
-    AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest request);
-
-    Directory getDirectory();
+    Mono<Account> getAccount(String accountUrl, AccountResourceRequest accountResourceRequest);
 }

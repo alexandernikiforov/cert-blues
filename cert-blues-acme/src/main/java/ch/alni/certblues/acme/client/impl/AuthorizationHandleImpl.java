@@ -38,6 +38,7 @@ import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Authorization;
 import ch.alni.certblues.acme.client.AuthorizationHandle;
 import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -82,7 +83,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
 
         final JwsObject jwsObject = keyPair.sign(challenge.url(), accountUrl, "{}", nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(challenge.url()))
@@ -127,7 +128,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
         // POST-as-GET request
         final JwsObject jwsObject = keyPair.sign(authUrl, accountUrl, "", nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(authUrl))
@@ -160,7 +161,7 @@ class AuthorizationHandleImpl implements AuthorizationHandle {
     }
 
     private Authorization replaceAuth(HttpResponse<String> response) {
-        final Authorization authorization = Payloads.deserialize(response.body(), Authorization.class);
+        final Authorization authorization = JsonObjects.deserialize(response.body(), Authorization.class);
         authRef.set(authorization);
         return authorization;
     }

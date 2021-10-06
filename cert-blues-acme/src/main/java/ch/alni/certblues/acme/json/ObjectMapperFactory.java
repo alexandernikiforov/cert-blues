@@ -23,23 +23,27 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.json;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
- * Interface to work with ACME server directory.
+ * Creates the object mapper to use in this project.
  */
-public interface DirectoryHandle {
+public final class ObjectMapperFactory {
 
-    /**
-     * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account.
-     *
-     * @param keyPair the key pair that should be used to identify the account and sign requests to get the
-     *                account-related resources
-     * @param request account request
-     * @return interface to work with the account object (existing or newly created)
-     */
-    AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest request);
+    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
 
-    Directory getDirectory();
+    private static ObjectMapper createObjectMapper() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return objectMapper;
+    }
+
+    public static ObjectMapper getObjectMapper() {
+        return OBJECT_MAPPER;
+    }
 }

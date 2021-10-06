@@ -23,40 +23,32 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.acme.client.request;
 
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
+import ch.alni.certblues.acme.client.Directory;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public class DirectoryRequest {
 
-class PublicJwkTest {
+    private final HttpClient httpClient;
 
-    @Test
-    void testRsaPublicKey() throws IOException {
-        final var mapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
-                getClass().getResourceAsStream("/rsa-public-key.json"), StandardCharsets.UTF_8
-        ));
-
-        String result = mapper.writeValueAsString(publicJwk);
-
-        assertThat(publicJwk).isInstanceOf(RsaPublicJwk.class);
+    public DirectoryRequest(HttpClient httpClient) {
+        this.httpClient = httpClient;
     }
 
-    @Test
-    void testEcPublicKey() throws IOException {
-        final var mapper = ObjectMapperFactory.getObjectMapper();
-        final EcPublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
-                getClass().getResourceAsStream("/ec-public-key.json"), StandardCharsets.UTF_8
-        ));
-
-        assertThat(publicJwk).isInstanceOf(EcPublicJwk.class);
+    public Mono<Directory> getDirectory(String directoryUrl) {
+        return httpClient
+                .headers(headers -> headers.add(HttpHeaderNames.CONTENT_TYPE, "application/json"))
+                .get()
+                .uri(URI.create(directoryUrl))
+                .responseSingle((response, bufMono) -> bufMono
+                        .asString(StandardCharsets.UTF_8)
+                        .zipWith(Mono.just(response)))
+                .map(responseTuple2 -> Payloads.getPayload(responseTuple2.getT2(), responseTuple2.getT1(), Directory.class));
     }
-
 }

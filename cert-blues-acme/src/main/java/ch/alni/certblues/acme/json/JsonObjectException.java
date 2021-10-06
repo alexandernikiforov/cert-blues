@@ -23,23 +23,22 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.json;
 
 /**
- * Interface to work with ACME server directory.
+ * Exception thrown from the JSON processing.
  */
-public interface DirectoryHandle {
+public class JsonObjectException extends RuntimeException {
 
-    /**
-     * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account.
-     *
-     * @param keyPair the key pair that should be used to identify the account and sign requests to get the
-     *                account-related resources
-     * @param request account request
-     * @return interface to work with the account object (existing or newly created)
-     */
-    AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest request);
+    public JsonObjectException(String message) {
+        super(message);
+    }
 
-    Directory getDirectory();
+    public JsonObjectException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public JsonObjectException(Throwable cause) {
+        super(cause);
+    }
 }

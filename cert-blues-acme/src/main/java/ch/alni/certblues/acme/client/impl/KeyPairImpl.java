@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 
 import ch.alni.certblues.acme.client.AcmeRequest;
 import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.Jws;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.JwsObject;
@@ -51,7 +52,7 @@ class KeyPairImpl implements SigningKeyPair {
 
     private static String toPayload(Object request) {
         if (request instanceof AcmeRequest) {
-            return Payloads.serialize(request);
+            return JsonObjects.serialize(request);
         }
         else if (request instanceof String) {
             return (String) request;

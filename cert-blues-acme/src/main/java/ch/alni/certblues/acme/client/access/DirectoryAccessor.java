@@ -23,23 +23,23 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+package ch.alni.certblues.acme.client.access;
 
-/**
- * Interface to work with ACME server directory.
- */
-public interface DirectoryHandle {
+import ch.alni.certblues.acme.client.Directory;
+import ch.alni.certblues.acme.client.request.DirectoryRequest;
+import reactor.core.publisher.Mono;
 
-    /**
-     * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account.
-     *
-     * @param keyPair the key pair that should be used to identify the account and sign requests to get the
-     *                account-related resources
-     * @param request account request
-     * @return interface to work with the account object (existing or newly created)
-     */
-    AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest request);
+public class DirectoryAccessor {
 
-    Directory getDirectory();
+    private final Mono<Directory> directoryMono;
+
+    public DirectoryAccessor(DirectoryRequest directoryRequest, String directoryUrl) {
+        directoryMono = directoryRequest.getDirectory(directoryUrl)
+                .log()
+                .cache();
+    }
+
+    public Mono<Directory> getDirectory() {
+        return directoryMono;
+    }
 }

@@ -87,7 +87,7 @@ class PebbleBasedTest {
                 .setKeyVaultKey(keyVaultKey)
                 .build();
 
-        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountRequest.builder()
+        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountResourceRequest.builder()
                 .termsOfServiceAgreed(true)
                 .build());
 
@@ -96,7 +96,7 @@ class PebbleBasedTest {
         final Account account = accountHandle.reloadAccount();
         assertThat(account.status()).isEqualTo(AccountStatus.VALID);
 
-        final var orderHandle = accountHandle.createOrder(OrderRequest.builder()
+        final var orderHandle = accountHandle.createOrder(OrderResourceRequest.builder()
                 .identifiers(List.of(
                         Identifier.builder().type("dns").value("testserver.com").build()
                 ))
@@ -191,7 +191,7 @@ class PebbleBasedTest {
             final var tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustStore);
 
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            SSLContext sslContext = SSLContext.getInstance("TLSv1.3");
             sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());
             return sslContext;
         }

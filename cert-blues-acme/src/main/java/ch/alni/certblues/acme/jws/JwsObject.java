@@ -36,7 +36,7 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 /**
  * All ACME requests with a non-empty body MUST encapsulate their payload in a JSON Web Signature (JWS) [RFC7515]
  * object, signed using the account's private key unless otherwise specified. The JWS MUST be in the Flattened JSON
- * Serialization.
+ * Serialization form.
  */
 @AutoValue
 @JsonDeserialize(builder = JwsObject.Builder.class)

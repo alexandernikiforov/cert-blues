@@ -35,12 +35,13 @@ import java.time.Duration;
 
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountRequest;
+import ch.alni.certblues.acme.client.AccountResourceRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Directory;
 import ch.alni.certblues.acme.client.DirectoryHandle;
 import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -64,7 +65,7 @@ class DirectoryHandleImpl implements DirectoryHandle {
     }
 
     @Override
-    public AccountHandle getAccount(SigningKeyPair keyPair, AccountRequest accountRequest) {
+    public AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest accountResourceRequest) {
         final String newAccountUri = directory.newAccount();
 
         // on first call retrieve a nonce
@@ -72,12 +73,12 @@ class DirectoryHandleImpl implements DirectoryHandle {
 
         final String nonce = session.getNonce();
 
-        LOG.info("getting account for URI {} with request {}", newAccountUri, accountRequest);
+        LOG.info("getting account for URI {} with request {}", newAccountUri, accountResourceRequest);
 
         // sign request
-        final JwsObject jwsObject = keyPair.sign(newAccountUri, accountRequest, nonce);
+        final JwsObject jwsObject = keyPair.sign(newAccountUri, accountResourceRequest, nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(newAccountUri))
@@ -123,7 +124,7 @@ class DirectoryHandleImpl implements DirectoryHandle {
         final var location = Payloads.findLocation(response)
                 .orElseThrow(() -> new AcmeClientException("cannot find Location header in the response"));
 
-        final var account = Payloads.deserialize(response.body(), Account.class);
+        final var account = JsonObjects.deserialize(response.body(), Account.class);
 
         return RetryableHandle.create(
                 session,

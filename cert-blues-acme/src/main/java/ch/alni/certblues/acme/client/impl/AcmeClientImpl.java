@@ -37,6 +37,7 @@ import ch.alni.certblues.acme.client.AcmeClient;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Directory;
 import ch.alni.certblues.acme.client.DirectoryHandle;
+import ch.alni.certblues.acme.json.JsonObjects;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -89,7 +90,7 @@ class AcmeClientImpl implements AcmeClient {
     }
 
     private DirectoryHandle toDirectoryHandle(HttpResponse<String> response) {
-        final Directory directory = Payloads.deserialize(response.body(), Directory.class);
+        final Directory directory = JsonObjects.deserialize(response.body(), Directory.class);
         final Session session = new Session(httpClient, timeout, directory);
 
         return RetryableHandle.create(

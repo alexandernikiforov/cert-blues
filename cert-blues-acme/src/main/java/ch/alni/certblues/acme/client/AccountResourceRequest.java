@@ -44,11 +44,11 @@ import java.util.List;
  * An ACME account resource represents a set of metadata associated with an account.
  */
 @AutoValue
-@JsonDeserialize(builder = AccountRequest.Builder.class)
-public abstract class AccountRequest implements AcmeRequest {
+@JsonDeserialize(builder = AccountResourceRequest.Builder.class)
+public abstract class AccountResourceRequest implements AcmeRequest {
 
     public static Builder builder() {
-        return new AutoValue_AccountRequest.Builder()
+        return new AutoValue_AccountResourceRequest.Builder()
                 .contact(List.of());
     }
 
@@ -85,6 +85,6 @@ public abstract class AccountRequest implements AcmeRequest {
         @JsonSetter
         public abstract Builder onlyReturnExisting(Boolean value);
 
-        public abstract AccountRequest build();
+        public abstract AccountResourceRequest build();
     }
 }

@@ -1,3 +1,13 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = 'cert-blues'
 
-include 'cert-blues-common', 'cert-blues-acme', 'cert-blues-auth', 'cert-blues-keyvault'
+include 'cert-blues-common',
+        'cert-blues-acme',
+        'cert-blues-auth',
+//        'cert-blues-functions',
+        'cert-blues-keyvault'

@@ -23,27 +23,28 @@
  *
  */
 
-package ch.alni.certblues.common.json;
+package ch.alni.certblues.acme.client.request;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.net.URI;
+import java.util.Objects;
 
-/**
- * Creates the object mapper to use in this project.
- */
-public final class ObjectMapperFactory {
+import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
-    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+public class NonceRequest {
 
-    private static ObjectMapper createObjectMapper() {
-        final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return objectMapper;
+    private final HttpClient httpClient;
+
+    public NonceRequest(HttpClient httpClient) {
+        this.httpClient = httpClient;
     }
 
-    public static ObjectMapper getObjectMapper() {
-        return OBJECT_MAPPER;
+    public Mono<String> getNonce(String newNonceUrl) {
+        return httpClient
+                .head()
+                .uri(URI.create(newNonceUrl))
+                .response()
+                .map(Payloads::getNonce)
+                .filter(Objects::nonNull);
     }
 }

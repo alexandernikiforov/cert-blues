@@ -25,38 +25,24 @@
 
 package ch.alni.certblues.acme.key;
 
-import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+/**
+ * Abstraction over a key entry in the key vault that holds a key pair and is used to create signatures.
+ */
+public interface KeyVaultKeyReactive {
 
-import ch.alni.certblues.acme.json.ObjectMapperFactory;
+    /**
+     * Signs the given content with the provided algorithm and returns the result.
+     *
+     * @param alg     the algorithm to use
+     * @param content the content to be signed.
+     * @return the cryptographic signature as base64-urlencoded string (as Mono)
+     */
+    Mono<String> sign(String alg, String content);
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-class PublicJwkTest {
-
-    @Test
-    void testRsaPublicKey() throws IOException {
-        final var mapper = ObjectMapperFactory.getObjectMapper();
-        final PublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
-                getClass().getResourceAsStream("/rsa-public-key.json"), StandardCharsets.UTF_8
-        ));
-
-        String result = mapper.writeValueAsString(publicJwk);
-
-        assertThat(publicJwk).isInstanceOf(RsaPublicJwk.class);
-    }
-
-    @Test
-    void testEcPublicKey() throws IOException {
-        final var mapper = ObjectMapperFactory.getObjectMapper();
-        final EcPublicJwk publicJwk = mapper.readerFor(PublicJwk.class).readValue(new InputStreamReader(
-                getClass().getResourceAsStream("/ec-public-key.json"), StandardCharsets.UTF_8
-        ));
-
-        assertThat(publicJwk).isInstanceOf(EcPublicJwk.class);
-    }
-
+    /**
+     * Returns the JSON representation of the public key used by this entry (as Mono).
+     */
+    Mono<PublicJwk> getPublicJwk();
 }

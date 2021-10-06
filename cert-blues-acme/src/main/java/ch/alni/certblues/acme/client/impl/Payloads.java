@@ -25,45 +25,24 @@
 
 package ch.alni.certblues.acme.client.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Optional;
 
-import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.Error;
-import ch.alni.certblues.common.json.ObjectMapperFactory;
+import ch.alni.certblues.acme.json.JsonObjects;
+import reactor.netty.http.client.HttpClientResponse;
 
 /**
  * Static utility class to work with ACME request and response payloads.
  */
 final class Payloads {
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperFactory.getObjectMapper();
     private static final String HEADER_CONTENT_TYPE = "Content-Type";
     private static final String HEADER_LOCATION = "Location";
     private static final String HEADER_REPLAY_NONCE = "Replay-Nonce";
 
     private Payloads() {
-    }
-
-    static <T> T deserialize(String value, Class<T> clazz) {
-        try {
-            return OBJECT_MAPPER.readerFor(clazz).readValue(value);
-        }
-        catch (JsonProcessingException e) {
-            throw new AcmeClientException("error while parsing the server response: " + value, e);
-        }
-    }
-
-    static String serialize(Object value) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(value);
-        }
-        catch (JsonProcessingException e) {
-            throw new AcmeClientException("error while creating the ACME request: " + value, e);
-        }
     }
 
     static Optional<Error> extractError(HttpResponse<String> response) {
@@ -72,7 +51,22 @@ final class Payloads {
                 .isPresent();
 
         if (responseIsJson) {
-            final var error = Payloads.deserialize(response.body(), Error.class);
+            final var error = JsonObjects.deserialize(response.body(), Error.class);
+            return Optional.of(error);
+        }
+        else {
+            return Optional.empty();
+        }
+    }
+
+    static Optional<Error> extractError(HttpClientResponse response, String body) {
+        final boolean responseIsJson = response.responseHeaders().entries().stream()
+                .filter(entry -> entry.getKey().equals(HEADER_CONTENT_TYPE))
+                .map(Map.Entry::getValue)
+                .anyMatch(header -> header.startsWith("application/problem+json"));
+
+        if (responseIsJson) {
+            final var error = JsonObjects.deserialize(body, Error.class);
             return Optional.of(error);
         }
         else {

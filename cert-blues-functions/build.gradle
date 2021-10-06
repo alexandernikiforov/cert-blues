@@ -23,23 +23,20 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
+plugins {
+    id 'java'
+    id 'com.microsoft.azure.azurefunctions' version '1.5.0'
+}
 
-/**
- * Interface to work with ACME server directory.
- */
-public interface DirectoryHandle {
+dependencies {
+    implementation 'com.microsoft.azure.functions:azure-functions-java-library:1.4.2'
 
-    /**
-     * Tries to find an existing account or creates a new one (depending on the request parameters). Then returns
-     * interface to work with the returned account.
-     *
-     * @param keyPair the key pair that should be used to identify the account and sign requests to get the
-     *                account-related resources
-     * @param request account request
-     * @return interface to work with the account object (existing or newly created)
-     */
-    AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest request);
+    implementation 'com.azure:azure-identity:1.3.3'
+    implementation 'com.azure:azure-security-keyvault-keys:4.3.1'
+    implementation 'com.azure:azure-security-keyvault-certificates:4.2.1'
+}
 
-    Directory getDirectory();
+azurefunctions {
+    appName = 'cert-blues'
+    allowTelemetry = false
 }

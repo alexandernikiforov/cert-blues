@@ -44,11 +44,11 @@ import java.util.List;
  * The client begins the certificate issuance process by sending a POST request to the server's newOrder resource.
  */
 @AutoValue
-@JsonDeserialize(builder = OrderRequest.Builder.class)
-public abstract class OrderRequest implements AcmeRequest {
+@JsonDeserialize(builder = OrderResourceRequest.Builder.class)
+public abstract class OrderResourceRequest implements AcmeRequest {
 
     public static Builder builder() {
-        return new AutoValue_OrderRequest.Builder();
+        return new AutoValue_OrderResourceRequest.Builder();
     }
 
     @JsonGetter
@@ -82,6 +82,6 @@ public abstract class OrderRequest implements AcmeRequest {
         @JsonSetter
         public abstract Builder notAfter(OffsetDateTime value);
 
-        public abstract OrderRequest build();
+        public abstract OrderResourceRequest build();
     }
 }

@@ -37,13 +37,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountDeactivationRequest;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountRequest;
+import ch.alni.certblues.acme.client.AccountResourceRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderHandle;
-import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.OrderResourceRequest;
 import ch.alni.certblues.acme.client.SigningKeyPair;
+import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -89,7 +90,7 @@ class AccountHandleImpl implements AccountHandle {
         final JwsObject jwsObject = keyPair.sign(accountUrl, accountUrl,
                 AccountDeactivationRequest.builder().build(), nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(accountUrl))
@@ -120,7 +121,7 @@ class AccountHandleImpl implements AccountHandle {
     }
 
     @Override
-    public OrderHandle createOrder(OrderRequest orderRequest) {
+    public OrderHandle createOrder(OrderResourceRequest orderRequest) {
         LOG.info("creating a new order with parameters {}", orderRequest);
 
         final var directory = session.getDirectory();
@@ -129,7 +130,7 @@ class AccountHandleImpl implements AccountHandle {
 
         final JwsObject jwsObject = keyPair.sign(orderUrl, accountUrl, orderRequest, nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(orderUrl))
@@ -167,12 +168,12 @@ class AccountHandleImpl implements AccountHandle {
 
         final var directory = session.getDirectory();
         final var newAccountUrl = directory.newAccount();
-        final var accountRequest = AccountRequest.builder().onlyReturnExisting(true).build();
+        final var accountRequest = AccountResourceRequest.builder().onlyReturnExisting(true).build();
         final var nonce = session.getNonce();
 
         final JwsObject jwsObject = keyPair.sign(newAccountUrl, accountRequest, nonce);
 
-        final var body = Payloads.serialize(jwsObject);
+        final var body = JsonObjects.serialize(jwsObject);
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(newAccountUrl))
@@ -205,13 +206,13 @@ class AccountHandleImpl implements AccountHandle {
     }
 
     private Account replaceAccount(HttpResponse<String> response) {
-        final Account account = Payloads.deserialize(response.body(), Account.class);
+        final Account account = JsonObjects.deserialize(response.body(), Account.class);
         accountRef.set(account);
         return account;
     }
 
     private OrderHandle toOrderHandle(HttpResponse<String> response) {
-        final Order order = Payloads.deserialize(response.body(), Order.class);
+        final Order order = JsonObjects.deserialize(response.body(), Order.class);
         final String orderUrl = Payloads.findLocation(response)
                 .orElseThrow(() -> new AcmeClientException("cannot find Location header in the response"));
 

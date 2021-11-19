@@ -51,5 +51,5 @@ public interface AccountHandle {
      * @param orderRequest the order parameters
      * @return the interface to work with the order lifecycle
      */
-    OrderHandle createOrder(OrderResourceRequest orderRequest);
+    OrderHandle createOrder(OrderRequest orderRequest);
 }

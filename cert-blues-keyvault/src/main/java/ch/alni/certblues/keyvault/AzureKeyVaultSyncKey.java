@@ -25,7 +25,8 @@
 
 package ch.alni.certblues.keyvault;
 
-import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
+import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import com.azure.security.keyvault.keys.cryptography.models.SignResult;
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
 import com.azure.security.keyvault.keys.models.KeyType;
 
@@ -36,26 +37,23 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-import ch.alni.certblues.acme.key.AccountKeyPair;
 import ch.alni.certblues.acme.key.EcPublicJwk;
+import ch.alni.certblues.acme.key.KeyVaultKey;
 import ch.alni.certblues.acme.key.PublicJwk;
 import ch.alni.certblues.acme.key.RsaPublicJwk;
-import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Implementation of the key vault key based on the Azure key from a KeyVault.
  */
-public class AzureKeyVaultKey implements AccountKeyPair {
-    private static final Logger LOG = getLogger(AzureKeyVaultKey.class);
+public class AzureKeyVaultSyncKey implements KeyVaultKey {
+    private static final Logger LOG = getLogger(AzureKeyVaultSyncKey.class);
 
-    private final CryptographyAsyncClient client;
-    private final String alg;
+    private final CryptographyClient client;
 
-    public AzureKeyVaultKey(CryptographyAsyncClient client, String alg) {
+    public AzureKeyVaultSyncKey(CryptographyClient client) {
         this.client = client;
-        this.alg = alg;
     }
 
     private static byte[] createDigest(byte[] data) {
@@ -70,58 +68,51 @@ public class AzureKeyVaultKey implements AccountKeyPair {
     }
 
     @Override
-    public Mono<String> sign(String content) {
+    public String sign(String alg, String content) {
         LOG.info("signing with alg={}", alg);
 
         final byte[] data = content.getBytes(StandardCharsets.US_ASCII);
         final byte[] digest = createDigest(data);
         final var signatureAlgorithm = SignatureAlgorithm.fromString(alg);
 
-        return client.sign(signatureAlgorithm, digest)
-                .map(signResult -> Base64.getUrlEncoder().withoutPadding().encodeToString(signResult.getSignature()));
+        final SignResult result = client.sign(signatureAlgorithm, digest);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(result.getSignature());
     }
 
     @Override
-    public Mono<PublicJwk> getPublicJwk() {
-        return client.getKey()
-                .map(key -> {
-                    final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-                    final KeyType keyType = key.getKeyType();
+    public PublicJwk getPublicJwk() {
+        final var key = client.getKey();
+        final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        final KeyType keyType = key.getKeyType();
 
-                    final String kid = key.getKey().getId();
-                    final String kty = key.getKey().getKeyType().toString();
+        final String kid = key.getKey().getId();
+        final String kty = key.getKey().getKeyType().toString();
 
-                    if (keyType.equals(KeyType.RSA)) {
-                        final String n = encoder.encodeToString(key.getKey().getN());
-                        final String e = encoder.encodeToString(key.getKey().getE());
+        if (keyType.equals(KeyType.RSA)) {
+            final String n = encoder.encodeToString(key.getKey().getN());
+            final String e = encoder.encodeToString(key.getKey().getE());
 
-                        return RsaPublicJwk.builder()
-                                .kid(kid)
-                                .kty(kty)
-                                .n(n)
-                                .e(e)
-                                .build();
-                    }
-                    else if (keyType.equals(KeyType.EC)) {
-                        final String x = encoder.encodeToString(key.getKey().getX());
-                        final String y = encoder.encodeToString(key.getKey().getY());
+            return RsaPublicJwk.builder()
+                    .kid(kid)
+                    .kty(kty)
+                    .n(n)
+                    .e(e)
+                    .build();
+        }
+        else if (keyType.equals(KeyType.EC)) {
+            final String x = encoder.encodeToString(key.getKey().getX());
+            final String y = encoder.encodeToString(key.getKey().getY());
 
-                        return EcPublicJwk.builder()
-                                .kid(kid)
-                                .kty(kty)
-                                .x(x)
-                                .y(y)
-                                .crv(key.getKey().getCurveName().toString())
-                                .build();
-                    }
-                    else {
-                        throw new IllegalArgumentException("unsupported key type: " + keyType);
-                    }
-                });
-    }
-
-    @Override
-    public String getAlgorithm() {
-        return alg;
+            return EcPublicJwk.builder()
+                    .kid(kid)
+                    .kty(kty)
+                    .x(x)
+                    .y(y)
+                    .crv(key.getKey().getCurveName().toString())
+                    .build();
+        }
+        else {
+            throw new IllegalArgumentException("unsupported key type: " + keyType);
+        }
     }
 }

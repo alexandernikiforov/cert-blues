@@ -51,7 +51,7 @@ import java.util.List;
 public abstract class Order {
 
     public static Builder builder() {
-        return new AutoValue_Order.Builder();
+        return new AutoValue_Order.Builder().authorizations(List.of());
     }
 
     @JsonGetter

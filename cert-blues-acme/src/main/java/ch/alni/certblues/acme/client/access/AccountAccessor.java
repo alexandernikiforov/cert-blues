@@ -26,49 +26,33 @@
 package ch.alni.certblues.acme.client.access;
 
 import ch.alni.certblues.acme.client.Account;
-import ch.alni.certblues.acme.client.AccountResourceRequest;
-import ch.alni.certblues.acme.client.Directory;
-import ch.alni.certblues.acme.client.request.AccountRequest;
-import reactor.core.publisher.Flux;
+import ch.alni.certblues.acme.client.AccountRequest;
+import ch.alni.certblues.acme.client.CreatedResource;
+import ch.alni.certblues.acme.client.request.NonceSource;
+import ch.alni.certblues.acme.client.request.RequestHandler;
 import reactor.core.publisher.Mono;
 
-/**
- * TODO: javadoc
- */
 public class AccountAccessor {
 
-    private final DirectoryAccessor directoryAccessor;
-    private final NonceAccessor nonceAccessor;
-    private final KeyVaultKeyAccessor keyVaultKeyAccessor;
-    private final AccountRequest accountRequest;
+    private final NonceSource nonceSource;
+    private final PayloadSigner payloadSigner;
+    private final RetryHandler retryHandler;
+    private final RequestHandler requestHandler;
 
-    public AccountAccessor(DirectoryAccessor directoryAccessor,
-                           NonceAccessor nonceAccessor,
-                           KeyVaultKeyAccessor keyVaultKeyAccessor,
-                           AccountRequest accountRequest) {
-        this.directoryAccessor = directoryAccessor;
-        this.nonceAccessor = nonceAccessor;
-        this.keyVaultKeyAccessor = keyVaultKeyAccessor;
-        this.accountRequest = accountRequest;
-
-
+    public AccountAccessor(NonceSource nonceSource,
+                           PayloadSigner payloadSigner,
+                           RetryHandler retryHandler,
+                           RequestHandler requestHandler) {
+        this.nonceSource = nonceSource;
+        this.payloadSigner = payloadSigner;
+        this.retryHandler = retryHandler;
+        this.requestHandler = requestHandler;
     }
 
-    public Mono<Account> getAccount(AccountResourceRequest resourceRequest) {
-        Flux.combineLatest(
-                nonceAccessor.getNonceValues(),
-                directoryAccessor.getDirectory(),
-                (nonce, directory) -> keyVaultKeyAccessor.sign(directory.newAccount(), resourceRequest, nonce)
-        )
-
-        directoryAccessor.getDirectory()
-                // get the account URL
-                .map(Directory::newAccount)
-                // create the signed request
-                .
-                .flatMap(accountUrl -> keyVaultKeyAccessor.sign(accountUrl, resourceRequest, ))
-        /*
-         */
-        return null;
+    public Mono<? extends CreatedResource<Account>> getAccount(String newAccountUrl, AccountRequest resourceRequest) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(newAccountUrl, resourceRequest, nonce))
+                .flatMap(jwsObject -> requestHandler.create(newAccountUrl, jwsObject, nonceSource, Account.class))
+                .retryWhen(retryHandler.getRetry());
     }
 }

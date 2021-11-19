@@ -35,7 +35,7 @@ import java.time.Duration;
 
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountResourceRequest;
+import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Directory;
@@ -65,7 +65,7 @@ class DirectoryHandleImpl implements DirectoryHandle {
     }
 
     @Override
-    public AccountHandle getAccount(SigningKeyPair keyPair, AccountResourceRequest accountResourceRequest) {
+    public AccountHandle getAccount(SigningKeyPair keyPair, AccountRequest accountRequest) {
         final String newAccountUri = directory.newAccount();
 
         // on first call retrieve a nonce
@@ -73,10 +73,10 @@ class DirectoryHandleImpl implements DirectoryHandle {
 
         final String nonce = session.getNonce();
 
-        LOG.info("getting account for URI {} with request {}", newAccountUri, accountResourceRequest);
+        LOG.info("getting account for URI {} with request {}", newAccountUri, accountRequest);
 
         // sign request
-        final JwsObject jwsObject = keyPair.sign(newAccountUri, accountResourceRequest, nonce);
+        final JwsObject jwsObject = keyPair.sign(newAccountUri, accountRequest, nonce);
 
         final var body = JsonObjects.serialize(jwsObject);
 

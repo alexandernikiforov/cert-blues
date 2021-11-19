@@ -23,27 +23,32 @@
  *
  */
 
-package ch.alni.certblues.auth;
+package ch.alni.certblues.acme.key;
+
+import reactor.core.publisher.Mono;
 
 /**
- * Thrown if the token provider cannot issue a token.
+ * A simple key vault entry wrapping an RSA asymmetric key pair.
  */
-public class TokenEndpointException extends RuntimeException {
+public class SimpleRsaKeyPair implements AccountKeyPair {
+    private final SimpleRsaKeyEntry entry;
 
-    private final ErrorResponse response;
-    private final boolean retryable;
-
-    public TokenEndpointException(ErrorResponse response, boolean retryable) {
-        super(response.toString());
-        this.response = response;
-        this.retryable = retryable;
+    public SimpleRsaKeyPair(SimpleRsaKeyEntry entry) {
+        this.entry = entry;
     }
 
-    public ErrorResponse getResponse() {
-        return response;
+    @Override
+    public Mono<String> sign(String content) {
+        return Mono.fromCallable(() -> entry.sign(getAlgorithm(), content));
     }
 
-    public boolean isRetryable() {
-        return retryable;
+    @Override
+    public Mono<PublicJwk> getPublicJwk() {
+        return Mono.fromCallable(entry::getPublicJwk);
+    }
+
+    @Override
+    public String getAlgorithm() {
+        return "RS256";
     }
 }

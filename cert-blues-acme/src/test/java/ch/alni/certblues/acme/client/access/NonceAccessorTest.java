@@ -50,7 +50,6 @@ class NonceAccessorTest {
 
     private final DirectoryAccessor directoryAccessor = Mockito.mock(DirectoryAccessor.class);
     private final NonceRequest nonceRequest = Mockito.mock(NonceRequest.class);
-
     @BeforeEach
     void setUp() {
         // directory accessor always returns the same directory
@@ -67,7 +66,7 @@ class NonceAccessorTest {
     void getNonceValues() {
         final NonceAccessor nonceAccessor = new NonceAccessor(nonceRequest, directoryAccessor);
         StepVerifier
-                .withVirtualTime(nonceAccessor::getNonceValues)
+                .withVirtualTime(nonceAccessor::getNonce)
                 .expectNext(NONCE_1)
                 .verifyTimeout(Duration.ofMillis(1000L));
     }
@@ -79,7 +78,7 @@ class NonceAccessorTest {
         nonceAccessor.update();
 
         StepVerifier
-                .withVirtualTime(nonceAccessor::getNonceValues)
+                .withVirtualTime(nonceAccessor::getNonce)
                 .expectNext(NONCE_3)
                 .verifyTimeout(Duration.ofMillis(1000L));
     }

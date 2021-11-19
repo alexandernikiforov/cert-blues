@@ -23,30 +23,22 @@
  *
  */
 
-package ch.alni.certblues.auth.impl;
+package ch.alni.certblues.acme.client;
 
-import java.io.IOException;
-import java.util.concurrent.Callable;
+import com.google.auto.value.AutoValue;
 
-import ch.alni.certblues.auth.AuthContextException;
+@AutoValue
+public abstract class AccountResource {
 
-/**
- * Static utility class to work with ACME requests.
- */
-final class Requests {
-
-    private Requests() {
+    public static AccountResource create(Account account, String accountUrl) {
+        return new AutoValue_AccountResource(account, accountUrl);
     }
 
-    static <T> T withErrorHandling(Callable<T> callable) {
-        try {
-            return callable.call();
-        }
-        catch (IOException e) {
-            throw new AuthContextException("IO error while sending token request", e);
-        }
-        catch (Exception e) {
-            throw new AuthContextException("unexpected exception while calling the token endpoint", e);
-        }
-    }
+    public abstract Account getAccount();
+
+    /**
+     * Returns the URL used to access the returned account on the ACME server as well as the identifier of this
+     * account.
+     */
+    public abstract String getAccountUrl();
 }

@@ -87,7 +87,7 @@ class PebbleBasedTest {
                 .setKeyVaultKey(keyVaultKey)
                 .build();
 
-        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountResourceRequest.builder()
+        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountRequest.builder()
                 .termsOfServiceAgreed(true)
                 .build());
 
@@ -96,7 +96,7 @@ class PebbleBasedTest {
         final Account account = accountHandle.reloadAccount();
         assertThat(account.status()).isEqualTo(AccountStatus.VALID);
 
-        final var orderHandle = accountHandle.createOrder(OrderResourceRequest.builder()
+        final var orderHandle = accountHandle.createOrder(OrderRequest.builder()
                 .identifiers(List.of(
                         Identifier.builder().type("dns").value("testserver.com").build()
                 ))

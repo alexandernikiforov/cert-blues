@@ -25,19 +25,32 @@
 
 package ch.alni.certblues.acme.client.access;
 
-import ch.alni.certblues.acme.client.Directory;
+import ch.alni.certblues.acme.client.Authorization;
+import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
 import reactor.core.publisher.Mono;
 
-public class DirectoryAccessor {
+public class AuthorizationAccessor {
 
-    private final Mono<Directory> directoryMono;
+    private final NonceSource nonceSource;
+    private final PayloadSigner payloadSigner;
+    private final RetryHandler retryHandler;
+    private final RequestHandler requestHandler;
 
-    public DirectoryAccessor(RequestHandler requestHandler, String directoryUrl) {
-        directoryMono = requestHandler.get(directoryUrl, Directory.class).log();
+    public AuthorizationAccessor(NonceSource nonceSource,
+                                 PayloadSigner payloadSigner,
+                                 RetryHandler retryHandler,
+                                 RequestHandler requestHandler) {
+        this.nonceSource = nonceSource;
+        this.payloadSigner = payloadSigner;
+        this.retryHandler = retryHandler;
+        this.requestHandler = requestHandler;
     }
 
-    public Mono<Directory> getDirectory() {
-        return directoryMono;
+    public Mono<Authorization> getAuthorization(String accountUrl, String authorizationUrl) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(authorizationUrl, accountUrl, "", nonce))
+                .flatMap(jwsObject -> requestHandler.request(authorizationUrl, jwsObject, nonceSource, Authorization.class))
+                .retryWhen(retryHandler.getRetry());
     }
 }

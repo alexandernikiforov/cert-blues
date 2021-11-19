@@ -32,5 +32,5 @@ import reactor.core.publisher.Mono;
  */
 public interface AccountReactive {
 
-    Mono<Account> getAccount(String accountUrl, AccountResourceRequest accountResourceRequest);
+    Mono<Account> getAccount(String accountUrl, AccountRequest accountRequest);
 }

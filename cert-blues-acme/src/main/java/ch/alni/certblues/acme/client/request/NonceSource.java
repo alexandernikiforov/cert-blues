@@ -23,39 +23,28 @@
  *
  */
 
-package ch.alni.certblues.auth;
+package ch.alni.certblues.acme.client.request;
 
-import com.google.auto.value.AutoValue;
-
-import java.time.Duration;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 /**
- * Connection options.
+ * The source of nonce values.
  */
-@AutoValue
-public abstract class ConnectionOptions {
+public class NonceSource {
+    private final Sinks.Many<String> nonceSubject = Sinks.many().multicast().directBestEffort();
+    private final Flux<String> nonceValues = nonceSubject.asFlux()
+            .log()
+            // store the last emitted value
+            .cache(1);
 
-    public static Builder builder() {
-        return new AutoValue_ConnectionOptions.Builder();
+    public Mono<String> getNonce() {
+        // this mono will unsubscribe on the first nonce value emitted
+        return Mono.from(nonceValues);
     }
 
-    /**
-     * Returns the timeout to open the connection.
-     */
-    public abstract Duration getConnectTimeout();
-
-    /**
-     * Returns the timeout to wait for the request to come.
-     */
-    public abstract Duration getRequestTimeout();
-
-    @AutoValue.Builder
-    public abstract static class Builder {
-
-        public abstract Builder setConnectTimeout(Duration value);
-
-        public abstract Builder setRequestTimeout(Duration value);
-
-        public abstract ConnectionOptions build();
+    public void update(String nonce) {
+        nonceSubject.emitNext(nonce, Sinks.EmitFailureHandler.FAIL_FAST);
     }
 }

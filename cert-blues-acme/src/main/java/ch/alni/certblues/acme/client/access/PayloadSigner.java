@@ -34,22 +34,22 @@ import ch.alni.certblues.acme.client.AcmeRequest;
 import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.JwsObject;
-import ch.alni.certblues.acme.key.KeyVaultKeyReactive;
+import ch.alni.certblues.acme.key.AccountKeyPair;
 import reactor.core.publisher.Mono;
 
-public class KeyVaultKeyAccessor {
-    private final KeyVaultKeyReactive keyVaultKey;
-    private final String algorithm;
+/**
+ * Signs the payloads according to the ACME protocol.
+ */
+public class PayloadSigner {
+    private final AccountKeyPair keyPair;
 
     /**
      * Creates a new accessor object to get information out of the given key pair stored in a remote vault.
      *
-     * @param keyVaultKey the remote interface to the key pair stored in a vault
-     * @param algorithm   the algorithm to use to sign content with this
+     * @param keyPair the remote interface to the key pair stored in a vault
      */
-    public KeyVaultKeyAccessor(KeyVaultKeyReactive keyVaultKey, String algorithm) {
-        this.keyVaultKey = keyVaultKey;
-        this.algorithm = algorithm;
+    public PayloadSigner(AccountKeyPair keyPair) {
+        this.keyPair = keyPair;
     }
 
     private static String encode(String content) {
@@ -78,10 +78,10 @@ public class KeyVaultKeyAccessor {
      * @return the JWS object including the encoded protected header, content and signature
      */
     public Mono<JwsObject> sign(String requestUrl, Object request, String nonce) {
-        final Mono<String> protectedHeaderMono = keyVaultKey.getPublicJwk()
+        final Mono<String> protectedHeaderMono = keyPair.getPublicJwk()
                 .map(publicJwk -> JwsHeader.builder()
                         .jwk(publicJwk)
-                        .alg(algorithm)
+                        .alg(keyPair.getAlgorithm())
                         .url(requestUrl)
                         .nonce(nonce)
                         .build())
@@ -105,7 +105,7 @@ public class KeyVaultKeyAccessor {
         // create the protected header
         final Mono<String> protectedHeaderMono = Mono.fromSupplier(() -> JwsHeader.builder()
                         .kid(keyId)
-                        .alg(algorithm)
+                        .alg(keyPair.getAlgorithm())
                         .url(requestUrl)
                         .nonce(nonce)
                         .build())
@@ -123,11 +123,11 @@ public class KeyVaultKeyAccessor {
         final Mono<String> signatureMono = Mono
                 .zip(protectedHeaderMono, encodedPayloadMono,
                         (protectedHeader, encodedPayload) -> protectedHeader + "." + encodedPayload)
-                .flatMap(content -> keyVaultKey.sign(algorithm, content));
+                .flatMap(keyPair::sign);
 
         return Mono.zip(protectedHeaderMono, encodedPayloadMono, signatureMono)
                 .map(tuple -> JwsObject.builder()
-                        .protectedHeader(tuple.getT2())
+                        .protectedHeader(tuple.getT1())
                         .payload(tuple.getT2())
                         .signature(tuple.getT3())
                         .build());

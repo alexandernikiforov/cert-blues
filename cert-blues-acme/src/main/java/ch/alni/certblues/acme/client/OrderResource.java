@@ -23,36 +23,21 @@
  *
  */
 
-package ch.alni.certblues.auth;
+package ch.alni.certblues.acme.client;
 
 import com.google.auto.value.AutoValue;
 
-import java.util.concurrent.ExecutorService;
-
-/**
- * Options to create the auth context.
- */
 @AutoValue
-public abstract class AuthContextOptions {
+public abstract class OrderResource {
 
-    public static Builder builder() {
-        return new AutoValue_AuthContextOptions.Builder();
+    public static OrderResource create(Order order, String orderUrl) {
+        return new AutoValue_OrderResource(order, orderUrl);
     }
 
-    public abstract ExecutorService getExecutorService();
+    public abstract Order getOrder();
 
-    public abstract ConnectionOptions getConnectionOptions();
-
-    @AutoValue.Builder
-    public abstract static class Builder {
-
-        /**
-         * Sets the executor service to perform requests to issue tokens.
-         */
-        public abstract Builder setExecutorService(ExecutorService value);
-
-        public abstract Builder setConnectionOptions(ConnectionOptions value);
-
-        public abstract AuthContextOptions build();
-    }
+    /**
+     * Returns the URL used to access the returned order on the ACME server.
+     */
+    public abstract String getOrderUrl();
 }

@@ -25,19 +25,33 @@
 
 package ch.alni.certblues.acme.client.access;
 
-import ch.alni.certblues.acme.client.Directory;
+import ch.alni.certblues.acme.client.CreatedResource;
+import ch.alni.certblues.acme.client.Order;
+import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
 import reactor.core.publisher.Mono;
 
-public class DirectoryAccessor {
+public class OrderAccessor {
 
-    private final Mono<Directory> directoryMono;
+    private final NonceSource nonceSource;
+    private final PayloadSigner payloadSigner;
+    private final RetryHandler retryHandler;
+    private final RequestHandler requestHandler;
 
-    public DirectoryAccessor(RequestHandler requestHandler, String directoryUrl) {
-        directoryMono = requestHandler.get(directoryUrl, Directory.class).log();
+    public OrderAccessor(NonceSource nonceSource,
+                         PayloadSigner payloadSigner,
+                         RetryHandler retryHandler, RequestHandler requestHandler) {
+        this.nonceSource = nonceSource;
+        this.payloadSigner = payloadSigner;
+        this.retryHandler = retryHandler;
+        this.requestHandler = requestHandler;
     }
 
-    public Mono<Directory> getDirectory() {
-        return directoryMono;
+    public Mono<CreatedResource<Order>> getOrder(String accountUrl, String newOrderUrl, OrderRequest resourceRequest) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(newOrderUrl, accountUrl, resourceRequest, nonce))
+                .flatMap(jwsObject -> requestHandler.create(newOrderUrl, jwsObject, nonceSource, Order.class))
+                .retryWhen(retryHandler.getRetry());
     }
 }

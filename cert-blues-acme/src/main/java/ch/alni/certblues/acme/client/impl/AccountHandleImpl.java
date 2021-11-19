@@ -37,12 +37,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountDeactivationRequest;
 import ch.alni.certblues.acme.client.AccountHandle;
-import ch.alni.certblues.acme.client.AccountResourceRequest;
+import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClientException;
 import ch.alni.certblues.acme.client.AcmeServerException;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderHandle;
-import ch.alni.certblues.acme.client.OrderResourceRequest;
+import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.SigningKeyPair;
 import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
@@ -121,7 +121,7 @@ class AccountHandleImpl implements AccountHandle {
     }
 
     @Override
-    public OrderHandle createOrder(OrderResourceRequest orderRequest) {
+    public OrderHandle createOrder(OrderRequest orderRequest) {
         LOG.info("creating a new order with parameters {}", orderRequest);
 
         final var directory = session.getDirectory();
@@ -168,7 +168,7 @@ class AccountHandleImpl implements AccountHandle {
 
         final var directory = session.getDirectory();
         final var newAccountUrl = directory.newAccount();
-        final var accountRequest = AccountResourceRequest.builder().onlyReturnExisting(true).build();
+        final var accountRequest = AccountRequest.builder().onlyReturnExisting(true).build();
         final var nonce = session.getNonce();
 
         final JwsObject jwsObject = keyPair.sign(newAccountUrl, accountRequest, nonce);

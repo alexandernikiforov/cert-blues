@@ -23,13 +23,14 @@
  *
  */
 
-package ch.alni.certblues.auth;
+package ch.alni.certblues.acme.client;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
@@ -40,38 +41,28 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Error response if the token cannot be issued.
+ * The client begins the certificate issuance process by sending a POST request to the server's newOrder resource.
  */
 @AutoValue
-@JsonDeserialize(builder = ErrorResponse.Builder.class)
-public abstract class ErrorResponse {
+@JsonDeserialize(builder = OrderRequest.Builder.class)
+public abstract class OrderRequest implements AcmeRequest {
 
     public static Builder builder() {
-        return new AutoValue_ErrorResponse.Builder()
-                .errorCodes(List.of());
+        return new AutoValue_OrderRequest.Builder();
     }
 
     @JsonGetter
-    public abstract String error();
+    public abstract ImmutableList<Identifier> identifiers();
 
-    @JsonGetter("error_description")
-    public abstract String errorDescription();
-
-    @JsonGetter("error_codes")
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public abstract ImmutableList<Long> errorCodes();
+    public abstract OffsetDateTime notBefore();
 
-    @JsonGetter("timestamp")
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public abstract OffsetDateTime timestamp();
-
-    @JsonGetter("trace_id")
-    @Nullable
-    public abstract String traceId();
-
-    @JsonGetter("correlation_id")
-    @Nullable
-    public abstract String correlationId();
+    public abstract OffsetDateTime notAfter();
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
@@ -82,24 +73,15 @@ public abstract class ErrorResponse {
             return builder();
         }
 
-        @JsonSetter("error")
-        public abstract Builder error(String value);
+        @JsonSetter
+        public abstract Builder identifiers(List<Identifier> value);
 
-        @JsonSetter("error_description")
-        public abstract Builder errorDescription(String value);
+        @JsonSetter
+        public abstract Builder notBefore(OffsetDateTime value);
 
-        @JsonSetter("error_codes")
-        public abstract Builder errorCodes(List<Long> value);
+        @JsonSetter
+        public abstract Builder notAfter(OffsetDateTime value);
 
-        @JsonSetter("timestamp")
-        public abstract Builder timestamp(OffsetDateTime value);
-
-        @JsonSetter("trace_id")
-        public abstract Builder traceId(String value);
-
-        @JsonSetter("correlation_id")
-        public abstract Builder correlationId(String value);
-
-        public abstract ErrorResponse build();
+        public abstract OrderRequest build();
     }
 }

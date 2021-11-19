@@ -23,14 +23,30 @@
  *
  */
 
-package ch.alni.certblues.auth;
+package ch.alni.certblues.acme.key;
+
+import reactor.core.publisher.Mono;
 
 /**
- * Context holding the auth tokens.
+ * Abstraction over a key entry in the key vault that holds a key pair and is used to create signatures.
  */
-public interface AuthContext {
+public interface AccountKeyPair {
 
-    TokenHandle forClientCredentials(ClientCredentials clientCredentials);
+    /**
+     * Signs the given content with the provided algorithm and returns the result.
+     *
+     * @param content the content to be signed.
+     * @return the cryptographic signature as base64-urlencoded string (as Mono)
+     */
+    Mono<String> sign(String content);
 
-    TokenHandle forManagedIdentity(ManagedIdentity managedIdentity);
+    /**
+     * Returns the JSON representation of the public key used by this entry (as Mono).
+     */
+    Mono<PublicJwk> getPublicJwk();
+
+    /**
+     * Returns the signature algorithm used by the private key of this pair.
+     */
+    String getAlgorithm();
 }

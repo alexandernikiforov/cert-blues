@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountReactive;
-import ch.alni.certblues.acme.client.AccountResourceRequest;
-import ch.alni.certblues.acme.client.access.KeyVaultKeyAccessor;
+import ch.alni.certblues.acme.client.AccountRequest;
+import ch.alni.certblues.acme.client.access.PayloadSigner;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
@@ -39,17 +39,17 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class AccountReactiveImpl implements AccountReactive {
     private static final Logger LOG = getLogger(AccountReactiveImpl.class);
 
-    private final KeyVaultKeyAccessor signingKeyPair;
+    private final PayloadSigner signingKeyPair;
     private final HttpClient httpClient;
 
-    public AccountReactiveImpl(KeyVaultKeyAccessor signingKeyPair, HttpClient httpClient) {
+    public AccountReactiveImpl(PayloadSigner signingKeyPair, HttpClient httpClient) {
         this.signingKeyPair = signingKeyPair;
         this.httpClient = httpClient;
     }
 
     @Override
-    public Mono<Account> getAccount(String accountUrl, AccountResourceRequest accountResourceRequest) {
-        LOG.info("getting account for {} with request {}", accountUrl, accountResourceRequest);
+    public Mono<Account> getAccount(String accountUrl, AccountRequest accountRequest) {
+        LOG.info("getting account for {} with request {}", accountUrl, accountRequest);
 
         return null;
 /*

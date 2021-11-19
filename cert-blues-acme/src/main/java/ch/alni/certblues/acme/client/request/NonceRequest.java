@@ -44,7 +44,7 @@ public class NonceRequest {
                 .head()
                 .uri(URI.create(newNonceUrl))
                 .response()
-                .map(Payloads::getNonce)
+                .map(HttpResponses::getNonce)
                 .filter(Objects::nonNull);
     }
 }

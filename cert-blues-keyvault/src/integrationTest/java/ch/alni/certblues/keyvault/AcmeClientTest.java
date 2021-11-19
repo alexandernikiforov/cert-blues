@@ -34,7 +34,7 @@ import com.azure.security.keyvault.keys.models.KeyVaultKey;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
-import ch.alni.certblues.acme.client.AccountResourceRequest;
+import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.AcmeClient;
 import ch.alni.certblues.acme.client.Directory;
 import ch.alni.certblues.acme.client.DirectoryHandle;
@@ -81,10 +81,10 @@ class AcmeClientTest {
 
         final var accountKeyPair = new KeyPairBuilder()
                 .setAlgorithm("RS256")
-                .setKeyVaultKey(new AzureKeyVaultKey(cryptographyClient))
+                .setKeyVaultKey(new AzureKeyVaultSyncKey(cryptographyClient))
                 .build();
 
-        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountResourceRequest.builder()
+        final var accountHandle = directoryHandle.getAccount(accountKeyPair, AccountRequest.builder()
                 .termsOfServiceAgreed(true)
                 .build());
 

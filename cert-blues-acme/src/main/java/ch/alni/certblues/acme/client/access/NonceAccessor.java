@@ -57,8 +57,9 @@ public class NonceAccessor {
                 .cache(1);
     }
 
-    public Flux<String> getNonceValues() {
-        return nonceValues;
+    public Mono<String> getNonce() {
+        // this mono will unsubscribe on the first nonce value emitted
+        return Mono.from(nonceValues);
     }
 
     public void update() {

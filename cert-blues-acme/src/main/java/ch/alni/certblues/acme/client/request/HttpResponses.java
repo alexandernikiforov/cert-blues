@@ -40,16 +40,16 @@ import reactor.netty.http.client.HttpClientResponse;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * Static utility class to work with ACME request and response HTTP payloads.
+ * Static utility class to work with ACME HTTP responses.
  */
-final class Payloads {
-    private static final Logger LOG = getLogger(Payloads.class);
+final class HttpResponses {
+    private static final Logger LOG = getLogger(HttpResponses.class);
 
     private static final String HEADER_CONTENT_TYPE = "Content-Type";
     private static final String HEADER_LOCATION = "Location";
     private static final String HEADER_REPLAY_NONCE = "Replay-Nonce";
 
-    private Payloads() {
+    private HttpResponses() {
     }
 
     /**
@@ -68,12 +68,8 @@ final class Payloads {
         final var statusCode = response.status().code();
 
         try {
-            if (statusCode == 200) {
-                LOG.info("converting payload object: {}", body);
-                return JsonObjects.deserialize(body, clazz);
-            }
-            else if (statusCode < 400) {
-                LOG.warn("unexpected status code {}, trying to convert body", statusCode);
+            if (statusCode < 400) {
+                LOG.info("status code {}, trying to convert body", statusCode);
                 return JsonObjects.deserialize(body, clazz);
             }
             else {
@@ -99,19 +95,16 @@ final class Payloads {
     static String getNonce(HttpClientResponse response) {
         final var statusCode = response.status().code();
 
-        if (statusCode == 200) {
-            final String nonce = getHeader(response, HEADER_REPLAY_NONCE);
-            LOG.info("a new nonce returned: {}", nonce);
-            return nonce;
-        }
-        else if (statusCode < 400) {
-            final String nonce = getHeader(response, HEADER_REPLAY_NONCE);
-            LOG.warn("unexpected status code {} returned", statusCode);
-            return nonce;
-        }
-        else {
-            throw new AcmeServerException("cannot get nonce; status=" + statusCode);
-        }
+        final String nonce = getHeader(response, HEADER_REPLAY_NONCE);
+        LOG.info("a new nonce returned: {}, status code {}", nonce, statusCode);
+        return nonce;
+    }
+
+    /**
+     * Returns the Location header from the response or null if this header is not present.
+     */
+    static String getLocation(HttpClientResponse response) {
+        return getHeader(response, HEADER_LOCATION);
     }
 
     private static String getHeader(HttpClientResponse response, String header) {

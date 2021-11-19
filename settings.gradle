@@ -6,8 +6,6 @@ pluginManagement {
 
 rootProject.name = 'cert-blues'
 
-include 'cert-blues-common',
-        'cert-blues-acme',
-        'cert-blues-auth',
+include 'cert-blues-acme' ,
 //        'cert-blues-functions',
         'cert-blues-keyvault'

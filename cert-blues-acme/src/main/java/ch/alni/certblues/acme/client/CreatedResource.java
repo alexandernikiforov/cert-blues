@@ -23,25 +23,28 @@
  *
  */
 
-package ch.alni.certblues.auth;
-
-import java.util.concurrent.CompletableFuture;
+package ch.alni.certblues.acme.client;
 
 /**
- * Recurring token request created by the authentication context.
+ * Wrapper over the pair of some resource and the URL pointing to this resource.
+ *
+ * @param <T> type of the resource object
  */
-public interface TokenHandle {
+public class CreatedResource<T> {
 
-    /**
-     * Returns a future that will be resolved with a valid token. If there is a token that is currently valid, it will
-     * be returned.
-     */
-    CompletableFuture<TokenResponse> getToken();
+    private final T resource;
+    private final String resourceUrl;
 
-    /**
-     * Returns a future that will be resolved with a valid token. This method will start a new request to get a fresh
-     * token.
-     */
-    CompletableFuture<TokenResponse> renewToken();
+    public CreatedResource(T resource, String resourceUrl) {
+        this.resource = resource;
+        this.resourceUrl = resourceUrl;
+    }
 
+    public T getResource() {
+        return resource;
+    }
+
+    public String getResourceUrl() {
+        return resourceUrl;
+    }
 }

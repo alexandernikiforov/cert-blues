@@ -29,24 +29,37 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.TrustManagerFactory;
 
+import ch.alni.certblues.acme.client.access.AccountAccessor;
+import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
 import ch.alni.certblues.acme.client.access.DirectoryAccessor;
-import ch.alni.certblues.acme.client.access.NonceAccessor;
-import ch.alni.certblues.acme.client.request.DirectoryRequest;
-import ch.alni.certblues.acme.client.request.NonceRequest;
+import ch.alni.certblues.acme.client.access.OrderAccessor;
+import ch.alni.certblues.acme.client.access.PayloadSigner;
+import ch.alni.certblues.acme.client.access.RetryHandler;
+import ch.alni.certblues.acme.client.request.NonceSource;
+import ch.alni.certblues.acme.client.request.RequestHandler;
+import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
+import ch.alni.certblues.acme.key.SimpleRsaKeyPair;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.LoggerFactory.getLogger;
 
 class AcmeReactiveTest {
@@ -68,29 +81,56 @@ class AcmeReactiveTest {
     @Test
     void getDirectory() throws Exception {
         final String directoryUrl = String.format("https://localhost:%s/dir", PEBBLE_MGMT_PORT);
-        final DirectoryRequest directoryRequest = new DirectoryRequest(httpClient);
-        final NonceRequest nonceRequest = new NonceRequest(httpClient);
 
-        final DirectoryAccessor directoryAccessor = new DirectoryAccessor(directoryRequest, directoryUrl);
-        final NonceAccessor nonceAccessor = new NonceAccessor(nonceRequest, directoryAccessor);
+        final var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        final var accountKeyPair = new SimpleRsaKeyPair(new SimpleRsaKeyEntry(keyPair));
 
-        nonceAccessor.getNonceValues()
-                .subscribeOn(Schedulers.newParallel("nonce-thread"))
-                .log()
-                .subscribe(nonce -> LOG.info("nonce in subscription {}", nonce));
+        final var requestHandler = new RequestHandler(httpClient);
 
-        nonceAccessor.update();
-        nonceAccessor.update();
-        nonceAccessor.update();
+        final var nonceSource = new NonceSource();
+        final var directoryAccessor = new DirectoryAccessor(requestHandler, directoryUrl);
+        final var payloadSigner = new PayloadSigner(accountKeyPair);
+        final var retryHandler = new RetryHandler(5);
 
-        LOG.info("repeating the last nonce");
+        final var accountAccessor = new AccountAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
+        final var orderAccessor = new OrderAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
+        final var authorizationAccessor = new AuthorizationAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
 
-        nonceAccessor.getNonceValues()
-                .subscribeOn(Schedulers.newParallel("nonce-thread-1"))
-                .log()
-                .subscribe(nonce -> LOG.info("repeated nonce in subscription {}", nonce));
+        final AccountRequest accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
+        final OrderRequest orderRequest = OrderRequest.builder()
+                .identifiers(List.of(
+                        Identifier.builder().type("dns").value("testserver.com").build(),
+                        Identifier.builder().type("dns").value("www.testserver.com").build()
+                ))
+                .build();
 
-        Thread.sleep(5000L);
+        // let's build the request to get the tuple (directory, account, accountUrl)
+        final Mono<Directory> directoryMono = directoryAccessor.getDirectory()
+                .doOnNext(directory -> requestHandler.updateNonce(directory.newNonce(), nonceSource))
+                .share();
+        final var accountResourceMono = directoryMono
+                .flatMap(directory -> accountAccessor.getAccount(directory.newAccount(), accountRequest))
+                .share();
+        final var accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl)
+                .share();
+        final var orderMono = Mono.zip(directoryMono, accountUrlMono)
+                .flatMap(tuple -> orderAccessor.getOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest))
+                .map(CreatedResource::getResource)
+                .share();
+
+        final Mono<List<Object>> authorizationMono = Mono.zip(accountUrlMono, orderMono)
+                .map(tuple -> tuple.getT2().authorizations().stream()
+                        .map(authorizationUrl -> authorizationAccessor.getAuthorization(tuple.getT1(), authorizationUrl))
+                        .collect(Collectors.toList()))
+                .flatMap(authorizationMonoList -> Mono.zip(authorizationMonoList, Arrays::asList));
+
+        final List<Authorization> authorizations = Objects.requireNonNull(authorizationMono.block()).stream()
+                .map(Authorization.class::cast)
+                .collect(Collectors.toList());
+
+        assertThat(authorizations).isNotNull();
     }
 
     private SslContext sslContext() {

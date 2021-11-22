@@ -32,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
@@ -78,7 +77,7 @@ public abstract class Order {
     @JsonGetter
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public abstract JsonNode errors();
+    public abstract Error error();
 
     @JsonGetter
     public abstract ImmutableList<String> authorizations();
@@ -118,7 +117,7 @@ public abstract class Order {
         public abstract Builder notAfter(OffsetDateTime value);
 
         @JsonSetter
-        public abstract Builder errors(JsonNode value);
+        public abstract Builder error(Error value);
 
         @JsonSetter
         public abstract Builder authorizations(List<String> value);

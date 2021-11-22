@@ -25,14 +25,12 @@
 
 package ch.alni.certblues.acme.client;
 
-import com.google.auto.value.AutoValue;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeId;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -42,63 +40,53 @@ import java.time.OffsetDateTime;
  * An ACME challenge object represents a server's offer to validate a client's possession of an identifier in a specific
  * way.
  */
-@AutoValue
-@JsonDeserialize(builder = Challenge.Builder.class)
-public abstract class Challenge {
-
-    public static Builder builder() {
-        return new AutoValue_Challenge.Builder();
-    }
-
-    @JsonGetter
-    public abstract ChallengeStatus status();
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = HttpChallenge.class, name = "http-01"),
+        @JsonSubTypes.Type(value = DnsChallenge.class, name = "dns-01"),
+        @JsonSubTypes.Type(value = TlsAplnChallenge.class, name = "tls-alpn-01")
+})
+public interface Challenge {
 
     @JsonGetter
-    public abstract String type();
+    @JsonTypeId
+    String type();
 
     @JsonGetter
-    public abstract String url();
+    ChallengeStatus status();
 
     @JsonGetter
-    public abstract String token();
+    String url();
 
     @JsonGetter
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @Nullable
-    public abstract OffsetDateTime validated();
+    String token();
 
     @JsonGetter
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @Nullable
-    public abstract Error error();
+    @Nullable OffsetDateTime validated();
 
-    @AutoValue.Builder
-    @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Nullable Error error();
 
-        @JsonCreator
-        static Builder create() {
-            return builder();
-        }
+    interface Builder<BuilderType> {
 
         @JsonSetter
-        public abstract Builder status(ChallengeStatus value);
+        BuilderType status(ChallengeStatus value);
 
         @JsonSetter
-        public abstract Builder type(String value);
+        BuilderType type(String value);
 
         @JsonSetter
-        public abstract Builder url(String value);
+        BuilderType url(String value);
 
         @JsonSetter
-        public abstract Builder token(String value);
+        BuilderType token(String value);
 
         @JsonSetter
-        public abstract Builder validated(OffsetDateTime value);
+        BuilderType validated(OffsetDateTime value);
 
         @JsonSetter
-        public abstract Builder error(Error value);
-
-        public abstract Challenge build();
+        BuilderType error(Error value);
     }
 }

@@ -44,7 +44,7 @@ public class NonceSource {
         return Mono.from(nonceValues);
     }
 
-    public void update(String nonce) {
+    public synchronized void update(String nonce) {
         nonceSubject.emitNext(nonce, Sinks.EmitFailureHandler.FAIL_FAST);
     }
 }

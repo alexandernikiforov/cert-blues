@@ -33,15 +33,15 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.TrustManagerFactory;
 
 import ch.alni.certblues.acme.client.access.AccountAccessor;
 import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
+import ch.alni.certblues.acme.client.access.AuthorizationHandler;
+import ch.alni.certblues.acme.client.access.ChallengeAccessor;
 import ch.alni.certblues.acme.client.access.DirectoryAccessor;
 import ch.alni.certblues.acme.client.access.OrderAccessor;
 import ch.alni.certblues.acme.client.access.PayloadSigner;
@@ -55,8 +55,11 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,11 +69,19 @@ class AcmeReactiveTest {
     private static final Logger LOG = getLogger(AcmeReactiveTest.class);
 
     private static final int PEBBLE_MGMT_PORT = 14000;
+    private static final int CHALL_TEST_SRV_MGMT_PORT = 8055;
 
-    private final HttpClient httpClient = HttpClient.create()
+    private final ConnectionProvider connectionProvider = ConnectionProvider.builder("custom")
+            .maxConnections(10)
+            .maxIdleTime(Duration.ofSeconds(45))
+            .maxLifeTime(Duration.ofSeconds(60))
+            .build();
+
+    private final HttpClient httpClient = HttpClient.create(connectionProvider)
             .protocol(HttpProtocol.HTTP11)
             .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
-            .responseTimeout(Duration.ofMillis(30))
+            .responseTimeout(Duration.ofSeconds(30))
+            .keepAlive(true)
             .secure(spec -> spec.sslContext(sslContext()));
 
     @BeforeEach
@@ -81,6 +92,8 @@ class AcmeReactiveTest {
     @Test
     void getDirectory() throws Exception {
         final String directoryUrl = String.format("https://localhost:%s/dir", PEBBLE_MGMT_PORT);
+        final String httpChallengeUrl = String.format("http://localhost:%s/add-http01", CHALL_TEST_SRV_MGMT_PORT);
+        final String dnsChallengeUrl = String.format("http://localhost:%s/set-txt", CHALL_TEST_SRV_MGMT_PORT);
 
         final var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
@@ -94,14 +107,18 @@ class AcmeReactiveTest {
         final var payloadSigner = new PayloadSigner(accountKeyPair);
         final var retryHandler = new RetryHandler(5);
 
+        final var challengeProvisioner = new TestChallengeProvisioner(httpClient, httpChallengeUrl, dnsChallengeUrl);
+
         final var accountAccessor = new AccountAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         final var orderAccessor = new OrderAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         final var authorizationAccessor = new AuthorizationAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
+        final var authorizationHandler = new AuthorizationHandler(accountKeyPair, challengeProvisioner);
+        final var challengeAccessor = new ChallengeAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
 
         final AccountRequest accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final OrderRequest orderRequest = OrderRequest.builder()
                 .identifiers(List.of(
-                        Identifier.builder().type("dns").value("testserver.com").build(),
+                        Identifier.builder().type("dns").value("*.testserver.com").build(),
                         Identifier.builder().type("dns").value("www.testserver.com").build()
                 ))
                 .build();
@@ -116,21 +133,29 @@ class AcmeReactiveTest {
         final var accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl)
                 .share();
         final var orderMono = Mono.zip(directoryMono, accountUrlMono)
-                .flatMap(tuple -> orderAccessor.getOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest))
-                .map(CreatedResource::getResource)
+                .flatMap(tuple -> orderAccessor.createOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest))
                 .share();
 
-        final Mono<List<Object>> authorizationMono = Mono.zip(accountUrlMono, orderMono)
-                .map(tuple -> tuple.getT2().authorizations().stream()
-                        .map(authorizationUrl -> authorizationAccessor.getAuthorization(tuple.getT1(), authorizationUrl))
+        final Scheduler scheduler = Schedulers.newParallel("challenge");
+
+        final Mono<Void> authorizationMono = Mono.zip(accountUrlMono, orderMono.map(CreatedResource::getResource))
+                // create requests to get the authorizations for each of the authorization URL in the order
+                .map(tuple -> tuple.getT2().authorizations().stream().map(authorizationUrl -> authorizationAccessor
+                                .getAuthorization(tuple.getT1(), authorizationUrl)
+                                .flatMap(authorizationHandler::handle)
+                                .flatMap(challenge -> challengeAccessor.submitChallenge(tuple.getT1(), challenge.url()))
+                        )
                         .collect(Collectors.toList()))
-                .flatMap(authorizationMonoList -> Mono.zip(authorizationMonoList, Arrays::asList));
+                // for each challenge mono try to execute the authorization requests
+                .flatMap(Mono::when);
 
-        final List<Authorization> authorizations = Objects.requireNonNull(authorizationMono.block()).stream()
-                .map(Authorization.class::cast)
-                .collect(Collectors.toList());
+        // submit request for authorizations
+        final Order order = authorizationMono.then(Mono.zip(accountUrlMono, orderMono.map(CreatedResource::getResourceUrl))
+                        .flatMap(tuple -> orderAccessor.getOrder(tuple.getT1(), tuple.getT2())))
+                .log()
+                .block();
 
-        assertThat(authorizations).isNotNull();
+        assertThat(order).isNotNull();
     }
 
     private SslContext sslContext() {

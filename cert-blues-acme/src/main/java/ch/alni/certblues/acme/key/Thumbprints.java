@@ -44,10 +44,14 @@ public final class Thumbprints {
      * Returns the base64-urlencoded SHA-256 thumbprint of the given JWK.
      */
     public static String getSha256Thumbprint(PublicJwk publicJwk) {
-        try {
-            final String value = getKeyAsJson(publicJwk);
+        final String value = getKeyAsJson(publicJwk);
 
-            LOG.info("calculating the SHA-256 thumbprint of the public JWK {}", value);
+        LOG.info("calculating the SHA-256 thumbprint of the public JWK {}", value);
+        return getSha256Digest(value);
+    }
+
+    public static String getSha256Digest(String value) {
+        try {
             final var digest = MessageDigest.getInstance("SHA-256");
             digest.update(value.getBytes(StandardCharsets.UTF_8));
 

@@ -23,37 +23,34 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.acme.client;
 
-import reactor.core.publisher.Mono;
+import com.google.auto.value.AutoValue;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 /**
- * Abstraction over a key entry in the key vault that holds a key pair and is used to create signatures.
+ * Http-01 challenge type.
  */
-public interface AccountKeyPair {
+@AutoValue
+@JsonDeserialize(builder = HttpChallenge.Builder.class)
+public abstract class HttpChallenge implements Challenge {
 
-    /**
-     * Signs the given content with the provided algorithm and returns the result.
-     *
-     * @param content the content to be signed.
-     * @return the cryptographic signature as base64-urlencoded string (as Mono)
-     */
-    Mono<String> sign(String content);
+    public static Builder builder() {
+        return new AutoValue_HttpChallenge.Builder().type("http-01");
+    }
 
-    /**
-     * Returns the JSON representation of the public key used by this entry (as Mono).
-     */
-    Mono<PublicJwk> getPublicJwk();
+    @AutoValue.Builder
+    @JsonPOJOBuilder(withPrefix = "")
+    public abstract static class Builder implements Challenge.Builder<Builder> {
 
-    /**
-     * Returns the signature algorithm used by the private key of this pair.
-     */
-    String getAlgorithm();
+        @JsonCreator
+        static Builder create() {
+            return builder();
+        }
 
-    /**
-     * Calculates and returns the thumbprint of the public key as mono.
-     */
-    default Mono<String> getPublicKeyThumbprint() {
-        return getPublicJwk().map(Thumbprints::getSha256Thumbprint);
+        public abstract HttpChallenge build();
     }
 }

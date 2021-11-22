@@ -48,10 +48,47 @@ public class OrderAccessor {
         this.requestHandler = requestHandler;
     }
 
-    public Mono<CreatedResource<Order>> getOrder(String accountUrl, String newOrderUrl, OrderRequest resourceRequest) {
+    /**
+     * Creates a new order.
+     *
+     * @param accountUrl      URL of the account
+     * @param newOrderUrl     URL to create a new order
+     * @param resourceRequest order creation request
+     * @return mono over the created order (combined with the URL pointing to the created order)
+     */
+    public Mono<CreatedResource<Order>> createOrder(String accountUrl, String newOrderUrl, OrderRequest resourceRequest) {
         return nonceSource.getNonce()
                 .flatMap(nonce -> payloadSigner.sign(newOrderUrl, accountUrl, resourceRequest, nonce))
                 .flatMap(jwsObject -> requestHandler.create(newOrderUrl, jwsObject, nonceSource, Order.class))
+                .retryWhen(retryHandler.getRetry());
+    }
+
+    /**
+     * Loads the order by the given order URL.
+     *
+     * @param accountUrl URL of the account
+     * @param orderUrl   URL of the order to load
+     * @return mono of the order
+     */
+    public Mono<Order> getOrder(String accountUrl, String orderUrl) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(orderUrl, accountUrl, "", nonce))
+                .flatMap(jwsObject -> requestHandler.request(orderUrl, jwsObject, nonceSource, Order.class))
+                .retryWhen(retryHandler.getRetry());
+    }
+
+    /**
+     * Submits CSR for the given order.
+     *
+     * @param accountUrl  URL of the account
+     * @param finalizeUrl URL to submit the CSR thus finalizing the order
+     * @param csr         certificate sign request (DER-form base64-url-encoded)
+     * @return mono over the refreshed order object
+     */
+    public Mono<Order> submitCsr(String accountUrl, String finalizeUrl, String csr) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(finalizeUrl, accountUrl, csr, nonce))
+                .flatMap(jwsObject -> requestHandler.request(finalizeUrl, jwsObject, nonceSource, Order.class))
                 .retryWhen(retryHandler.getRetry());
     }
 }

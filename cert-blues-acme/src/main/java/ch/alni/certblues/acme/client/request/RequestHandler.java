@@ -25,6 +25,7 @@
 
 package ch.alni.certblues.acme.client.request;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.net.URI;
@@ -36,8 +37,12 @@ import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.netty.ByteBufMono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
+import reactor.util.function.Tuple2;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -48,6 +53,7 @@ public class RequestHandler {
     private static final Logger LOG = getLogger(RequestHandler.class);
 
     private final HttpClient httpClient;
+    private final Scheduler scheduler = Schedulers.newBoundedElastic(5, 100, "request");
 
     public RequestHandler(HttpClient httpClient) {
         this.httpClient = httpClient;
@@ -63,6 +69,7 @@ public class RequestHandler {
                 .head()
                 .uri(URI.create(newNonceUrl))
                 .response()
+                .publishOn(scheduler)
                 .map(HttpResponses::getNonce)
                 .filter(Objects::nonNull)
                 .subscribe(
@@ -87,6 +94,7 @@ public class RequestHandler {
                 .responseSingle((response, bufMono) -> bufMono
                         .asString(StandardCharsets.UTF_8)
                         .zipWith(Mono.just(response)))
+                .publishOn(scheduler)
                 .map(responseTuple2 -> HttpResponses.getPayload(responseTuple2.getT2(), responseTuple2.getT1(), clazz));
     }
 
@@ -100,14 +108,7 @@ public class RequestHandler {
      * @return mono over the returned resource
      */
     public <T> Mono<T> request(String resourceUrl, JwsObject jwsObject, NonceSource nonceSource, Class<T> clazz) {
-        return httpClient
-                .headers(headers -> headers.add(HttpHeaderNames.CONTENT_TYPE, "application/jose+json"))
-                .post()
-                .uri(URI.create(resourceUrl))
-                .send(ByteBufMono.fromString(Mono.fromSupplier(() -> JsonObjects.serialize(jwsObject))))
-                .responseSingle((response, bufMono) -> bufMono.asString(StandardCharsets.UTF_8)
-                        .zipWith(Mono.just(response)))
-                .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource))
+        return doRequest(resourceUrl, jwsObject, nonceSource)
                 .map(responseTuple2 -> HttpResponses.getPayload(responseTuple2.getT2(), responseTuple2.getT1(), clazz));
     }
 
@@ -121,21 +122,28 @@ public class RequestHandler {
      * @return mono over the created resource
      */
     public <T> Mono<CreatedResource<T>> create(String newResourceUrl, JwsObject jwsObject, NonceSource nonceSource, Class<T> clazz) {
-        return httpClient
-                .headers(headers -> headers.add(HttpHeaderNames.CONTENT_TYPE, "application/jose+json"))
-                .post()
-                .uri(URI.create(newResourceUrl))
-                .send(ByteBufMono.fromString(Mono.fromSupplier(() -> JsonObjects.serialize(jwsObject))))
-                .responseSingle((response, bufMono) -> bufMono
-                        .asString(StandardCharsets.UTF_8)
-                        .zipWith(Mono.just(response)))
-                .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource))
+        return doRequest(newResourceUrl, jwsObject, nonceSource)
                 .map(responseTuple2 -> new CreatedResource<>(
                         // resource object
                         HttpResponses.getPayload(responseTuple2.getT2(), responseTuple2.getT1(), clazz),
                         // location header pointing to it
                         HttpResponses.getLocation(responseTuple2.getT2())
                 ));
+    }
+
+    @NotNull
+    private Mono<Tuple2<String, HttpClientResponse>> doRequest(String resourceUrl, JwsObject jwsObject, NonceSource nonceSource) {
+        return httpClient
+                .headers(headers -> headers.add(HttpHeaderNames.CONTENT_TYPE, "application/jose+json"))
+                .post()
+                .uri(URI.create(resourceUrl))
+                .send(ByteBufMono.fromString(Mono.fromSupplier(() -> JsonObjects.serialize(jwsObject))))
+                .responseSingle((response, bufMono) -> bufMono
+                        .asString(StandardCharsets.UTF_8)
+                        .zipWith(Mono.just(response)))
+                .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource))
+                .publishOn(scheduler)
+                ;
     }
 
     private void propagateNonce(String nonce, NonceSource nonceSource) {

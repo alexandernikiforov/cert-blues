@@ -23,37 +23,32 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.acme.client;
 
 import reactor.core.publisher.Mono;
 
 /**
- * Abstraction over a key entry in the key vault that holds a key pair and is used to create signatures.
+ * Interface to provision ACME challenges.
  */
-public interface AccountKeyPair {
+public interface ChallengeProvisioner {
 
     /**
-     * Signs the given content with the provided algorithm and returns the result.
+     * Provisions HTTP challenge.
      *
-     * @param content the content to be signed.
-     * @return the cryptographic signature as base64-urlencoded string (as Mono)
+     * @param token   the token of the challenge
+     * @param keyAuth the calculated key authorization
+     * @return mono that emits "true" when the challenge has been provisioned or error if the challenge cannot be
+     * provisioned
      */
-    Mono<String> sign(String content);
+    Mono<Void> provisionHttp(String token, String keyAuth);
 
     /**
-     * Returns the JSON representation of the public key used by this entry (as Mono).
+     * Provisions DNS challenge.
+     *
+     * @param host  the name of the TXT record to be created in the DNS zone
+     * @param value the value of the TXT record to be created in the DNS zone
+     * @return mono that emits "true" when the challenge has been provisioned or error if the challenge cannot be
+     * provisioned
      */
-    Mono<PublicJwk> getPublicJwk();
-
-    /**
-     * Returns the signature algorithm used by the private key of this pair.
-     */
-    String getAlgorithm();
-
-    /**
-     * Calculates and returns the thumbprint of the public key as mono.
-     */
-    default Mono<String> getPublicKeyThumbprint() {
-        return getPublicJwk().map(Thumbprints::getSha256Thumbprint);
-    }
+    Mono<Void> provisionDns(String host, String value);
 }

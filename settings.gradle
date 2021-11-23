@@ -8,4 +8,5 @@ rootProject.name = 'cert-blues'
 
 include 'cert-blues-acme' ,
 //        'cert-blues-functions',
-        'cert-blues-keyvault'
+        'cert-blues-azure',
+        'cert-blues-test-common'

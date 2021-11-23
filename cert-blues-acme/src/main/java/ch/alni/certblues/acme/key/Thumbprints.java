@@ -46,10 +46,13 @@ public final class Thumbprints {
     public static String getSha256Thumbprint(PublicJwk publicJwk) {
         final String value = getKeyAsJson(publicJwk);
 
-        LOG.info("calculating the SHA-256 thumbprint of the public JWK {}", value);
+        LOG.debug("calculating the SHA-256 thumbprint of the public JWK {}", value);
         return getSha256Digest(value);
     }
 
+    /**
+     * Returns the base64-urlencoded SHA-256 digest of the given string value.
+     */
     public static String getSha256Digest(String value) {
         try {
             final var digest = MessageDigest.getInstance("SHA-256");

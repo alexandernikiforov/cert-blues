@@ -46,7 +46,7 @@ import ch.alni.certblues.acme.cert.SubjectAltName;
 import ch.alni.certblues.acme.client.impl.AcmeClientBuilder;
 import ch.alni.certblues.acme.client.impl.KeyPairBuilder;
 import ch.alni.certblues.acme.key.KeyVaultKey;
-import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
+import ch.alni.certblues.acme.key.rsa.SimpleRsaKeyEntry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.LoggerFactory.getLogger;

@@ -34,21 +34,21 @@ import ch.alni.certblues.acme.client.AcmeRequest;
 import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.JwsObject;
-import ch.alni.certblues.acme.key.AccountKeyPair;
+import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
 
 /**
  * Signs the payloads according to the ACME protocol.
  */
 public class PayloadSigner {
-    private final AccountKeyPair keyPair;
+    private final SigningKeyPair keyPair;
 
     /**
      * Creates a new accessor object to get information out of the given key pair stored in a remote vault.
      *
      * @param keyPair the remote interface to the key pair stored in a vault
      */
-    public PayloadSigner(AccountKeyPair keyPair) {
+    public PayloadSigner(SigningKeyPair keyPair) {
         this.keyPair = keyPair;
     }
 

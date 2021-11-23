@@ -1,0 +1,5 @@
+# describes how to produce the Let's Encrypt staging certificate into the truststore to be used by the client in tests
+# load https://letsencrypt.org/certs/fakelerootx1.pem
+
+openssl x509 -outform der -in fakelerootx1.pem -out fakelerootx1.der
+"C:\openjdk\jdk-11.0.1"/bin/keytool -importcert -keystore truststore.p12 -storetype pkcs12 -storepass 123456 -file fakelerootx1.der -alias letsencrypt -v

@@ -142,8 +142,7 @@ public class RequestHandler {
                         .asString(StandardCharsets.UTF_8)
                         .zipWith(Mono.just(response)))
                 .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource))
-                .publishOn(scheduler)
-                ;
+                .publishOn(scheduler);
     }
 
     private void propagateNonce(String nonce, NonceSource nonceSource) {

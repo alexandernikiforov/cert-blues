@@ -34,7 +34,7 @@ import ch.alni.certblues.acme.jws.Jws;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.JwsObject;
 import ch.alni.certblues.acme.key.KeyVaultKey;
-import ch.alni.certblues.acme.key.SimpleRsaKeyEntry;
+import ch.alni.certblues.acme.key.rsa.SimpleRsaKeyEntry;
 import io.jsonwebtoken.Jwts;
 
 import static org.assertj.core.api.Assertions.assertThat;

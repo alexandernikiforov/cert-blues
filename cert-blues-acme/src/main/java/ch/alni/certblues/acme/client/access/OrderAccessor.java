@@ -27,6 +27,7 @@ package ch.alni.certblues.acme.client.access;
 
 import ch.alni.certblues.acme.client.CreatedResource;
 import ch.alni.certblues.acme.client.Order;
+import ch.alni.certblues.acme.client.OrderFinalizationRequest;
 import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
@@ -80,15 +81,29 @@ public class OrderAccessor {
     /**
      * Submits CSR for the given order.
      *
-     * @param accountUrl  URL of the account
-     * @param finalizeUrl URL to submit the CSR thus finalizing the order
-     * @param csr         certificate sign request (DER-form base64-url-encoded)
+     * @param accountUrl          URL of the account
+     * @param finalizeUrl         URL to submit the CSR thus finalizing the order
+     * @param finalizationRequest certificate sign request (DER-form base64-url-encoded)
      * @return mono over the refreshed order object
      */
-    public Mono<Order> submitCsr(String accountUrl, String finalizeUrl, String csr) {
+    public Mono<Order> submitCsr(String accountUrl, String finalizeUrl, OrderFinalizationRequest finalizationRequest) {
         return nonceSource.getNonce()
-                .flatMap(nonce -> payloadSigner.sign(finalizeUrl, accountUrl, csr, nonce))
+                .flatMap(nonce -> payloadSigner.sign(finalizeUrl, accountUrl, finalizationRequest, nonce))
                 .flatMap(jwsObject -> requestHandler.request(finalizeUrl, jwsObject, nonceSource, Order.class))
+                .retryWhen(retryHandler.getRetry());
+    }
+
+    /**
+     * Submits CSR for the given order.
+     *
+     * @param accountUrl     URL of the account
+     * @param certificateUrl URL to download the certificate (chain) in PEM format
+     * @return mono over the download certificate
+     */
+    public Mono<String> downloadCertificate(String accountUrl, String certificateUrl) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(certificateUrl, accountUrl, "", nonce))
+                .flatMap(jwsObject -> requestHandler.request(certificateUrl, jwsObject, nonceSource))
                 .retryWhen(retryHandler.getRetry());
     }
 }

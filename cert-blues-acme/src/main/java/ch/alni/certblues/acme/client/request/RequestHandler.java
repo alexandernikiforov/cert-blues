@@ -113,6 +113,20 @@ public class RequestHandler {
     }
 
     /**
+     * Issues a request to get the resource at the provided URL.
+     *
+     * @param resourceUrl the URL pointing at the resource
+     * @param jwsObject   the signed request payload encoded as JWS
+     * @param clazz       the type of the resource object
+     * @param <T>         the type parameter
+     * @return mono over the returned resource
+     */
+    public Mono<String> request(String resourceUrl, JwsObject jwsObject, NonceSource nonceSource) {
+        return doRequest(resourceUrl, jwsObject, nonceSource)
+                .map(responseTuple2 -> HttpResponses.getPayload(responseTuple2.getT2(), responseTuple2.getT1()));
+    }
+
+    /**
      * Creates a new resource on the ACME server and returns it together with the URL pointing to this resource.
      *
      * @param newResourceUrl URL to call to create a new resource

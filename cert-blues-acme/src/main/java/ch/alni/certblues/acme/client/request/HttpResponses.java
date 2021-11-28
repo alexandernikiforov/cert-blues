@@ -85,6 +85,27 @@ final class HttpResponses {
         }
     }
 
+    public static String getPayload(HttpClientResponse response, String body) {
+        final var statusCode = response.status().code();
+
+        try {
+            if (statusCode < 400) {
+                LOG.info("status code {}, trying to convert body", statusCode);
+                return body;
+            }
+            else {
+                extractError(response, body).ifPresent(error -> {
+                    throw new AcmeServerException(error);
+                });
+
+                throw new AcmeServerException(body);
+            }
+        }
+        catch (JsonObjectException e) {
+            throw new AcmeClientException("cannot deserialize the ACME response payload", e);
+        }
+    }
+
     /**
      * Returns the nonce from the header ("Replay-nonce") of the provided response.
      *
@@ -125,4 +146,5 @@ final class HttpResponses {
             return Optional.empty();
         }
     }
+
 }

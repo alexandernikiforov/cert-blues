@@ -25,98 +25,32 @@
 
 package ch.alni.certblues.acme.facade;
 
-import java.util.stream.Collectors;
-
 import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.CreatedResource;
-import ch.alni.certblues.acme.client.Directory;
-import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderRequest;
-import ch.alni.certblues.acme.client.access.AccountAccessor;
-import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
-import ch.alni.certblues.acme.client.access.ChallengeAccessor;
-import ch.alni.certblues.acme.client.access.ChallengeProvisioner;
-import ch.alni.certblues.acme.client.access.DirectoryAccessor;
-import ch.alni.certblues.acme.client.access.OrderAccessor;
-import ch.alni.certblues.acme.client.access.PayloadSigner;
-import ch.alni.certblues.acme.client.access.RetryHandler;
 import ch.alni.certblues.acme.client.request.NonceSource;
-import ch.alni.certblues.acme.client.request.RequestHandler;
 import ch.alni.certblues.acme.key.SigningKeyPair;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 /**
- * Client of the ACME server.
+ * Client for an ACME server.
  */
 public class AcmeClient {
 
-    private final SigningKeyPair accountKeyPair;
-
-    private final RetryHandler retryHandler = new RetryHandler(5);
-    private final RequestHandler requestHandler;
-    private final PayloadSigner payloadSigner;
-    private final ChallengeProvisioner challengeProvisioner;
+    private final NonceSource nonceSource = new NonceSource();
+    private final HttpClient httpClient;
+    private final String directoryUrl;
 
     /**
      * Creates a new instance.
      *
-     * @param httpClient           the HTTP client to use
-     * @param accountKeyPair       the key pair identifying the account on the ACME server
-     * @param challengeProvisioner the interface to the system provisioning the authorization challenges
+     * @param httpClient   HTTP client to be used in all ACME clients built by this instance
+     * @param directoryUrl URL of the ACME server directory
      */
-    public AcmeClient(HttpClient httpClient, SigningKeyPair accountKeyPair, ChallengeProvisioner challengeProvisioner) {
-        this.accountKeyPair = accountKeyPair;
-        this.requestHandler = new RequestHandler(httpClient);
-        this.payloadSigner = new PayloadSigner(accountKeyPair);
-        this.challengeProvisioner = challengeProvisioner;
+    public AcmeClient(HttpClient httpClient, String directoryUrl) {
+        this.httpClient = httpClient;
+        this.directoryUrl = directoryUrl;
     }
 
-    /**
-     * Creates a new order on the ACME server accessed by the given directory URL.
-     *
-     * @param directoryUrl the URL of the directory on the ACME server
-     * @param orderRequest the request to create a new order
-     */
-    public Mono<CreatedResource<Order>> createOrder(String directoryUrl, OrderRequest orderRequest) {
-        final var nonceSource = new NonceSource();
-        final var directoryAccessor = new DirectoryAccessor(requestHandler, directoryUrl);
-        final var accountAccessor = new AccountAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
-        final var orderAccessor = new OrderAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
-        final var authorizationAccessor = new AuthorizationAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
-        final var challengeAccessor = new ChallengeAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
-        final var authorizationHandler = new IdentifierAuthorizationClient(accountKeyPair, challengeProvisioner);
-
-        final AccountRequest accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
-
-        // let's build the request to get the tuple (directory, account, accountUrl)
-        final Mono<Directory> directoryMono = directoryAccessor.getDirectory()
-                .doOnNext(directory -> requestHandler.updateNonce(directory.newNonce(), nonceSource))
-                .share();
-        final var accountResourceMono = directoryMono
-                .flatMap(directory -> accountAccessor.getAccount(directory.newAccount(), accountRequest))
-                .share();
-        final var accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl)
-                .share();
-        final var orderMono = Mono.zip(directoryMono, accountUrlMono)
-                .flatMap(tuple -> orderAccessor.createOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest))
-                .share();
-
-        final Mono<Void> authorizationMono = Mono.zip(accountUrlMono, orderMono.map(CreatedResource::getResource))
-                // create requests to get the authorizations for each of the authorization URL in the order
-                .map(tuple -> tuple.getT2().authorizations().stream().map(authorizationUrl -> authorizationAccessor
-                                .getAuthorization(tuple.getT1(), authorizationUrl)
-                                .flatMap(authorizationHandler::process)
-                                .flatMap(challenge -> challengeAccessor.submitChallenge(tuple.getT1(), challenge.url()))
-                        )
-                        .collect(Collectors.toList()))
-                // for each challenge mono try to execute the authorization requests
-                .flatMap(Mono::when);
-
-        // submit request for authorizations
-        return authorizationMono.then(Mono.zip(accountUrlMono, orderMono)
-                .flatMap(tuple -> orderAccessor.getOrder(tuple.getT1(), tuple.getT2().getResourceUrl())
-                        .map(order -> new CreatedResource<>(order, tuple.getT2().getResourceUrl()))
-                ));
+    public AcmeSession login(SigningKeyPair accountKeyPair, AccountRequest accountRequest) {
+        return new AcmeSession(httpClient, nonceSource, accountKeyPair, directoryUrl, accountRequest);
     }
 }

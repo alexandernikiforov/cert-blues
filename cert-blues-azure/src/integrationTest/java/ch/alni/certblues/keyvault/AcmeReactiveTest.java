@@ -27,8 +27,13 @@ package ch.alni.certblues.keyvault;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
-import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.security.keyvault.certificates.models.CertificateContentType;
+import com.azure.security.keyvault.certificates.models.CertificateKeyType;
+import com.azure.security.keyvault.certificates.models.CertificateKeyUsage;
+import com.azure.security.keyvault.certificates.models.CertificatePolicy;
+import com.azure.security.keyvault.certificates.models.CertificatePolicyAction;
+import com.azure.security.keyvault.certificates.models.LifetimeAction;
+import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +41,7 @@ import org.slf4j.Logger;
 
 import java.security.KeyStore;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 
 import javax.net.ssl.TrustManagerFactory;
@@ -44,13 +50,18 @@ import ch.alni.certblues.acme.client.CreatedResource;
 import ch.alni.certblues.acme.client.Identifier;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.OrderStatus;
 import ch.alni.certblues.acme.facade.AcmeClient;
+import ch.alni.certblues.acme.facade.AcmeSessionFacade;
+import ch.alni.certblues.acme.facade.IdentifierAuthorizationClient;
+import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.pebble.TestChallengeProvisioner;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import reactor.core.publisher.Flux;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
@@ -65,7 +76,8 @@ class AcmeReactiveTest {
     private static final int PEBBLE_MGMT_PORT = 14000;
     private static final int CHALL_TEST_SRV_MGMT_PORT = 8055;
 
-    private static final String KEY_ID = "https://cert-blues-dev.vault.azure.net/keys/accountKey/eed9a4146fb347cebf2a3907cda95fe0";
+    private static final String VAULT_URL = "https://cert-blues-dev.vault.azure.net";
+    private static final String KEY_ID = VAULT_URL + "/keys/accountKey/eed9a4146fb347cebf2a3907cda95fe0";
 
     private final ConnectionProvider connectionProvider = ConnectionProvider.builder("custom")
             .maxConnections(10)
@@ -82,18 +94,39 @@ class AcmeReactiveTest {
 
     // initialize the Azure client
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+    private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(credential, KEY_ID, "RS256");
 
-    // Azure SDK client builders accept the credential as a parameter
-    private final CryptographyAsyncClient cryptographyClient = new CryptographyClientBuilder()
-            .keyIdentifier(KEY_ID)
-            .credential(credential)
-            .buildAsyncClient();
+    private final CertificatePolicy certificatePolicy = new CertificatePolicy("Unknown", "CN=DefaultPolicy")
+            .setCertificateTransparent(false)
+            .setContentType(CertificateContentType.PKCS12)
+            .setKeySize(2048)
+            .setKeyType(CertificateKeyType.RSA)
+            .setSubjectAlternativeNames(new SubjectAlternativeNames().setDnsNames(List.of("www.testserver.com")))
+            .setKeyUsage(CertificateKeyUsage.KEY_ENCIPHERMENT, CertificateKeyUsage.DIGITAL_SIGNATURE)
+            .setEnhancedKeyUsage(List.of("1.3.6.1.5.5.7.3.1"))
+            .setValidityInMonths(12)
+            .setLifetimeActions(new LifetimeAction(CertificatePolicyAction.EMAIL_CONTACTS).setLifetimePercentage(80));
 
-    private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(cryptographyClient, "RS256");
+    private final CertificateEntry certificateEntry = new AzureKeyVaultCertificate(credential, VAULT_URL, "test-server", certificatePolicy);
 
     @BeforeEach
     void setUp() {
         LOG.info("hello");
+    }
+
+    @Test
+    void getCsr() {
+        final byte[] csr1 = certificateEntry.createCsr().block();
+        final byte[] csr2 = certificateEntry.createCsr().block();
+        assertThat(csr1).isEqualTo(csr2);
+
+        final String thumbprint1 = certificateEntry.getSigningKeyPair()
+                .flatMap(SigningKeyPair::getPublicKeyThumbprint)
+                .block();
+        final String thumbprint2 = certificateEntry.getSigningKeyPair()
+                .flatMap(SigningKeyPair::getPublicKeyThumbprint)
+                .block();
+        assertThat(thumbprint1).isEqualTo(thumbprint2);
     }
 
     @Test
@@ -104,22 +137,44 @@ class AcmeReactiveTest {
 
         final var challengeProvisioner = new TestChallengeProvisioner(httpClient, httpChallengeUrl, dnsChallengeUrl);
 
-        final var acmeClient = new AcmeClient(httpClient, accountKeyPair, challengeProvisioner);
+        final var acmeClient = new AcmeClient(httpClient, directoryUrl);
+        final var authorizationClient = new IdentifierAuthorizationClient(accountKeyPair, challengeProvisioner);
+        final var sessionFacade = new AcmeSessionFacade(acmeClient, authorizationClient);
 
-        final OrderRequest orderRequest = OrderRequest.builder()
+        final var orderRequest = OrderRequest.builder()
                 .identifiers(List.of(
-                        Identifier.builder().type("dns").value("*.testserver.com").build(),
+//                        Identifier.builder().type("dns").value("*.testserver.com").build(),
                         Identifier.builder().type("dns").value("www.testserver.com").build()
                 ))
                 .build();
 
         // submit request for authorizations
-        final Order order = acmeClient.createOrder(directoryUrl, orderRequest)
+        final CreatedResource<Order> orderResource = sessionFacade.createOrder(accountKeyPair, orderRequest)
                 .log()
-                .map(CreatedResource::getResource)
                 .block();
 
-        assertThat(order).isNotNull();
+        assertThat(orderResource).isNotNull();
+
+        // create a CSR
+        final String encodedCsr = certificateEntry.createCsr()
+                .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
+                .block();
+
+        assertThat(encodedCsr).isNotNull();
+
+        // submit the certificate request
+        final Order finalOrder = Flux.interval(Duration.ofSeconds(2))
+                .flatMap(unused -> sessionFacade.submitCsr(accountKeyPair, orderResource.getResourceUrl(), encodedCsr))
+                .takeUntil(order -> order.status() != OrderStatus.PENDING && order.status() != OrderStatus.PROCESSING)
+                .blockLast(Duration.ofSeconds(15));
+
+        assertThat(finalOrder).isNotNull();
+        assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
+
+        // download the certificate and merge it into the key vault
+        sessionFacade.downloadCertificate(accountKeyPair, finalOrder.certificate())
+                .flatMap(certificateEntry::upload)
+                .block();
     }
 
     private SslContext sslContext() {

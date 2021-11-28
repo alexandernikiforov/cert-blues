@@ -23,33 +23,30 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.acme.key;
 
-testSets {
-    integrationTest
-}
+import reactor.core.publisher.Mono;
 
-integrationTest {
-    useJUnitPlatform()
-}
+/**
+ * Abstraction over a certificate entry in the key vault.
+ */
+public interface CertificateEntry {
 
-dependencies {
-    implementation project(':cert-blues-acme')
+    /**
+     * Returns the reference to the signing key pair.
+     */
+    Mono<SigningKeyPair> getSigningKeyPair();
 
-    compileOnly 'org.slf4j:slf4j-api:1.7.30'
+    /**
+     * Returns the certificate sign request for this certificate in base64-urlencoded form. This call will start
+     * creation of a new certificate or returns a CSR for the already running operation.
+     */
+    Mono<byte[]> createCsr();
 
-    implementation 'com.azure:azure-identity:1.4.1'
-    implementation 'com.azure:azure-security-keyvault-keys:4.3.5'
-    implementation 'com.azure:azure-security-keyvault-certificates:4.2.5'
-
-    testImplementation project(':cert-blues-test-common')
-
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
-    testImplementation 'org.assertj:assertj-core:3.18.1'
-    testImplementation 'org.mockito:mockito-core:3.6.28'
-
-    testImplementation 'ch.qos.logback:logback-classic:1.2.3'
+    /**
+     * Uploads certificate in PEM format to this entry.
+     *
+     * @param certificate certificate in PEM format
+     */
+    Mono<Void> upload(String certificate);
 }

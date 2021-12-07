@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono;
 /**
  * Interface to provision ACME challenges.
  */
-public interface ChallengeProvisioner {
+public interface HttpChallengeProvisioner {
 
     /**
      * Provisions HTTP challenge.
@@ -42,13 +42,4 @@ public interface ChallengeProvisioner {
      */
     Mono<Void> provisionHttp(String token, String keyAuth);
 
-    /**
-     * Provisions DNS challenge.
-     *
-     * @param host  the name of the TXT record to be created in the DNS zone
-     * @param value the value of the TXT record to be created in the DNS zone
-     * @return mono that completes when the challenge has been provisioned or emits error if the challenge cannot be
-     * provisioned
-     */
-    Mono<Void> provisionDns(String host, String value);
 }

@@ -32,7 +32,8 @@ import ch.alni.certblues.acme.client.Challenge;
 import ch.alni.certblues.acme.client.DnsChallenge;
 import ch.alni.certblues.acme.client.HttpChallenge;
 import ch.alni.certblues.acme.client.Identifier;
-import ch.alni.certblues.acme.client.access.ChallengeProvisioner;
+import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
+import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.key.Thumbprints;
 import reactor.core.publisher.Mono;
@@ -46,11 +47,16 @@ public class IdentifierAuthorizationClient {
     private static final Logger LOG = getLogger(IdentifierAuthorizationClient.class);
 
     private final SigningKeyPair keyPair;
-    private final ChallengeProvisioner provisioner;
+    private final HttpChallengeProvisioner httpChallengeProvisioner;
+    private final DnsChallengeProvisioner dnsChallengeProvisioner;
 
-    public IdentifierAuthorizationClient(SigningKeyPair keyPair, ChallengeProvisioner provisioner) {
+    public IdentifierAuthorizationClient(SigningKeyPair keyPair,
+                                         HttpChallengeProvisioner httpChallengeProvisioner,
+                                         DnsChallengeProvisioner dnsChallengeProvisioner
+    ) {
         this.keyPair = keyPair;
-        this.provisioner = provisioner;
+        this.httpChallengeProvisioner = httpChallengeProvisioner;
+        this.dnsChallengeProvisioner = dnsChallengeProvisioner;
     }
 
     /**
@@ -83,13 +89,13 @@ public class IdentifierAuthorizationClient {
     }
 
     private Mono<Void> provision(Identifier identifier, Challenge challenge, String keyAuth) {
-        if (challenge instanceof HttpChallenge) {
-            return provisioner.provisionHttp(challenge.token(), keyAuth);
-        }
-        else if (challenge instanceof DnsChallenge) {
-            final var name = "_acme-challenge." + identifier.value() + ".";
+        if (challenge instanceof DnsChallenge) {
+            final var name = identifier.value();
             final var value = Thumbprints.getSha256Digest(keyAuth);
-            return provisioner.provisionDns(name, value);
+            return dnsChallengeProvisioner.provisionDns(name, value);
+        }
+        else if (challenge instanceof HttpChallenge) {
+            return httpChallengeProvisioner.provisionHttp(challenge.token(), keyAuth);
         }
         else {
             throw new IllegalArgumentException("unsupported challenge type " + challenge);

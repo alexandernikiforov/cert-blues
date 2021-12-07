@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.keyvault;
+package ch.alni.certblues.azure.keyvault;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.exception.HttpResponseException;

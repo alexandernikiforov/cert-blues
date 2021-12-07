@@ -23,36 +23,35 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.acme.facade;
 
-testSets {
-    integrationTest
-}
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 
-integrationTest {
-    useJUnitPlatform()
-}
+import java.util.List;
 
-dependencies {
-    implementation project(':cert-blues-acme')
+import ch.alni.certblues.acme.client.Challenge;
+import ch.alni.certblues.acme.client.CreatedResource;
+import ch.alni.certblues.acme.client.Order;
 
-    compileOnly 'org.slf4j:slf4j-api:1.7.30'
+/**
+ * Wrapper over provisioned order and challenges.
+ */
+@AutoValue
+public abstract class ProvisionedOrder {
 
-    implementation 'com.azure:azure-identity:1.4.2'
-    implementation 'com.azure:azure-security-keyvault-keys:4.3.5'
-    implementation 'com.azure:azure-security-keyvault-certificates:4.2.5'
+    public static ProvisionedOrder create(CreatedResource<Order> orderResource, List<Challenge> challenges) {
+        return new AutoValue_ProvisionedOrder(orderResource, ImmutableList.copyOf(challenges));
+    }
 
-    implementation 'com.azure:azure-storage-blob:12.14.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
+    /**
+     * Contains the created order resource.
+     */
+    public abstract CreatedResource<Order> orderResource();
 
-    testImplementation project(':cert-blues-test-common')
+    /**
+     * Returns provisioned challenges.
+     */
+    public abstract ImmutableList<Challenge> challenges();
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
-    testImplementation 'org.assertj:assertj-core:3.18.1'
-    testImplementation 'org.mockito:mockito-core:3.6.28'
-
-    testImplementation 'ch.qos.logback:logback-classic:1.2.3'
 }

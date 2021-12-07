@@ -23,36 +23,20 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.acme.client.access;
 
-testSets {
-    integrationTest
-}
+import reactor.core.publisher.Mono;
 
-integrationTest {
-    useJUnitPlatform()
-}
+public interface DnsChallengeProvisioner {
 
-dependencies {
-    implementation project(':cert-blues-acme')
+    /**
+     * Provisions DNS challenge.
+     *
+     * @param host  the name of the TXT record to be created in the DNS zone
+     * @param value the value of the TXT record to be created in the DNS zone
+     * @return mono that completes when the challenge has been provisioned or emits error if the challenge cannot be
+     * provisioned
+     */
+    Mono<Void> provisionDns(String host, String value);
 
-    compileOnly 'org.slf4j:slf4j-api:1.7.30'
-
-    implementation 'com.azure:azure-identity:1.4.2'
-    implementation 'com.azure:azure-security-keyvault-keys:4.3.5'
-    implementation 'com.azure:azure-security-keyvault-certificates:4.2.5'
-
-    implementation 'com.azure:azure-storage-blob:12.14.2'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
-
-    testImplementation project(':cert-blues-test-common')
-
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
-    testImplementation 'org.assertj:assertj-core:3.18.1'
-    testImplementation 'org.mockito:mockito-core:3.6.28'
-
-    testImplementation 'ch.qos.logback:logback-classic:1.2.3'
 }

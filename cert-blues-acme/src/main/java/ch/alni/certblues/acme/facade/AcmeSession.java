@@ -25,6 +25,9 @@
 
 package ch.alni.certblues.acme.facade;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import ch.alni.certblues.acme.client.Account;
 import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.Authorization;
@@ -38,6 +41,8 @@ import ch.alni.certblues.acme.client.access.AccountAccessor;
 import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
 import ch.alni.certblues.acme.client.access.ChallengeAccessor;
 import ch.alni.certblues.acme.client.access.DirectoryAccessor;
+import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
+import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.client.access.OrderAccessor;
 import ch.alni.certblues.acme.client.access.PayloadSigner;
 import ch.alni.certblues.acme.client.access.RetryHandler;
@@ -54,9 +59,7 @@ public class AcmeSession {
 
     private final SigningKeyPair accountKeyPair;
 
-    private final RetryHandler retryHandler = new RetryHandler(5);
     private final RequestHandler requestHandler;
-    private final PayloadSigner payloadSigner;
 
     private final AccountAccessor accountAccessor;
     private final OrderAccessor orderAccessor;
@@ -79,7 +82,9 @@ public class AcmeSession {
     AcmeSession(HttpClient httpClient, NonceSource nonceSource, SigningKeyPair accountKeyPair, String directoryUrl, AccountRequest accountRequest) {
         this.accountKeyPair = accountKeyPair;
         this.requestHandler = new RequestHandler(httpClient);
-        this.payloadSigner = new PayloadSigner(accountKeyPair);
+
+        final var payloadSigner = new PayloadSigner(accountKeyPair);
+        final var retryHandler = new RetryHandler(5);
 
         this.accountAccessor = new AccountAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         this.orderAccessor = new OrderAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
@@ -116,6 +121,31 @@ public class AcmeSession {
         return accountUrlMono.flatMap(accountUrl ->
                 authorizationAccessor.getAuthorization(accountUrl, authorizationUrl)
         );
+    }
+
+    /**
+     * Provisions the challenges of the authorizations identified by the given URLs.
+     *
+     * @return list of provisioned challenges (as mono)
+     */
+    public Mono<List<Challenge>> provision(List<String> authorizationUrls,
+                                           DnsChallengeProvisioner dnsChallengeProvisioner,
+                                           HttpChallengeProvisioner httpChallengeProvisioner) {
+
+        final var authorizationClient = new IdentifierAuthorizationClient(
+                accountKeyPair, httpChallengeProvisioner, dnsChallengeProvisioner
+        );
+
+        return accountUrlMono.map(accountUrl ->
+                        authorizationUrls.stream()
+                                .map(authorizationUrl -> authorizationAccessor
+                                        .getAuthorization(accountUrl, authorizationUrl)
+                                        .flatMap(authorizationClient::process))
+                                .collect(Collectors.toList()))
+                // zip waits for all challenge provisions to complete
+                .flatMap(monoList -> Mono.zip(monoList, List::of))
+                // cast back to Challenge objects
+                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
     }
 
     public Mono<Challenge> submitChallenge(String challengeUrl) {

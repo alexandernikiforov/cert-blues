@@ -37,8 +37,6 @@ import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 import reactor.netty.ByteBufMono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
@@ -53,7 +51,6 @@ public class RequestHandler {
     private static final Logger LOG = getLogger(RequestHandler.class);
 
     private final HttpClient httpClient;
-    private final Scheduler scheduler = Schedulers.newBoundedElastic(5, 100, "request");
 
     public RequestHandler(HttpClient httpClient) {
         this.httpClient = httpClient;
@@ -69,7 +66,6 @@ public class RequestHandler {
                 .head()
                 .uri(URI.create(newNonceUrl))
                 .response()
-                .publishOn(scheduler)
                 .map(HttpResponses::getNonce)
                 .filter(Objects::nonNull)
                 .subscribe(
@@ -94,7 +90,6 @@ public class RequestHandler {
                 .responseSingle((response, bufMono) -> bufMono
                         .asString(StandardCharsets.UTF_8)
                         .zipWith(Mono.just(response)))
-                .publishOn(scheduler)
                 .map(responseTuple2 -> HttpResponses.getPayload(responseTuple2.getT2(), responseTuple2.getT1(), clazz));
     }
 
@@ -117,8 +112,6 @@ public class RequestHandler {
      *
      * @param resourceUrl the URL pointing at the resource
      * @param jwsObject   the signed request payload encoded as JWS
-     * @param clazz       the type of the resource object
-     * @param <T>         the type parameter
      * @return mono over the returned resource
      */
     public Mono<String> request(String resourceUrl, JwsObject jwsObject, NonceSource nonceSource) {
@@ -155,8 +148,7 @@ public class RequestHandler {
                 .responseSingle((response, bufMono) -> bufMono
                         .asString(StandardCharsets.UTF_8)
                         .zipWith(Mono.just(response)))
-                .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource))
-                .publishOn(scheduler);
+                .doOnNext(responseTuple2 -> propagateNonce(HttpResponses.getNonce(responseTuple2.getT2()), nonceSource));
     }
 
     private void propagateNonce(String nonce, NonceSource nonceSource) {

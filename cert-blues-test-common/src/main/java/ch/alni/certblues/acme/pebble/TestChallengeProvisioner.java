@@ -27,7 +27,8 @@ package ch.alni.certblues.acme.pebble;
 
 import java.net.URI;
 
-import ch.alni.certblues.acme.client.access.ChallengeProvisioner;
+import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
+import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
@@ -36,7 +37,7 @@ import reactor.netty.http.client.HttpClient;
 /**
  * Pebble-based implementation of the challenge provisioner.
  */
-public class TestChallengeProvisioner implements ChallengeProvisioner {
+public class TestChallengeProvisioner implements HttpChallengeProvisioner, DnsChallengeProvisioner {
     private final HttpClient httpClient;
     private final String addHttpUrl;
     private final String addDnsUrl;
@@ -56,13 +57,14 @@ public class TestChallengeProvisioner implements ChallengeProvisioner {
 
     @Override
     public Mono<Void> provisionHttp(String token, String keyAuth) {
-        final String payload = String.format("{\"token\":\"%s\", \"content\": \"%s\"}", token, keyAuth);
+        final var payload = String.format("{\"token\":\"%s\", \"content\": \"%s\"}", token, keyAuth);
         return send(addHttpUrl, payload);
     }
 
     @Override
     public Mono<Void> provisionDns(String host, String value) {
-        final String payload = String.format("{\"host\":\"%s\", \"value\": \"%s\"}", host, value);
+        final var name = "_acme-challenge." + host + ".";
+        final var payload = String.format("{\"host\":\"%s\", \"value\": \"%s\"}", name, value);
         return send(addDnsUrl, payload);
     }
 

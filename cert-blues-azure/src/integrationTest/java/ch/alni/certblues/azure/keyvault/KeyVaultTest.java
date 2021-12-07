@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.keyvault;
+package ch.alni.certblues.azure.keyvault;
 
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClientBuilder;

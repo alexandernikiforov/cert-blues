@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.keyvault;
+package ch.alni.certblues.azure.keyvault;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
@@ -46,14 +46,14 @@ import java.util.List;
 
 import javax.net.ssl.TrustManagerFactory;
 
-import ch.alni.certblues.acme.client.CreatedResource;
+import ch.alni.certblues.acme.client.Challenge;
 import ch.alni.certblues.acme.client.Identifier;
 import ch.alni.certblues.acme.client.Order;
 import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.OrderStatus;
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.facade.AcmeSessionFacade;
-import ch.alni.certblues.acme.facade.IdentifierAuthorizationClient;
+import ch.alni.certblues.acme.facade.ProvisionedOrder;
 import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.pebble.TestChallengeProvisioner;
@@ -62,6 +62,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
@@ -138,22 +139,28 @@ class AcmeReactiveTest {
         final var challengeProvisioner = new TestChallengeProvisioner(httpClient, httpChallengeUrl, dnsChallengeUrl);
 
         final var acmeClient = new AcmeClient(httpClient, directoryUrl);
-        final var authorizationClient = new IdentifierAuthorizationClient(accountKeyPair, challengeProvisioner);
-        final var sessionFacade = new AcmeSessionFacade(acmeClient, authorizationClient);
+        final var sessionFacade = new AcmeSessionFacade(acmeClient, challengeProvisioner, challengeProvisioner);
 
         final var orderRequest = OrderRequest.builder()
                 .identifiers(List.of(
-//                        Identifier.builder().type("dns").value("*.testserver.com").build(),
                         Identifier.builder().type("dns").value("www.testserver.com").build()
                 ))
                 .build();
 
-        // submit request for authorizations
-        final CreatedResource<Order> orderResource = sessionFacade.createOrder(accountKeyPair, orderRequest)
+        // create and provision order
+        final ProvisionedOrder provisionedOrder = sessionFacade.provisionOrder(accountKeyPair, orderRequest)
                 .log()
                 .block();
 
-        assertThat(orderResource).isNotNull();
+        assertThat(provisionedOrder).isNotNull();
+        final String orderUrl = provisionedOrder.orderResource().getResourceUrl();
+
+        // submit challenges
+        final Mono<List<Challenge>> submitChallengeMono =
+                sessionFacade.submitChallenges(accountKeyPair, orderUrl, provisionedOrder.challenges());
+
+        final List<Challenge> challengeList = submitChallengeMono.block();
+        assertThat(challengeList).isNotEmpty();
 
         // create a CSR
         final String encodedCsr = certificateEntry.createCsr()
@@ -164,7 +171,7 @@ class AcmeReactiveTest {
 
         // submit the certificate request
         final Order finalOrder = Flux.interval(Duration.ofSeconds(2))
-                .flatMap(unused -> sessionFacade.submitCsr(accountKeyPair, orderResource.getResourceUrl(), encodedCsr))
+                .flatMap(unused -> sessionFacade.submitCsr(accountKeyPair, orderUrl, encodedCsr))
                 .takeUntil(order -> order.status() != OrderStatus.PENDING && order.status() != OrderStatus.PROCESSING)
                 .blockLast(Duration.ofSeconds(15));
 

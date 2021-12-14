@@ -33,7 +33,7 @@ import reactor.netty.http.client.HttpClient;
 /**
  * Client for an ACME server.
  */
-public class AcmeClient {
+public final class AcmeClient {
 
     private final NonceSource nonceSource = new NonceSource();
     private final HttpClient httpClient;

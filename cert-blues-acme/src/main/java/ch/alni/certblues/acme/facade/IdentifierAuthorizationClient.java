@@ -76,7 +76,8 @@ public class IdentifierAuthorizationClient {
                         authorization.status()));
             case VALID:
                 // this authorization is already done
-                return Mono.empty();
+                final var submittedChallenge = selectChallenge(authorization);
+                return Mono.just(submittedChallenge);
             case PENDING:
                 final var challenge = selectChallenge(authorization);
                 return keyPair.getPublicKeyThumbprint()

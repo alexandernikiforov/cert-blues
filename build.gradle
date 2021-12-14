@@ -1,15 +1,9 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-}
-
 plugins {
     id 'org.unbroken-dome.test-sets' version '4.0.0' apply false
 }
 
 wrapper {
-    gradleVersion = '7.1.1'
+    gradleVersion = '7.3.1'
 }
 
 allprojects {
@@ -24,15 +18,19 @@ allprojects {
 }
 
 subprojects {
-    project.plugins.withType(JavaPlugin) {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+    pluginManager.withPlugin('java') {
 
-    project.tasks.withType(Test) {
+        tasks.withType(JavaCompile) {
+            sourceCompatibility = JavaVersion.VERSION_11
+            targetCompatibility = JavaVersion.VERSION_11
+        }
+
         test {
             useJUnitPlatform()
         }
+    }
+
+    project.tasks.withType(Test) {
     }
 }
 

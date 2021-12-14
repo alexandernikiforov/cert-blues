@@ -149,7 +149,6 @@ class AcmeReactiveTest {
 
         // create and provision order
         final ProvisionedOrder provisionedOrder = sessionFacade.provisionOrder(accountKeyPair, orderRequest)
-                .log()
                 .block();
 
         assertThat(provisionedOrder).isNotNull();

@@ -78,10 +78,10 @@ public class AcmeSessionFacade {
     }
 
     /**
-     * Submit the given challenges for the order identified by the given order URL.
+     * Submits the given challenges for the order identified by the given order URL.
      *
      * @param accountKeyPair the key pair of the account on the ACME server
-     * @param orderUrl       URL of the order to subnit the challenges for
+     * @param orderUrl       URL of the order to submit the challenges for
      * @param challenges     the challenges to submit
      * @return mono over the submitted challenges
      */
@@ -92,20 +92,25 @@ public class AcmeSessionFacade {
 
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
-        final var challengeMonoList = challenges.stream()
-                .map(Challenge::url)
-                .map(session::submitChallenge)
-                .collect(Collectors.toList());
+        final var challengeUrls = challenges.stream().map(Challenge::url).collect(Collectors.toList());
 
-        final Mono<List<Challenge>> challengesMono = Mono.zip(challengeMonoList, List::of)
-                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
+        final var submitChallengeMono = session.submitChallenges(challengeUrls);
+        final var getChallengesMono = session.getChallenges(challengeUrls);
+        final var orderMono = session.getOrder(orderUrl);
 
-        final Mono<Order> orderMono = session.getOrder(orderUrl);
-
-        return orderMono.flatMap(order -> order.status() == OrderStatus.PENDING ? challengesMono :
-                Mono.error(new IllegalStateException("order must be pending to submit challenges: " + order)));
+        // if the order is pending submit challenges, otherwise try to re-read them from the server
+        return orderMono.flatMap(order -> order.status() == OrderStatus.PENDING ?
+                submitChallengeMono : getChallengesMono);
     }
 
+    /**
+     * Submits the given CSR for the provided order.
+     *
+     * @param accountKeyPair the key pair of the account on the ACME server
+     * @param orderUrl       URL of the order to submit the challenges for
+     * @param encodedCsr     base64url-encoded CSR
+     * @return mono over the current order
+     */
     public Mono<Order> submitCsr(SigningKeyPair accountKeyPair, String orderUrl, String encodedCsr) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)
@@ -120,6 +125,13 @@ public class AcmeSessionFacade {
                         session.finalizeOrder(order.finalizeUrl(), finalizationRequest) : Mono.just(order));
     }
 
+    /**
+     * Downloads the certificate from the given URL.
+     *
+     * @param accountKeyPair the key pair of the account on the ACME server
+     * @param certificateUrl the URL of the certificate
+     * @return mono over the certificate in PEM format
+     */
     public Mono<String> downloadCertificate(SigningKeyPair accountKeyPair, String certificateUrl) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)

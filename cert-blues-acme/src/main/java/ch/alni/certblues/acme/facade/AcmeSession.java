@@ -152,6 +152,40 @@ public class AcmeSession {
         return accountUrlMono.flatMap(accountUrl -> challengeAccessor.submitChallenge(accountUrl, challengeUrl));
     }
 
+    /**
+     * Submits the following challenges identified by their respective URLs.
+     *
+     * @param challengeUrls URLs pointing to the
+     * @return mono of the list of submitted challenges
+     */
+    public Mono<List<Challenge>> submitChallenges(List<String> challengeUrls) {
+        final var challengeMonoList = challengeUrls.stream()
+                .map(this::submitChallenge)
+                .collect(Collectors.toList());
+
+        return Mono.zip(challengeMonoList, List::of)
+                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
+    }
+
+    public Mono<Challenge> getChallenge(String challengeUrl) {
+        return accountUrlMono.flatMap(accountUrl -> challengeAccessor.getChallenge(accountUrl, challengeUrl));
+    }
+
+    /**
+     * Returns the status of the following challenges identified by their respective URLs.
+     *
+     * @param challengeUrls URLs pointing to the
+     * @return mono of the list of challenges
+     */
+    public Mono<List<Challenge>> getChallenges(List<String> challengeUrls) {
+        final var challengeMonoList = challengeUrls.stream()
+                .map(this::getChallenge)
+                .collect(Collectors.toList());
+
+        return Mono.zip(challengeMonoList, List::of)
+                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
+    }
+
     public Mono<Order> finalizeOrder(String finalizeUrl, OrderFinalizationRequest request) {
         return accountUrlMono.flatMap(accountUrl -> orderAccessor.submitCsr(accountUrl, finalizeUrl, request));
     }

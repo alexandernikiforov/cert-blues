@@ -53,4 +53,12 @@ public class ChallengeAccessor {
                 .flatMap(jwsObject -> requestHandler.request(challengeUrl, jwsObject, nonceSource, Challenge.class))
                 .retryWhen(retryHandler.getRetry());
     }
+
+    public Mono<Challenge> getChallenge(String accountUrl, String challengeUrl) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(challengeUrl, accountUrl, "", nonce))
+                .flatMap(jwsObject -> requestHandler.request(challengeUrl, jwsObject, nonceSource, Challenge.class))
+                .retryWhen(retryHandler.getRetry());
+    }
+
 }

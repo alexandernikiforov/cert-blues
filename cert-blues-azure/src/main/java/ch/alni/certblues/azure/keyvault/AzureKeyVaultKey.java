@@ -26,6 +26,7 @@
 package ch.alni.certblues.azure.keyvault;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
@@ -61,7 +62,12 @@ public class AzureKeyVaultKey implements SigningKeyPair {
     private final Mono<String> publicKeyThumbprintMono;
 
     public AzureKeyVaultKey(TokenCredential credential, String keyId, String alg) {
+        this(credential, null, keyId, alg);
+    }
+
+    public AzureKeyVaultKey(TokenCredential credential, HttpClient httpClient, String keyId, String alg) {
         this.client = new CryptographyClientBuilder()
+                .httpClient(httpClient)
                 .keyIdentifier(keyId)
                 .credential(credential)
                 .buildAsyncClient();

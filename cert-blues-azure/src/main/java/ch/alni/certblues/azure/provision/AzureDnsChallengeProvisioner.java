@@ -25,6 +25,9 @@
 
 package ch.alni.certblues.azure.provision;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.management.AzureEnvironment;
+import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.dns.DnsZoneManager;
 import com.azure.resourcemanager.dns.fluent.models.RecordSetInner;
 import com.azure.resourcemanager.dns.models.RecordType;
@@ -46,8 +49,10 @@ class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
     private final String resourceGroupName;
     private final String dnsZoneName;
 
-    AzureDnsChallengeProvisioner(DnsZoneManager dnsZoneManager, String resourceGroupName, String dnsZoneName) {
-        this.dnsZoneManager = dnsZoneManager;
+    AzureDnsChallengeProvisioner(TokenCredential credential, String resourceGroupName, String dnsZoneName) {
+        final var profile = new AzureProfile(AzureEnvironment.AZURE);
+
+        this.dnsZoneManager = DnsZoneManager.authenticate(credential, profile);
         this.resourceGroupName = resourceGroupName;
         this.dnsZoneName = dnsZoneName;
     }

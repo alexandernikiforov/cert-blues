@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.cert;
+package ch.alni.certblues.azure.keyvault;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;

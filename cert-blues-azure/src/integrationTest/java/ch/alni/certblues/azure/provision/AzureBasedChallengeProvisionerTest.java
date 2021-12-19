@@ -35,13 +35,16 @@ import reactor.core.publisher.Mono;
 class AzureBasedChallengeProvisionerTest {
 
     private static final String STORAGE_ENDPOINT_URL = "https://cloudalni.blob.core.windows.net/$web";
+    private static final String RESOURCE_GROUP_NAME = "mydomainnames";
+    private static final String DNS_ZONE = "cloudalni.com";
+
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
 
     private final AzureHttpChallengeProvisioner httpChallengeProvisioner =
             new AzureHttpChallengeProvisioner(credential, STORAGE_ENDPOINT_URL);
 
-    private final AzureDnsChallengeProvisionerBuilder dnsChallengeProvisionerBuilder =
-            new AzureDnsChallengeProvisionerBuilder(credential, "mydomainnames");
+    private final AzureDnsChallengeProvisioner dnsChallengeProvisioner =
+            new AzureDnsChallengeProvisioner(credential, RESOURCE_GROUP_NAME, DNS_ZONE);
 
     @Test
     void provisionHttp() {
@@ -51,7 +54,6 @@ class AzureBasedChallengeProvisionerTest {
 
     @Test
     void provisionDns() {
-        final var dnsChallengeProvisioner = dnsChallengeProvisionerBuilder.forDnsZone("cloudalni.com");
         final Mono<Void> provisionDns = dnsChallengeProvisioner.provisionDns("cloudalni.com", "test2");
         provisionDns.block();
     }

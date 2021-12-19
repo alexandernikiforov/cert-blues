@@ -88,7 +88,7 @@ class AcmeReactiveTest {
 
     private final HttpClient httpClient = HttpClient.create(connectionProvider)
             .protocol(HttpProtocol.HTTP11)
-            .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
+            .wiretap("reactor.netty.http.client.HttpClient", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
             .responseTimeout(Duration.ofSeconds(30))
             .keepAlive(true)
             .secure(spec -> spec.sslContext(sslContext()));
@@ -97,6 +97,7 @@ class AcmeReactiveTest {
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
     private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(credential, KEY_ID, "RS256");
 
+    // Unknown is important here! It is a fixed value
     private final CertificatePolicy certificatePolicy = new CertificatePolicy("Unknown", "CN=DefaultPolicy")
             .setCertificateTransparent(false)
             .setContentType(CertificateContentType.PKCS12)

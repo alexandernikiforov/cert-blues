@@ -27,6 +27,7 @@ package ch.alni.certblues.azure.keyvault;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.exception.HttpResponseException;
+import com.azure.core.http.HttpClient;
 import com.azure.security.keyvault.certificates.CertificateAsyncClient;
 import com.azure.security.keyvault.certificates.CertificateClientBuilder;
 import com.azure.security.keyvault.certificates.models.CertificateKeyType;
@@ -37,7 +38,6 @@ import org.slf4j.Logger;
 
 import java.util.List;
 
-import ch.alni.certblues.acme.cert.Certificates;
 import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
@@ -57,16 +57,24 @@ public class AzureKeyVaultCertificate implements CertificateEntry {
     private final TokenCredential credential;
 
     public AzureKeyVaultCertificate(TokenCredential credential,
+                                    HttpClient httpClient,
                                     String keyVaultUrl,
                                     String certificateName, CertificatePolicy certificatePolicy) {
         this.credential = credential;
         this.client = new CertificateClientBuilder()
                 .credential(credential)
                 .vaultUrl(keyVaultUrl)
+                .httpClient(httpClient)
                 .buildAsyncClient();
 
         this.certificateName = certificateName;
         this.certificatePolicy = certificatePolicy;
+    }
+
+    public AzureKeyVaultCertificate(TokenCredential credential,
+                                    String keyVaultUrl,
+                                    String certificateName, CertificatePolicy certificatePolicy) {
+        this(credential, null, keyVaultUrl, certificateName, certificatePolicy);
     }
 
     private static String toSignatureAlg(CertificateKeyType keyType) {

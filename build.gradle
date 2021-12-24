@@ -3,34 +3,13 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '7.3.1'
+    gradleVersion = '7.3.3'
 }
 
 allprojects {
-    repositories {
-        mavenCentral()
-    }
-
     ext {
         buildNumber = System.getenv('TRAVIS') ? System.getenv('TRAVIS_BUILD_NUMBER') : '0'
         buildVersion = version + '.' + buildNumber
-    }
-}
-
-subprojects {
-    pluginManager.withPlugin('java') {
-
-        tasks.withType(JavaCompile) {
-            sourceCompatibility = JavaVersion.VERSION_11
-            targetCompatibility = JavaVersion.VERSION_11
-        }
-
-        test {
-            useJUnitPlatform()
-        }
-    }
-
-    project.tasks.withType(Test) {
     }
 }
 

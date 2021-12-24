@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+    id 'project-java-conventions'
+}
+
+dependencies {
+    compileOnly 'com.google.auto.value:auto-value-annotations'
+    annotationProcessor 'com.google.auto.value:auto-value'
+
+    compileOnly 'org.jetbrains:annotations'
+
+    api(group: 'com.google.guava', name: 'guava') {
+        transitive = false
+    }
+
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+}

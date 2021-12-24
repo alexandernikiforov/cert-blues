@@ -25,6 +25,7 @@
 
 plugins {
     id 'java-library'
+    id 'project-java-conventions'
     id 'org.unbroken-dome.test-sets'
 }
 
@@ -39,25 +40,14 @@ integrationTest {
 dependencies {
     implementation project(':cert-blues-acme')
 
-    implementation platform('com.azure:azure-sdk-bom:1.0.6')
+    compileOnly 'org.slf4j:slf4j-api'
 
-    compileOnly 'org.slf4j:slf4j-api:1.7.32'
-
-    //noinspection GradlePackageUpdate
     implementation 'com.azure:azure-identity'
-    //noinspection GradlePackageUpdate
     implementation 'com.azure:azure-security-keyvault-keys'
-    //noinspection GradlePackageUpdate
     implementation 'com.azure:azure-security-keyvault-certificates'
-    //noinspection GradlePackageUpdate
     implementation 'com.azure:azure-storage-blob'
 
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns'
 
     testImplementation project(':cert-blues-test-common')
-
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
-    testImplementation 'org.assertj:assertj-core:3.18.1'
-    testImplementation 'org.mockito:mockito-core:3.6.28'
-    testImplementation 'ch.qos.logback:logback-classic:1.2.7'
 }

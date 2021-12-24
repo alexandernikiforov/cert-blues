@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+        vendor = JvmVendorSpec.AZUL;
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+dependencies {
+    implementation platform(project(':cert-blues-platform'))
+    annotationProcessor platform(project(':cert-blues-platform'))
+
+    testImplementation 'ch.qos.logback:logback-classic'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+    testImplementation 'org.assertj:assertj-core:3.21.0'
+    testImplementation 'org.mockito:mockito-core:4.1.0'
+}

@@ -23,35 +23,44 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-    id 'com.microsoft.azure.azurefunctions' version '1.8.2'
+package ch.alni.certblues.storage;
+
+import com.google.common.collect.ImmutableList;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import ch.alni.certblues.storage.queue.MessageId;
+
+/**
+ * The certificate order that is extracted from the queue.
+ */
+public final class QueuedCertificateOrder extends CertificateOrder {
+
+    private final CertificateOrder certificateOrder;
+    private final MessageId messageId;
+
+    public QueuedCertificateOrder(CertificateOrder certificateOrder, MessageId messageId) {
+        this.certificateOrder = certificateOrder;
+        this.messageId = messageId;
+    }
+
+    @JsonIgnore
+    public MessageId getMessageId() {
+        return messageId;
+    }
+
+    @Override
+    public CertificateRequest certificateRequest() {
+        return certificateOrder.certificateRequest();
+    }
+
+    @Override
+    public String orderUrl() {
+        return certificateOrder.orderUrl();
+    }
+
+    @Override
+    public ImmutableList<String> challengeUrls() {
+        return certificateOrder.challengeUrls();
+    }
 }
-
-dependencies {
-    // provided by the worker on the classpath
-    compileOnly 'com.microsoft.azure.functions:azure-functions-java-library'
-
-    implementation 'com.azure:azure-identity'
-
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-storage')
-    implementation project(':cert-blues-azure')
-
-    implementation 'ch.qos.logback:logback-classic'
-}
-
-azurefunctions {
-    appName = 'cert-blues'
-    allowTelemetry = false
-}
-
-task startFunc(type: Exec) {
-    dependsOn assemble, azureFunctionsPackage
-
-    workingDir = "${project.buildDir}/azure-functions/${azurefunctions['appName']}" as String
-    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start'
-}
-
-azureFunctionsPackage.shouldRunAfter assemble

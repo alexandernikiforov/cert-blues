@@ -23,58 +23,25 @@
  *
  */
 
-package ch.alni.certblues.storage.impl;
+package ch.alni.certblues.azure.queue;
 
-import com.google.common.collect.ImmutableList;
+import ch.alni.certblues.storage.queue.MessageId;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+public class MessageIdWithReceipt implements MessageId {
 
-import ch.alni.certblues.storage.CertificateOrder;
-import ch.alni.certblues.storage.JsonTransform;
-import ch.alni.certblues.storage.KeyType;
-
-/**
- * The certificate order that is extracted from the queue.
- */
-class QueuedCertificateOrder extends CertificateOrder implements JsonTransform {
-
-    private final CertificateOrder certificateOrder;
-    private final String popReceipt;
     private final String messageId;
+    private final String popReceipt;
 
-    QueuedCertificateOrder(CertificateOrder certificateOrder, String popReceipt, String messageId) {
-        this.certificateOrder = certificateOrder;
-        this.popReceipt = popReceipt;
+    public MessageIdWithReceipt(String messageId, String popReceipt) {
         this.messageId = messageId;
+        this.popReceipt = popReceipt;
     }
 
-    @Override
-    public int keySize() {
-        return certificateOrder.keySize();
-    }
-
-    @Override
-    public KeyType keyType() {
-        return certificateOrder.keyType();
-    }
-
-    @Override
-    public int validityInMonths() {
-        return certificateOrder.validityInMonths();
-    }
-
-    @Override
-    public ImmutableList<String> dnsNames() {
-        return certificateOrder.dnsNames();
-    }
-
-    @JsonIgnore
-    public String getPopReceipt() {
-        return popReceipt;
-    }
-
-    @JsonIgnore
     public String getMessageId() {
         return messageId;
+    }
+
+    public String getPopReceipt() {
+        return popReceipt;
     }
 }

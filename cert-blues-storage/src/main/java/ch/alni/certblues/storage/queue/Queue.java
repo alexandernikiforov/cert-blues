@@ -23,56 +23,30 @@
  *
  */
 
-package ch.alni.certblues.storage;
+package ch.alni.certblues.storage.queue;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface StorageService {
+public interface Queue {
 
     /**
-     * Store the given certificate order.
-     *
-     * @param certificateRequest
-     * @return empty mono if completed
+     * Returns some pending messages from this queue. The queue implementation defines how many messages are returned.
      */
-    Mono<Void> store(CertificateRequest certificateRequest);
+    Flux<QueuedMessage> getMessages();
 
     /**
-     * Removes the given order so that it is not available anymore.
+     * Puts the given message into the queue.
      *
-     * @param certificateRequest
-     * @return empty mono if completed
+     * @param payload what to put into the queue
+     * @return mono of the message ID
      */
-    Mono<Void> remove(QueuedCertificateRequest certificateRequest);
+    Mono<MessageId> put(String payload);
 
     /**
-     * Returns a flux over the pending certificate requests.
-     *
-     * @return
+     * Deletes the message with the given message ID from this queue.
      */
-    Flux<QueuedCertificateRequest> getCertificateRequests();
+    Mono<Void> delete(MessageId messageId);
 
-    /**
-     * Returns a flux over the submitted certificate orders.
-     *
-     * @return
-     */
-    Flux<QueuedCertificateOrder> getCertificateOrders();
-
-    /**
-     * Submit the given certificate order. The originating request will not be available anymore.
-     *
-     * @param certificateOrder
-     * @return empty mono if completed
-     */
-    Mono<Void> store(CertificateOrder certificateOrder);
-
-    /**
-     * Removes the given order so that it is not available anymore.
-     *
-     * @param certificateOrder
-     * @return empty mono if completed
-     */
-    Mono<Void> remove(QueuedCertificateOrder certificateOrder);
 }
+

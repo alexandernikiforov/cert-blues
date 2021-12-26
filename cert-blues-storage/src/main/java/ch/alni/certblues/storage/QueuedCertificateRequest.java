@@ -23,32 +23,54 @@
  *
  */
 
-package ch.alni.certblues.storage.impl;
+package ch.alni.certblues.storage;
 
-import org.junit.jupiter.api.Test;
+import com.google.common.collect.ImmutableList;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import ch.alni.certblues.storage.CertificateRequest;
-import ch.alni.certblues.storage.KeyType;
-import ch.alni.certblues.storage.QueuedCertificateRequest;
 import ch.alni.certblues.storage.queue.MessageId;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/**
+ * The certificate order that is extracted from the queue.
+ */
+public final class QueuedCertificateRequest extends CertificateRequest {
 
-class QueuedCertificateOrderTest {
+    private final CertificateRequest certificateRequest;
+    private final MessageId messageId;
 
-    @Test
-    void testJson() {
-        final var certificateOrder = CertificateRequest.builder()
-                .keySize(2048).keyType(KeyType.RSA).dnsNames(List.of("testserver.com")).validityInMonths(3)
-                .certificateName("cert")
-                .build();
+    public QueuedCertificateRequest(CertificateRequest certificateRequest, MessageId messageId) {
+        this.certificateRequest = certificateRequest;
+        this.messageId = messageId;
+    }
 
-        final var queuedCertificateOrder = new QueuedCertificateRequest(certificateOrder, new MessageId() {
-        });
+    @Override
+    public int keySize() {
+        return certificateRequest.keySize();
+    }
 
-        final String json = queuedCertificateOrder.toJson();
-        assertThat(CertificateRequest.of(json)).isEqualTo(certificateOrder);
+    @Override
+    public KeyType keyType() {
+        return certificateRequest.keyType();
+    }
+
+    @Override
+    public int validityInMonths() {
+        return certificateRequest.validityInMonths();
+    }
+
+    @Override
+    public ImmutableList<String> dnsNames() {
+        return certificateRequest.dnsNames();
+    }
+
+    @Override
+    public String certificateName() {
+        return certificateRequest.certificateName();
+    }
+
+    @JsonIgnore
+    public MessageId getMessageId() {
+        return messageId;
     }
 }

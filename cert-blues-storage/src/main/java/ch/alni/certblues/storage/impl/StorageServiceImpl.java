@@ -25,93 +25,65 @@
 
 package ch.alni.certblues.storage.impl;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.HttpClient;
-import com.azure.storage.queue.QueueAsyncClient;
-import com.azure.storage.queue.QueueServiceAsyncClient;
-import com.azure.storage.queue.QueueServiceClientBuilder;
-
-import java.time.Duration;
-import java.util.List;
-
 import ch.alni.certblues.storage.CertificateOrder;
-import ch.alni.certblues.storage.KeyType;
-import ch.alni.certblues.storage.ProvisionedCertificateOrder;
+import ch.alni.certblues.storage.CertificateRequest;
+import ch.alni.certblues.storage.QueuedCertificateOrder;
+import ch.alni.certblues.storage.QueuedCertificateRequest;
 import ch.alni.certblues.storage.StorageService;
+import ch.alni.certblues.storage.queue.Queue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class StorageServiceImpl implements StorageService {
-    /**
-     * the queue containing the order requests
-     */
-    private final static String QUEUE_REQUESTS = "requests";
 
     /**
-     * the queue containing the orders
+     * Queue for the certificate requests.
      */
-    private final static String QUEUE_ORDERS = "orders";
-    /**
-     * How long the message should be invisible after reading or writing until it appears in the queue for further
-     * operations.
-     */
-    private static final Duration VISIBILITY_TIMEOUT = Duration.ofMinutes(15);
-    /**
-     * How long the message should remain in the queue.
-     */
-    private static final Duration TIME_TO_LIVE = Duration.ofDays(10L);
-    /**
-     * How many items to receive from the queue each time.
-     */
-    private final int MAX_RECEIVED_QUEUE_ITEMS = 5;
-    private final QueueAsyncClient requestQueueClient;
-    private final QueueAsyncClient orderQueueClient;
+    private final Queue requests;
 
-    public StorageServiceImpl(TokenCredential credential, HttpClient httpClient, String queueServiceUrl) {
-        QueueServiceAsyncClient queueServiceClient = new QueueServiceClientBuilder()
-                .credential(credential).httpClient(httpClient).endpoint(queueServiceUrl)
-                .buildAsyncClient();
+    /**
+     * Queue for the certificate requests.
+     */
+    private final Queue orders;
 
-        requestQueueClient = queueServiceClient.getQueueAsyncClient(QUEUE_REQUESTS);
-        orderQueueClient = queueServiceClient.getQueueAsyncClient(QUEUE_ORDERS);
-    }
-
-    public StorageServiceImpl(TokenCredential credential, String queueServiceUrl) {
-        this(credential, null, queueServiceUrl);
+    public StorageServiceImpl(Queue requests, Queue orders) {
+        this.requests = requests;
+        this.orders = orders;
     }
 
     @Override
-    public Flux<CertificateOrder> getPendingOrders() {
-        return requestQueueClient.receiveMessages(MAX_RECEIVED_QUEUE_ITEMS, VISIBILITY_TIMEOUT)
-                .map(queueMessageItem -> new QueuedCertificateOrder(
-//                        CertificateOrder.of(queueMessageItem.getBody().toString()),
-                        CertificateOrder.builder()
-                                .validityInMonths(12)
-                                .dnsNames(List.of("testserver.com"))
-                                .keyType(KeyType.RSA).keySize(2048)
-                                .build(),
-                        queueMessageItem.getPopReceipt(),
-                        queueMessageItem.getMessageId()
-                ));
+    public Mono<Void> store(CertificateRequest certificateRequest) {
+        return requests.put(certificateRequest.toJson()).then();
     }
 
     @Override
-    public Mono<Void> submit(ProvisionedCertificateOrder provisionedCertificateOrder) {
-        final var order = provisionedCertificateOrder.certificateOrder();
-        if (!(order instanceof QueuedCertificateOrder)) {
-            throw new IllegalArgumentException("cannot restore the queue info for the order; " +
-                    "the order object is of type " + order.getClass().getName());
-        }
+    public Mono<Void> remove(QueuedCertificateRequest certificateRequest) {
+        final var messageId = certificateRequest.getMessageId();
+        return requests.delete(messageId);
+    }
 
-        final var queuedCertificateOrder = (QueuedCertificateOrder) order;
+    @Override
+    public Flux<QueuedCertificateRequest> getCertificateRequests() {
+        return requests.getMessages().map(message -> new QueuedCertificateRequest(
+                CertificateRequest.of(message.payload()), message.messageId()
+        ));
+    }
 
-        // delete the original order from the request queue and put it into the order queue
-        final var deleteMessageMono = requestQueueClient.deleteMessage(
-                queuedCertificateOrder.getMessageId(), queuedCertificateOrder.getPopReceipt()
-        );
-        final var sendMessageMono = orderQueueClient.sendMessageWithResponse(
-                provisionedCertificateOrder.toJson(), VISIBILITY_TIMEOUT, TIME_TO_LIVE
-        );
-        return deleteMessageMono.then(sendMessageMono.then());
+    @Override
+    public Flux<QueuedCertificateOrder> getCertificateOrders() {
+        return orders.getMessages().map(message -> new QueuedCertificateOrder(
+                CertificateOrder.of(message.payload()), message.messageId()
+        ));
+    }
+
+    @Override
+    public Mono<Void> store(CertificateOrder certificateOrder) {
+        return requests.put(certificateOrder.toJson()).then();
+    }
+
+    @Override
+    public Mono<Void> remove(QueuedCertificateOrder certificateOrder) {
+        final var messageId = certificateOrder.getMessageId();
+        return orders.delete(messageId);
     }
 }

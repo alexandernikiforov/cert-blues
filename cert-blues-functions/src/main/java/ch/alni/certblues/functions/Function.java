@@ -41,8 +41,8 @@ import com.microsoft.azure.functions.annotation.TimerTrigger;
 
 import java.util.Optional;
 
-import ch.alni.certblues.storage.StorageService;
-import ch.alni.certblues.storage.impl.StorageServiceImpl;
+import ch.alni.certblues.azure.queue.AzureQueue;
+import ch.alni.certblues.storage.queue.Queue;
 
 /**
  * First function to test.
@@ -63,8 +63,8 @@ public class Function {
         context.getLogger().info("Java HTTP function executed at: " + java.time.LocalDateTime.now());
 
         final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
-        final StorageService storageService = new StorageServiceImpl(credential, "https://certbluesdev.queue.core.windows.net");
-        storageService.getPendingOrders().blockFirst();
+        final Queue storageService = new AzureQueue(credential, "https://certbluesdev.queue.core.windows.net", "requests");
+        storageService.getMessages().blockFirst();
 
         // Parse name parameter
         final String name = request.getQueryParameters().get("name");
@@ -83,11 +83,10 @@ public class Function {
 
     @FunctionName("trigger")
     public void timedCall(
-            @TimerTrigger(name = "keepAlive", schedule = "*/5 * * * * *")
+            @TimerTrigger(name = "keepAlive", schedule = "%Schedule%")
                     String timerInfo,
             final ExecutionContext context) {
 
         context.getLogger().info("Timer is triggered: " + timerInfo);
     }
-
 }

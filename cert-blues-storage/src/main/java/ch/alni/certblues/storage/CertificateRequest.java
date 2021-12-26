@@ -40,50 +40,72 @@ import java.util.List;
 import ch.alni.certblues.common.json.ObjectMapperFactory;
 
 /**
- * The original certificate order.
+ * Request information to create/renew certificate.
  */
 @AutoValue
-@JsonDeserialize(builder = CertificateOrder.Builder.class)
-public abstract class CertificateOrder implements JsonTransform {
+@JsonDeserialize(builder = CertificateRequest.Builder.class)
+public abstract class CertificateRequest implements JsonTransform {
+
+    private static final int DEFAULT_KEY_SIZE = 2048;
+    private static final KeyType DEFAULT_KEY_TYPE = KeyType.RSA;
+    private static final int DEFAULT_VALIDITY_IN_MONTHS = 3;
 
     public static Builder builder() {
-        return new AutoValue_CertificateOrder.Builder();
+        return new AutoValue_CertificateRequest.Builder()
+                .keySize(DEFAULT_KEY_SIZE)
+                .keyType(DEFAULT_KEY_TYPE)
+                .validityInMonths(DEFAULT_VALIDITY_IN_MONTHS);
     }
 
     /**
-     * Transforms the given JSON string into a CertificateOrder object.
+     * Transforms the given JSON string into a CertificateRequest object.
      *
-     * @param json JSON string representing CertificateOrder
+     * @param json JSON string representing CertificateRequest
      * @return CertificateRequest object
      * @throws IllegalArgumentException if the object creation fails
      */
-    public static CertificateOrder of(String json) {
+    public static CertificateRequest of(String json) {
         try {
-            return ObjectMapperFactory.getObjectMapper().readerFor(CertificateOrder.class).readValue(json);
+            return ObjectMapperFactory.getObjectMapper().readerFor(CertificateRequest.class).readValue(json);
         }
         catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("cannot create CertificateOrder object from the provided string", e);
+            throw new IllegalArgumentException("cannot create CertificateRequest object from the provided string", e);
         }
     }
 
-    @JsonGetter
-    public abstract CertificateRequest certificateRequest();
-
     /**
-     * URL of this order on the ACME server.
+     * The size of the key to use. Default is 2048.
      */
     @JsonGetter
-    public abstract String orderUrl();
+    public abstract int keySize();
 
     /**
-     * URLs pointing to the challenges submitted for this order.
+     * The type of the key. Default is RSA.
      */
     @JsonGetter
-    public abstract ImmutableList<String> challengeUrls();
+    public abstract KeyType keyType();
+
+    /**
+     * Validity of the future certificate in months. Default is 3.
+     */
+    @JsonGetter
+    public abstract int validityInMonths();
+
+    /**
+     * A list of DNS names to be supported by the new certificate.
+     */
+    @JsonGetter
+    public abstract ImmutableList<String> dnsNames();
+
+    /**
+     * Unique name to be given to this certificate.
+     */
+    @JsonGetter
+    public abstract String certificateName();
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
-    public abstract static class Builder {
+    public static abstract class Builder {
 
         @JsonCreator
         static Builder create() {
@@ -91,14 +113,20 @@ public abstract class CertificateOrder implements JsonTransform {
         }
 
         @JsonSetter
-        public abstract Builder certificateRequest(CertificateRequest value);
+        public abstract Builder keySize(int value);
 
         @JsonSetter
-        public abstract Builder orderUrl(String value);
+        public abstract Builder keyType(KeyType value);
 
         @JsonSetter
-        public abstract Builder challengeUrls(List<String> value);
+        public abstract Builder validityInMonths(int value);
 
-        public abstract CertificateOrder build();
+        @JsonSetter
+        public abstract Builder dnsNames(List<String> value);
+
+        @JsonSetter
+        public abstract Builder certificateName(String value);
+
+        public abstract CertificateRequest build();
     }
 }

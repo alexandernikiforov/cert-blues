@@ -23,34 +23,34 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-    id 'com.microsoft.azure.azurefunctions' version '1.8.2'
+package ch.alni.certblues.storage;
+
+import com.google.auto.value.AutoValue;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
+/**
+ * TODO: javadoc
+ */
+@AutoValue
+@JsonDeserialize(builder = CertificateSpec.Builder.class)
+public abstract class CertificateSpec {
+
+    public static Builder builder() {
+        return new AutoValue_CertificateSpec.Builder();
+    }
+
+    @AutoValue.Builder
+    @JsonPOJOBuilder(withPrefix = "")
+    public abstract static class Builder {
+
+        @JsonCreator
+        static Builder create() {
+            return builder();
+        }
+
+        public abstract CertificateSpec build();
+    }
 }
-
-dependencies {
-    // provided by the worker on the classpath
-    compileOnly 'com.microsoft.azure.functions:azure-functions-java-library'
-
-    implementation 'com.azure:azure-identity'
-
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-storage')
-
-    implementation 'ch.qos.logback:logback-classic'
-}
-
-azurefunctions {
-    appName = 'cert-blues'
-    allowTelemetry = false
-}
-
-task startFunc(type: Exec) {
-    dependsOn assemble, azureFunctionsPackage
-
-    workingDir = "${project.buildDir}/azure-functions/${azurefunctions['appName']}" as String
-    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start'
-}
-
-azureFunctionsPackage.shouldRunAfter assemble

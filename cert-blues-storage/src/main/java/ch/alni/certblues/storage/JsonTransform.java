@@ -23,27 +23,26 @@
  *
  */
 
-package ch.alni.certblues.acme.json;
+package ch.alni.certblues.storage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-/**
- * Creates the object mapper to use in this project.
- */
-public final class ObjectMapperFactory {
+import ch.alni.certblues.common.json.ObjectMapperFactory;
 
-    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+public interface JsonTransform {
 
-    private static ObjectMapper createObjectMapper() {
-        final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return objectMapper;
-    }
-
-    public static ObjectMapper getObjectMapper() {
-        return OBJECT_MAPPER;
+    /**
+     * Serializes this object as JSON.
+     *
+     * @return this object as JSON string
+     * @throws IllegalStateException if an error occurs
+     */
+    default String toJson() {
+        try {
+            return ObjectMapperFactory.getObjectMapper().writeValueAsString(this);
+        }
+        catch (JsonProcessingException e) {
+            throw new IllegalStateException("cannot write this object as JSON", e);
+        }
     }
 }

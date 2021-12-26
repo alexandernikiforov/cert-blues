@@ -23,34 +23,30 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-    id 'com.microsoft.azure.azurefunctions' version '1.8.2'
+package ch.alni.certblues.storage.impl;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import ch.alni.certblues.storage.CertificateOrder;
+import ch.alni.certblues.storage.KeyType;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * TODO: javadoc
+ */
+class QueuedCertificateOrderTest {
+
+    @Test
+    void testJson() {
+        final var certificateOrder = CertificateOrder.builder()
+                .keySize(2048).keyType(KeyType.RSA).dnsNames(List.of("testserver.com")).validityInMonths(3)
+                .build();
+        final var queuedCertificateOrder = new QueuedCertificateOrder(certificateOrder, "receipt", "123");
+
+        final String json = queuedCertificateOrder.toJson();
+        assertThat(CertificateOrder.of(json)).isEqualTo(certificateOrder);
+    }
 }
-
-dependencies {
-    // provided by the worker on the classpath
-    compileOnly 'com.microsoft.azure.functions:azure-functions-java-library'
-
-    implementation 'com.azure:azure-identity'
-
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-storage')
-
-    implementation 'ch.qos.logback:logback-classic'
-}
-
-azurefunctions {
-    appName = 'cert-blues'
-    allowTelemetry = false
-}
-
-task startFunc(type: Exec) {
-    dependsOn assemble, azureFunctionsPackage
-
-    workingDir = "${project.buildDir}/azure-functions/${azurefunctions['appName']}" as String
-    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start'
-}
-
-azureFunctionsPackage.shouldRunAfter assemble

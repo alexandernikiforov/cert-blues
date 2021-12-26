@@ -23,34 +23,17 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-    id 'com.microsoft.azure.azurefunctions' version '1.8.2'
+package ch.alni.certblues.storage;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public interface StorageService {
+
+    /**
+     * Returns a flux over the pending orders.
+     */
+    Flux<CertificateOrder> getPendingOrders();
+
+    Mono<Void> submit(ProvisionedCertificateOrder provisionedCertificateOrder);
 }
-
-dependencies {
-    // provided by the worker on the classpath
-    compileOnly 'com.microsoft.azure.functions:azure-functions-java-library'
-
-    implementation 'com.azure:azure-identity'
-
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-storage')
-
-    implementation 'ch.qos.logback:logback-classic'
-}
-
-azurefunctions {
-    appName = 'cert-blues'
-    allowTelemetry = false
-}
-
-task startFunc(type: Exec) {
-    dependsOn assemble, azureFunctionsPackage
-
-    workingDir = "${project.buildDir}/azure-functions/${azurefunctions['appName']}" as String
-    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start'
-}
-
-azureFunctionsPackage.shouldRunAfter assemble

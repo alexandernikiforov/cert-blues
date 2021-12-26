@@ -15,19 +15,15 @@ dependencies {
 
         api(group: 'com.google.guava', name: 'guava', version: '31.0.1-jre')
 
-        api 'com.fasterxml.jackson.core:jackson-annotations:2.13.1'
-        api 'com.fasterxml.jackson.core:jackson-databind:2.13.1'
-
-        // adds modules to support the Java 8 classes and Java Time
-        api 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.1'
-        api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1'
-
+        api 'com.microsoft.azure.functions:azure-functions-java-library:1.4.2'
         api 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
 
         api 'org.slf4j:slf4j-api:1.7.32'
         api 'ch.qos.logback:logback-classic:1.2.9'
+        api 'ch.qos.logback:logback-core:1.2.9'
     }
 
     api platform('io.projectreactor:reactor-bom:2020.0.14')
     api platform('com.azure:azure-sdk-bom:1.0.6')
+    api platform('com.fasterxml.jackson:jackson-bom:2.13.1')
 }

@@ -28,6 +28,8 @@ package ch.alni.certblues.acme.json;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ch.alni.certblues.common.json.ObjectMapperFactory;
+
 /**
  * Static utility class to work with JSON objects
  */

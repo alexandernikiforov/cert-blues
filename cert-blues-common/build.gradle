@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+    id 'project-java-conventions'
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-databind'
+
+    // adds modules to support the Java 8 classes and Java Time
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+}

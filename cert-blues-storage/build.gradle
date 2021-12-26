@@ -15,4 +15,9 @@ dependencies {
 
     api 'com.fasterxml.jackson.core:jackson-annotations'
     api 'com.fasterxml.jackson.core:jackson-databind'
+
+    api 'io.projectreactor:reactor-core'
+
+    implementation 'com.azure:azure-storage-queue'
+    implementation project(':cert-blues-common')
 }

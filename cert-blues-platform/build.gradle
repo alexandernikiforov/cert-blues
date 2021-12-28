@@ -19,8 +19,12 @@ dependencies {
         api 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
 
         api 'org.slf4j:slf4j-api:1.7.32'
-        api 'ch.qos.logback:logback-classic:1.2.9'
-        api 'ch.qos.logback:logback-core:1.2.9'
+        runtime 'ch.qos.logback:logback-classic:1.2.9'
+        runtime 'ch.qos.logback:logback-core:1.2.9'
+
+        api 'org.junit.jupiter:junit-jupiter:5.8.2'
+        api 'org.assertj:assertj-core:3.21.0'
+        api 'org.mockito:mockito-core:4.1.0'
     }
 
     api platform('io.projectreactor:reactor-bom:2020.0.14')

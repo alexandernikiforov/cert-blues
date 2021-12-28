@@ -30,10 +30,13 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -103,6 +106,30 @@ public abstract class CertificateRequest implements JsonTransform {
     @JsonGetter
     public abstract String certificateName();
 
+    /**
+     * URL of the storage endpoint. It points to the blob container that holds the server's WEB content and thus used
+     * for HTTP challenges.
+     */
+    @JsonGetter
+    public abstract String storageEndpointUrl();
+
+    /**
+     * Resource group of the DNS zone to be used in the DNS challenges. It can be null if DNS challenges are not used.
+     */
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Nullable
+    public abstract String dnsZoneResourceGroup();
+
+    /**
+     * DNS zone name to be used in the DNS challenges. This is the resource name within the resource group. It can be
+     * null if DNS challenges are not used.
+     */
+    @JsonGetter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Nullable
+    public abstract String dnsZone();
+
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
     public static abstract class Builder {
@@ -126,6 +153,15 @@ public abstract class CertificateRequest implements JsonTransform {
 
         @JsonSetter
         public abstract Builder certificateName(String value);
+
+        @JsonSetter
+        public abstract Builder storageEndpointUrl(String value);
+
+        @JsonSetter
+        public abstract Builder dnsZoneResourceGroup(String value);
+
+        @JsonSetter
+        public abstract Builder dnsZone(String value);
 
         public abstract CertificateRequest build();
     }

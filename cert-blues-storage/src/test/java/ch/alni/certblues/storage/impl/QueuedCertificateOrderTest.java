@@ -43,6 +43,7 @@ class QueuedCertificateOrderTest {
         final var certificateOrder = CertificateRequest.builder()
                 .keySize(2048).keyType(KeyType.RSA).dnsNames(List.of("testserver.com")).validityInMonths(3)
                 .certificateName("cert")
+                .storageEndpointUrl("storageEndpointUrl")
                 .build();
 
         final var queuedCertificateOrder = new QueuedCertificateRequest(certificateOrder, new MessageId() {

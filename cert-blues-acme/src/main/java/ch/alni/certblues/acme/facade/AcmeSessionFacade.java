@@ -41,29 +41,28 @@ import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
 
 /**
- * Groups together operations with AcmeSession
+ * Groups together operations with AcmeSession. Each method call on this facade is a separate login establishing a new
+ * "session". A session assumes using the same account key to talk to the same ACME server with the same client.
  */
 public class AcmeSessionFacade {
-    private final AcmeClient acmeClient;
-    private final DnsChallengeProvisioner dnsChallengeProvisioner;
-    private final HttpChallengeProvisioner httpChallengeProvisioner;
 
-    public AcmeSessionFacade(AcmeClient acmeClient,
-                             DnsChallengeProvisioner dnsChallengeProvisioner,
-                             HttpChallengeProvisioner httpChallengeProvisioner) {
+    private final AcmeClient acmeClient;
+    private final SigningKeyPair accountKeyPair;
+
+    public AcmeSessionFacade(AcmeClient acmeClient, SigningKeyPair accountKeyPair) {
         this.acmeClient = acmeClient;
-        this.dnsChallengeProvisioner = dnsChallengeProvisioner;
-        this.httpChallengeProvisioner = httpChallengeProvisioner;
+        this.accountKeyPair = accountKeyPair;
     }
 
     /**
      * Creates and provisions a new order on the ACME server.
      *
-     * @param accountKeyPair the key pair of the account on the ACME server
-     * @param orderRequest   the request to create a new order
+     * @param orderRequest the request to create a new order
      * @return a wrapper over the created order resource and provisioned challenges
      */
-    public Mono<ProvisionedOrder> provisionOrder(SigningKeyPair accountKeyPair, OrderRequest orderRequest) {
+    public Mono<ProvisionedOrder> provisionOrder(OrderRequest orderRequest,
+                                                 DnsChallengeProvisioner dnsChallengeProvisioner,
+                                                 HttpChallengeProvisioner httpChallengeProvisioner) {
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
@@ -80,12 +79,11 @@ public class AcmeSessionFacade {
     /**
      * Submits the given challenges for the order identified by the given order URL.
      *
-     * @param accountKeyPair the key pair of the account on the ACME server
-     * @param orderUrl       URL of the order to submit the challenges for
-     * @param challenges     the challenges to submit
+     * @param orderUrl   URL of the order to submit the challenges for
+     * @param challenges the challenges to submit
      * @return mono over the submitted challenges
      */
-    public Mono<List<Challenge>> submitChallenges(SigningKeyPair accountKeyPair, String orderUrl, List<Challenge> challenges) {
+    public Mono<List<Challenge>> submitChallenges(String orderUrl, List<Challenge> challenges) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)
                 .build();
@@ -106,12 +104,11 @@ public class AcmeSessionFacade {
     /**
      * Submits the given CSR for the provided order.
      *
-     * @param accountKeyPair the key pair of the account on the ACME server
-     * @param orderUrl       URL of the order to submit the challenges for
-     * @param encodedCsr     base64url-encoded CSR
+     * @param orderUrl   URL of the order to submit the challenges for
+     * @param encodedCsr base64url-encoded CSR
      * @return mono over the current order
      */
-    public Mono<Order> submitCsr(SigningKeyPair accountKeyPair, String orderUrl, String encodedCsr) {
+    public Mono<Order> submitCsr(String orderUrl, String encodedCsr) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)
                 .build();
@@ -128,11 +125,10 @@ public class AcmeSessionFacade {
     /**
      * Downloads the certificate from the given URL.
      *
-     * @param accountKeyPair the key pair of the account on the ACME server
      * @param certificateUrl the URL of the certificate
      * @return mono over the certificate in PEM format
      */
-    public Mono<String> downloadCertificate(SigningKeyPair accountKeyPair, String certificateUrl) {
+    public Mono<String> downloadCertificate(String certificateUrl) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)
                 .build();

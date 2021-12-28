@@ -33,13 +33,22 @@ dependencies {
     // provided by the worker on the classpath
     compileOnly 'com.microsoft.azure.functions:azure-functions-java-library'
 
+    compileOnly 'com.google.auto.value:auto-value-annotations'
+    annotationProcessor 'com.google.auto.value:auto-value'
+
+    compileOnly 'org.jetbrains:annotations'
+
+    implementation(group: 'com.google.guava', name: 'guava') {
+        transitive = false
+    }
+
     implementation 'com.azure:azure-identity'
 
     implementation project(':cert-blues-acme')
     implementation project(':cert-blues-storage')
     implementation project(':cert-blues-azure')
 
-    implementation 'ch.qos.logback:logback-classic'
+    runtimeOnly 'ch.qos.logback:logback-classic'
 }
 
 azurefunctions {
@@ -51,7 +60,7 @@ task startFunc(type: Exec) {
     dependsOn assemble, azureFunctionsPackage
 
     workingDir = "${project.buildDir}/azure-functions/${azurefunctions['appName']}" as String
-    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start'
+    commandLine 'C:\\Program Files\\Microsoft\\Azure Functions Core Tools\\func.exe', 'start', '--verbose'
 }
 
 azureFunctionsPackage.shouldRunAfter assemble

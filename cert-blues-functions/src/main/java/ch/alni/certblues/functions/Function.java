@@ -26,7 +26,7 @@
 package ch.alni.certblues.functions;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.core.http.HttpClient;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpMethod;
 import com.microsoft.azure.functions.HttpRequestMessage;
@@ -50,6 +50,9 @@ import ch.alni.certblues.storage.queue.Queue;
 @SuppressWarnings("unused")
 public class Function {
 
+    // static initialization makes sure that context is initialized only once at the start of the instance
+    private static final Context CONTEXT = Context.getInstance();
+
     @FunctionName("sample")
     public HttpResponseMessage getResponse(
             @HttpTrigger(name = "request", authLevel = AuthorizationLevel.ANONYMOUS, methods = {HttpMethod.GET})
@@ -62,9 +65,13 @@ public class Function {
 
         context.getLogger().info("Java HTTP function executed at: " + java.time.LocalDateTime.now());
 
-        final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
-        final Queue storageService = new AzureQueue(credential, "https://certbluesdev.queue.core.windows.net", "requests");
-        storageService.getMessages().blockFirst();
+        final TokenCredential credential = CONTEXT.getCredential();
+        final Configuration configuration = CONTEXT.getConfiguration();
+        final HttpClient httpClient = CONTEXT.getHttpClient();
+
+        final Queue storageService = new AzureQueue(
+                credential, httpClient, configuration.queueServiceUrl(), configuration.requestQueueName()
+        );
 
         // Parse name parameter
         final String name = request.getQueryParameters().get("name");
@@ -75,6 +82,8 @@ public class Function {
                     .build();
         }
         else {
+            storageService.put("Hey, " + name).block();
+
             final String value = "Hello, " + name;
             content.setValue(value);
             return request.createResponseBuilder(HttpStatus.OK).body(value).build();

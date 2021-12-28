@@ -57,6 +57,7 @@ import ch.alni.certblues.acme.facade.ProvisionedOrder;
 import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.pebble.TestChallengeProvisioner;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -81,16 +82,15 @@ class AcmeReactiveTest {
     private static final String KEY_ID = VAULT_URL + "/keys/accountKey/eed9a4146fb347cebf2a3907cda95fe0";
 
     private final ConnectionProvider connectionProvider = ConnectionProvider.builder("custom")
-            .maxConnections(10)
             .maxIdleTime(Duration.ofSeconds(45))
             .maxLifeTime(Duration.ofSeconds(60))
             .build();
 
     private final HttpClient httpClient = HttpClient.create(connectionProvider)
-            .protocol(HttpProtocol.HTTP11)
+            .runOn(new NioEventLoopGroup(2))
+            .protocol(HttpProtocol.HTTP11, HttpProtocol.H2)
             .wiretap("reactor.netty.http.client.HttpClient", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
             .responseTimeout(Duration.ofSeconds(30))
-            .keepAlive(true)
             .secure(spec -> spec.sslContext(sslContext()));
 
     // initialize the Azure client
@@ -140,7 +140,7 @@ class AcmeReactiveTest {
         final var challengeProvisioner = new TestChallengeProvisioner(httpClient, httpChallengeUrl, dnsChallengeUrl);
 
         final var acmeClient = new AcmeClient(httpClient, directoryUrl);
-        final var sessionFacade = new AcmeSessionFacade(acmeClient, challengeProvisioner, challengeProvisioner);
+        final var sessionFacade = new AcmeSessionFacade(acmeClient, accountKeyPair);
 
         final var orderRequest = OrderRequest.builder()
                 .identifiers(List.of(
@@ -149,7 +149,8 @@ class AcmeReactiveTest {
                 .build();
 
         // create and provision order
-        final ProvisionedOrder provisionedOrder = sessionFacade.provisionOrder(accountKeyPair, orderRequest)
+        final ProvisionedOrder provisionedOrder = sessionFacade
+                .provisionOrder(orderRequest, challengeProvisioner, challengeProvisioner)
                 .block();
 
         assertThat(provisionedOrder).isNotNull();
@@ -157,7 +158,7 @@ class AcmeReactiveTest {
 
         // submit challenges
         final Mono<List<Challenge>> submitChallengeMono =
-                sessionFacade.submitChallenges(accountKeyPair, orderUrl, provisionedOrder.challenges());
+                sessionFacade.submitChallenges(orderUrl, provisionedOrder.challenges());
 
         final List<Challenge> challengeList = submitChallengeMono.block();
         assertThat(challengeList).isNotEmpty();
@@ -171,7 +172,7 @@ class AcmeReactiveTest {
 
         // submit the certificate request
         final Order finalOrder = Flux.interval(Duration.ofSeconds(2))
-                .flatMap(unused -> sessionFacade.submitCsr(accountKeyPair, orderUrl, encodedCsr))
+                .flatMap(unused -> sessionFacade.submitCsr(orderUrl, encodedCsr))
                 .takeUntil(order -> order.status() != OrderStatus.PENDING && order.status() != OrderStatus.PROCESSING)
                 .blockLast(Duration.ofSeconds(15));
 
@@ -179,7 +180,7 @@ class AcmeReactiveTest {
         assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
 
         // download the certificate and merge it into the key vault
-        sessionFacade.downloadCertificate(accountKeyPair, finalOrder.certificate())
+        sessionFacade.downloadCertificate(finalOrder.certificate())
                 .flatMap(certificateEntry::upload)
                 .block();
     }

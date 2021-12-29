@@ -32,11 +32,11 @@ import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.Challenge;
 import ch.alni.certblues.acme.client.CreatedResource;
 import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderFinalizationRequest;
 import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.OrderStatus;
 import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
 import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
+import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
 
@@ -102,24 +102,21 @@ public class AcmeSessionFacade {
     }
 
     /**
-     * Submits the given CSR for the provided order.
+     * Checks the order and submits a CSR if it is ready or downloads a certificate if the certificate is ready.
      *
-     * @param orderUrl   URL of the order to submit the challenges for
-     * @param encodedCsr base64url-encoded CSR
-     * @return mono over the current order
+     * @param orderUrl         URL of the order to submit the challenges for
+     * @param certificateEntry the certificate entry to use for sumbitting CSR
+     * @return mono that just completes or returns a certificate if it is ready
      */
-    public Mono<Order> submitCsr(String orderUrl, String encodedCsr) {
+    public Mono<Order> checkOrder(String orderUrl, CertificateEntry certificateEntry) {
         final var accountRequest = AccountRequest.builder()
                 .onlyReturnExisting(true).termsOfServiceAgreed(true)
                 .build();
 
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
-        final var finalizationRequest = OrderFinalizationRequest.builder().csr(encodedCsr).build();
-
         return session.getOrder(orderUrl)
-                .flatMap(order -> order.status() == OrderStatus.READY ?
-                        session.finalizeOrder(order.finalizeUrl(), finalizationRequest) : Mono.just(order));
+                .flatMap(order -> finalizeOrDownloadCertificateIfReady(session, order, certificateEntry));
     }
 
     /**
@@ -135,5 +132,20 @@ public class AcmeSessionFacade {
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
         return session.downloadCertificate(certificateUrl);
+    }
+
+    private Mono<Order> finalizeOrDownloadCertificateIfReady(AcmeSession session, Order order, CertificateEntry certificateEntry) {
+        switch (order.status()) {
+            case INVALID:
+                return Mono.error(new IllegalStateException("invalid order: " + order));
+            case READY:
+                return session.finalizeOrder(order.finalizeUrl(), certificateEntry);
+            case VALID:
+                return session.downloadCertificate(order.certificate())
+                        .flatMap(certificateEntry::upload)
+                        .then(Mono.just(order));
+            default:
+                return Mono.empty();
+        }
     }
 }

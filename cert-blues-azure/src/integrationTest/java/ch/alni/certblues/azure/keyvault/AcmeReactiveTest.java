@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 
 import java.security.KeyStore;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 
 import javax.net.ssl.TrustManagerFactory;
@@ -163,26 +162,18 @@ class AcmeReactiveTest {
         final List<Challenge> challengeList = submitChallengeMono.block();
         assertThat(challengeList).isNotEmpty();
 
-        // create a CSR
-        final String encodedCsr = certificateEntry.createCsr()
-                .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
-                .block();
-
-        assertThat(encodedCsr).isNotNull();
-
         // submit the certificate request
+        // download the certificate and merge it into the key vault
         final Order finalOrder = Flux.interval(Duration.ofSeconds(2))
-                .flatMap(unused -> sessionFacade.submitCsr(orderUrl, encodedCsr))
-                .takeUntil(order -> order.status() != OrderStatus.PENDING && order.status() != OrderStatus.PROCESSING)
+                .flatMap(unused -> sessionFacade.checkOrder(orderUrl, certificateEntry))
+                .takeUntil(order -> order.status() == OrderStatus.VALID)
                 .blockLast(Duration.ofSeconds(15));
 
         assertThat(finalOrder).isNotNull();
         assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
 
-        // download the certificate and merge it into the key vault
-        sessionFacade.downloadCertificate(finalOrder.certificate())
-                .flatMap(certificateEntry::upload)
-                .block();
+        final String certificate = sessionFacade.downloadCertificate(finalOrder.certificate()).block();
+        assertThat(certificate).isNotNull();
     }
 
     private SslContext sslContext() {

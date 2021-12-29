@@ -41,7 +41,7 @@ import reactor.core.publisher.Mono;
 /**
  * Uses Azure services to implement the challenge provisioning for ACME.
  */
-class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
+public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
 
     public static final String RECORD_SET_NAME_ACME_CHALLENGE = "_acme-challenge";
 
@@ -49,7 +49,7 @@ class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
     private final String resourceGroupName;
     private final String dnsZoneName;
 
-    AzureDnsChallengeProvisioner(TokenCredential credential, String resourceGroupName, String dnsZoneName) {
+    public AzureDnsChallengeProvisioner(TokenCredential credential, String resourceGroupName, String dnsZoneName) {
         final var profile = new AzureProfile(AzureEnvironment.AZURE);
 
         this.dnsZoneManager = DnsZoneManager.authenticate(credential, profile);

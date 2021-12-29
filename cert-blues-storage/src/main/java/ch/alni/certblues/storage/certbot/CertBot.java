@@ -23,34 +23,18 @@
  *
  */
 
-package ch.alni.certblues.acme.facade;
+package ch.alni.certblues.storage.certbot;
 
-import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.request.NonceSource;
-import ch.alni.certblues.acme.key.SigningKeyPair;
-import reactor.netty.http.client.HttpClient;
+import ch.alni.certblues.storage.CertificateOrder;
+import ch.alni.certblues.storage.CertificateRequest;
+import reactor.core.publisher.Mono;
 
 /**
- * Client for an ACME server. A single client always points to the same directory on the same ACME server.
+ * Interface for the certificate bot.
  */
-public final class AcmeClient {
+public interface CertBot {
 
-    private final NonceSource nonceSource = new NonceSource();
-    private final HttpClient httpClient;
-    private final String directoryUrl;
+    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
 
-    /**
-     * Creates a new instance.
-     *
-     * @param httpClient   HTTP client to be used
-     * @param directoryUrl URL of the ACME server directory
-     */
-    public AcmeClient(HttpClient httpClient, String directoryUrl) {
-        this.httpClient = httpClient;
-        this.directoryUrl = directoryUrl;
-    }
-
-    public AcmeSession login(SigningKeyPair accountKeyPair, AccountRequest accountRequest) {
-        return new AcmeSession(httpClient, nonceSource, accountKeyPair, directoryUrl, accountRequest);
-    }
+    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
 }

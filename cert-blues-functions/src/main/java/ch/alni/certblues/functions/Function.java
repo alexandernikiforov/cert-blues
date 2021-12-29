@@ -28,21 +28,26 @@ package ch.alni.certblues.functions;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.microsoft.azure.functions.ExecutionContext;
-import com.microsoft.azure.functions.HttpMethod;
-import com.microsoft.azure.functions.HttpRequestMessage;
-import com.microsoft.azure.functions.HttpResponseMessage;
-import com.microsoft.azure.functions.HttpStatus;
-import com.microsoft.azure.functions.OutputBinding;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
 import com.microsoft.azure.functions.annotation.FunctionName;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
-import com.microsoft.azure.functions.annotation.QueueOutput;
 import com.microsoft.azure.functions.annotation.TimerTrigger;
 
-import java.util.Optional;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
-import ch.alni.certblues.azure.queue.AzureQueue;
-import ch.alni.certblues.storage.queue.Queue;
+import ch.alni.certblues.acme.client.Challenge;
+import ch.alni.certblues.acme.client.Identifier;
+import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.OrderStatus;
+import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
+import ch.alni.certblues.acme.facade.AcmeSessionFacade;
+import ch.alni.certblues.acme.key.CertificateEntry;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
+import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
+import ch.alni.certblues.storage.CertificateOrder;
+import ch.alni.certblues.storage.CertificateRequest;
+import ch.alni.certblues.storage.StorageService;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 /**
  * First function to test.
@@ -53,49 +58,94 @@ public class Function {
     // static initialization makes sure that context is initialized only once at the start of the instance
     private static final Context CONTEXT = Context.getInstance();
 
-    @FunctionName("sample")
-    public HttpResponseMessage getResponse(
-            @HttpTrigger(name = "request", authLevel = AuthorizationLevel.ANONYMOUS, methods = {HttpMethod.GET})
-                    HttpRequestMessage<Optional<String>> request,
-            @QueueOutput(
-                    connection = "requestQueueConnection",
-                    name = "requestQueue",
-                    queueName = "requests") OutputBinding<String> content,
-            final ExecutionContext context) {
+    private static OrderRequest toOrderRequest(CertificateRequest request) {
+        return OrderRequest.builder()
+                .identifiers(request.dnsNames().stream()
+                        .map(dnsName -> Identifier.builder().type("dns").value(dnsName).build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 
-        context.getLogger().info("Java HTTP function executed at: " + java.time.LocalDateTime.now());
+    private static CertificateEntry toCertificateEntry(CertificateRequest request) {
+        return new AzureKeyVaultCertificateBuilder(
+                CONTEXT.getCredential(), CONTEXT.getHttpClient(), CONTEXT.getConfiguration().keyVaultUrl()
+        ).buildFor(request);
+    }
+
+    private static HttpChallengeProvisioner toHttpChallengeProvisioner(CertificateRequest request) {
+        return new AzureHttpChallengeProvisioner(CONTEXT.getHttpClient(), request.storageEndpointUrl());
+    }
+
+    @FunctionName("submitOrders")
+    public void submitOrders(@TimerTrigger(name = "keepAlive", schedule = "%Schedule%") String timerInfo,
+                             ExecutionContext context) {
+
+        context.getLogger().info("Order submission started: " + timerInfo);
 
         final TokenCredential credential = CONTEXT.getCredential();
         final Configuration configuration = CONTEXT.getConfiguration();
-        final HttpClient httpClient = CONTEXT.getHttpClient();
+        final AcmeSessionFacade sessionFacade = CONTEXT.getSessionFacade();
+        final StorageService storageService = CONTEXT.getStorageService();
 
-        final Queue storageService = new AzureQueue(
-                credential, httpClient, configuration.queueServiceUrl(), configuration.requestQueueName()
-        );
+        storageService.getCertificateRequests()
+                .flatMap(certificateRequest -> {
+                    final var orderRequest = toOrderRequest(certificateRequest);
+                    final var httpChallengeProvisioner = toHttpChallengeProvisioner(certificateRequest);
+                    return sessionFacade
+                            // provision the order
+                            .provisionOrder(orderRequest, null, httpChallengeProvisioner)
+                            // submit the challenges and create a certificate order
+                            .flatMap(provisionedOrder -> sessionFacade
+                                    .submitChallenges(
+                                            provisionedOrder.orderResource().getResourceUrl(),
+                                            provisionedOrder.challenges())
+                                    .map(challenges -> CertificateOrder.builder()
+                                            .certificateRequest(certificateRequest)
+                                            .challengeUrls(challenges.stream().map(Challenge::url).collect(Collectors.toList()))
+                                            .orderUrl(provisionedOrder.orderResource().getResourceUrl())
+                                            .build()))
+                            // return the tuple (request, order)
+                            .map(certificateOrder -> Tuples.of(certificateRequest, certificateOrder));
+                })
+                // at the end first remove the request, then store the order
+                .flatMap(tuple -> storageService.remove(tuple.getT1())
+                        .then(storageService.store(tuple.getT2()))
+                        .then(Mono.just(tuple.getT2()))
+                )
+                .subscribe(
+                        order -> context.getLogger().info("Order submitted: " + order),
+                        throwable -> context.getLogger().log(Level.SEVERE, "cannot submit the order", throwable)
+                );
 
-        // Parse name parameter
-        final String name = request.getQueryParameters().get("name");
-
-        if (name == null) {
-            return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
-                    .body("Please pass a name on the name string or in the request body")
-                    .build();
-        }
-        else {
-            storageService.put("Hey, " + name).block();
-
-            final String value = "Hello, " + name;
-            content.setValue(value);
-            return request.createResponseBuilder(HttpStatus.OK).body(value).build();
-        }
+        context.getLogger().info("Order submission completed");
     }
 
-    @FunctionName("trigger")
-    public void timedCall(
-            @TimerTrigger(name = "keepAlive", schedule = "%Schedule%")
-                    String timerInfo,
-            final ExecutionContext context) {
+    @FunctionName("checkOrders")
+    public void checkOrders(@TimerTrigger(name = "keepAlive", schedule = "%Schedule%") String timerInfo,
+                            ExecutionContext context) {
 
-        context.getLogger().info("Timer is triggered: " + timerInfo);
+        context.getLogger().info("Order verification started: " + timerInfo);
+
+        final TokenCredential credential = CONTEXT.getCredential();
+        final Configuration configuration = CONTEXT.getConfiguration();
+        final AcmeSessionFacade sessionFacade = CONTEXT.getSessionFacade();
+        final StorageService storageService = CONTEXT.getStorageService();
+        final HttpClient httpClient = CONTEXT.getHttpClient();
+
+        storageService.getCertificateOrders()
+                .flatMap(certificateOrder -> sessionFacade.checkOrder(
+                                certificateOrder.orderUrl(), toCertificateEntry(certificateOrder.certificateRequest()))
+                        // check if valid (certificate is issued and uploaded)
+                        .filter(order -> order.status() == OrderStatus.VALID)
+                        // then return certificate order
+                        .map(order -> certificateOrder))
+                // at the end remove the completed certificate order
+                .flatMap(certificateOrder -> storageService.remove(certificateOrder).then(Mono.just(certificateOrder)))
+                .subscribe(
+                        certificateOrder -> context.getLogger().info("Order completed: " + certificateOrder),
+                        throwable -> context.getLogger().log(Level.SEVERE, "cannot submit the order", throwable)
+                );
+
+        context.getLogger().info("Order verification completed");
     }
 }

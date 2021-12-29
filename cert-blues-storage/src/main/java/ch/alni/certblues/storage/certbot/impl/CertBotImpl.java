@@ -23,38 +23,30 @@
  *
  */
 
-package ch.alni.certblues.azure.provision;
+package ch.alni.certblues.storage.certbot.impl;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import org.slf4j.Logger;
 
-import org.junit.jupiter.api.Test;
-
+import ch.alni.certblues.storage.CertificateOrder;
+import ch.alni.certblues.storage.CertificateRequest;
+import ch.alni.certblues.storage.certbot.CertBot;
+import ch.alni.certblues.storage.certbot.CertificateStatus;
 import reactor.core.publisher.Mono;
 
-class AzureBasedChallengeProvisionerTest {
+import static org.slf4j.LoggerFactory.getLogger;
 
-    private static final String STORAGE_ENDPOINT_URL = System.getenv("ENV_STORAGE_ENDPOINT_URL");
-    private static final String RESOURCE_GROUP_NAME = "mydomainnames";
-    private static final String DNS_ZONE = "cloudalni.com";
+public class CertBotImpl implements CertBot {
 
-    @Test
-    void provisionHttp() {
-        final AzureHttpChallengeProvisioner httpChallengeProvisioner =
-                new AzureHttpChallengeProvisioner(STORAGE_ENDPOINT_URL);
+    private static final Logger LOG = getLogger(CertBotImpl.class);
 
-        final Mono<Void> provisionHttp = httpChallengeProvisioner.provisionHttp("test", "keyAuth3");
-        provisionHttp.block();
+    @Override
+    public synchronized Mono<CertificateOrder> submit(CertificateRequest certificateRequest) {
+        LOG.info("submitting a new certificate request {}", certificateRequest);
+        return null;
     }
 
-    @Test
-    void provisionDns() {
-        final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
-
-        final AzureDnsChallengeProvisioner dnsChallengeProvisioner =
-                new AzureDnsChallengeProvisioner(credential, RESOURCE_GROUP_NAME, DNS_ZONE);
-
-        final Mono<Void> provisionDns = dnsChallengeProvisioner.provisionDns("cloudalni.com", "test2");
-        provisionDns.block();
+    @Override
+    public synchronized Mono<CertificateStatus> check(CertificateOrder certificateOrder) {
+        return null;
     }
 }

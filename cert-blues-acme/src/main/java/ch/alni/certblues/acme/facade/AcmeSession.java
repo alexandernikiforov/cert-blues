@@ -25,6 +25,7 @@
 
 package ch.alni.certblues.acme.facade;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,7 @@ import ch.alni.certblues.acme.client.access.PayloadSigner;
 import ch.alni.certblues.acme.client.access.RetryHandler;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
+import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
@@ -148,6 +150,12 @@ public class AcmeSession {
                 .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
     }
 
+    /**
+     * Submit challenges
+     *
+     * @param challengeUrl
+     * @return
+     */
     public Mono<Challenge> submitChallenge(String challengeUrl) {
         return accountUrlMono.flatMap(accountUrl -> challengeAccessor.submitChallenge(accountUrl, challengeUrl));
     }
@@ -186,8 +194,20 @@ public class AcmeSession {
                 .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
     }
 
-    public Mono<Order> finalizeOrder(String finalizeUrl, OrderFinalizationRequest request) {
-        return accountUrlMono.flatMap(accountUrl -> orderAccessor.submitCsr(accountUrl, finalizeUrl, request));
+    /**
+     * Finalizes the order by submitting a CSR from the given certificate entry.
+     *
+     * @param finalizeUrl      the URL to submit the CSR
+     * @param certificateEntry the certificate entry to be used to create the CSR
+     * @return mono over the latest state of the order
+     */
+    public Mono<Order> finalizeOrder(String finalizeUrl, CertificateEntry certificateEntry) {
+        final var finalizationRequestMono = certificateEntry.createCsr()
+                .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
+                .map(encodedCsr -> OrderFinalizationRequest.builder().csr(encodedCsr).build());
+
+        return Mono.zip(accountUrlMono, finalizationRequestMono)
+                .flatMap(tuple -> orderAccessor.submitCsr(tuple.getT1(), finalizeUrl, tuple.getT2()));
     }
 
     public Mono<String> downloadCertificate(String certificateUrl) {

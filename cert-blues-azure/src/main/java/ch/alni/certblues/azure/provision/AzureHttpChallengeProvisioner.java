@@ -25,7 +25,6 @@
 
 package ch.alni.certblues.azure.provision;
 
-import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobAsyncClient;
@@ -43,13 +42,12 @@ public class AzureHttpChallengeProvisioner implements HttpChallengeProvisioner {
 
     private final BlobContainerAsyncClient blobContainerClient;
 
-    public AzureHttpChallengeProvisioner(TokenCredential credential, String containerEndpointUrl) {
-        this(credential, null, containerEndpointUrl);
+    public AzureHttpChallengeProvisioner(String containerEndpointUrl) {
+        this(null, containerEndpointUrl);
     }
 
-    public AzureHttpChallengeProvisioner(TokenCredential credential, HttpClient httpClient, String containerEndpointUrl) {
+    public AzureHttpChallengeProvisioner(HttpClient httpClient, String containerEndpointUrl) {
         blobContainerClient = new BlobContainerClientBuilder()
-                .credential(credential)
                 .httpClient(httpClient)
                 .endpoint(containerEndpointUrl)
                 .buildAsyncClient();

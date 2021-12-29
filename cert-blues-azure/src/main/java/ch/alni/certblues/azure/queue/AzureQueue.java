@@ -46,10 +46,14 @@ import reactor.core.publisher.Mono;
  */
 public class AzureQueue implements Queue {
     /**
-     * How long the message should be invisible after reading or writing until it appears in the queue for further
-     * operations.
+     * How long the message should be invisible after reading until it appears in the queue for further operations.
      */
-    private static final Duration VISIBILITY_TIMEOUT = Duration.ofMinutes(15);
+    private static final Duration VISIBILITY_TIMEOUT_READ = Duration.ofMinutes(15);
+
+    /**
+     * How long the message should be invisible after writing until it appears in the queue for further operations.
+     */
+    private static final Duration VISIBILITY_TIMEOUT_WRITE = Duration.ofSeconds(10);
 
     /**
      * How long the message should remain in the queue.
@@ -77,7 +81,7 @@ public class AzureQueue implements Queue {
 
     @Override
     public Flux<QueuedMessage> getMessages() {
-        return queueClient.receiveMessages(MAX_RECEIVED_QUEUE_ITEMS, VISIBILITY_TIMEOUT)
+        return queueClient.receiveMessages(MAX_RECEIVED_QUEUE_ITEMS, VISIBILITY_TIMEOUT_READ)
                 .map(queueMessageItem -> QueuedMessage.create(
                         new MessageIdWithReceipt(queueMessageItem.getPopReceipt(), queueMessageItem.getMessageId()),
                         queueMessageItem.getBody().toString()
@@ -86,7 +90,7 @@ public class AzureQueue implements Queue {
 
     @Override
     public Mono<MessageId> put(String payload) {
-        return queueClient.sendMessageWithResponse(BinaryData.fromString(payload), VISIBILITY_TIMEOUT, TIME_TO_LIVE)
+        return queueClient.sendMessageWithResponse(BinaryData.fromString(payload), VISIBILITY_TIMEOUT_WRITE, TIME_TO_LIVE)
                 .map(Response::getValue)
                 .map(result -> new MessageIdWithReceipt(result.getMessageId(), result.getPopReceipt()));
     }

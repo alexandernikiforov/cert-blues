@@ -23,37 +23,25 @@
  *
  */
 
-package ch.alni.certblues.acme.client;
-
-import ch.alni.certblues.acme.jws.JwsObject;
+package ch.alni.certblues.storage.certbot;
 
 /**
- * Account key pair is used to sign the ACME requests on behalf of an account holding a pair of keys.
+ * Status of certificate returned by the certificate bot.
  */
-public interface SigningKeyPair {
+public enum CertificateStatus {
 
     /**
-     * Signs the following ACME request by wrapping it into a JWS and passing the public key as 'jwk' attribute in the
-     * protected header.
-     *
-     * @param requestUri the URI this request should be sent to
-     * @param request    ACME request
-     * @param nonce      the nonce received from the server
-     * @return the signed request
+     * Certificate is not issued yet.
      */
-    JwsObject sign(String requestUri, Object request, String nonce);
+    PENDING,
 
     /**
-     * Signs the following ACME request by wrapping it into a JWS and using the 'kid' attribute in the protected
-     * header.
-     *
-     * @param requestUri the URI this request should be sent to
-     * @param keyId      the key ID to be used
-     * @param request    ACME request
-     * @param nonce      the nonce received from the server
-     * @return the signed request
+     * Certificate issue has failed or nothing known about this certificate.
      */
-    JwsObject sign(String requestUri, String keyId, Object request, String nonce);
+    FAILED,
 
-    String getPublicKeyThumbprint();
+    /**
+     * Certificate has been successfully issued.
+     */
+    ISSUED;
 }

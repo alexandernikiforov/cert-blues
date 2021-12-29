@@ -72,6 +72,11 @@ public abstract class Configuration {
      */
     public abstract String requestQueueName();
 
+    /**
+     * Returns true if this is the staging environment.
+     */
+    public abstract boolean staging();
+
     @AutoValue.Builder
     public abstract static class Builder {
 
@@ -88,6 +93,8 @@ public abstract class Configuration {
         public abstract Builder orderQueueName(String value);
 
         public abstract Builder requestQueueName(String value);
+
+        public abstract Builder staging(boolean value);
 
         public abstract Configuration build();
     }

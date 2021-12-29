@@ -37,6 +37,7 @@ public final class ConfigurationLoader {
     public static final String ENV_QUEUE_SERVICE_URL = "QueueServiceUrl";
     public static final String ENV_REQUEST_QUEUE_NAME = "RequestQueueName";
     public static final String ENV_ORDER_QUEUE_NAME = "OrderQueueName";
+    public static final String ENV_STAGING = "Staging";
 
     ConfigurationLoader() {
     }
@@ -54,6 +55,7 @@ public final class ConfigurationLoader {
                 .queueServiceUrl(getEnvValue(ENV_QUEUE_SERVICE_URL))
                 .requestQueueName(getEnvValue(ENV_REQUEST_QUEUE_NAME))
                 .orderQueueName(getEnvValue(ENV_ORDER_QUEUE_NAME))
+                .staging("true".equalsIgnoreCase(getEnvValue(ENV_STAGING)))
                 .build();
     }
 }

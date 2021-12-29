@@ -90,12 +90,12 @@ public class IdentifierAuthorizationClient {
     }
 
     private Mono<Void> provision(Identifier identifier, Challenge challenge, String keyAuth) {
-        if (challenge instanceof DnsChallenge) {
+        if (challenge instanceof DnsChallenge && isDnsProvisioningSupported()) {
             final var name = identifier.value();
             final var value = Thumbprints.getSha256Digest(keyAuth);
             return dnsChallengeProvisioner.provisionDns(name, value);
         }
-        else if (challenge instanceof HttpChallenge) {
+        else if (challenge instanceof HttpChallenge && isHttpProvisioningSupported()) {
             return httpChallengeProvisioner.provisionHttp(challenge.token(), keyAuth);
         }
         else {
@@ -119,4 +119,13 @@ public class IdentifierAuthorizationClient {
                     authorization.challenges());
         }
     }
+
+    private boolean isDnsProvisioningSupported() {
+        return null != dnsChallengeProvisioner;
+    }
+
+    private boolean isHttpProvisioningSupported() {
+        return null != httpChallengeProvisioner;
+    }
+
 }

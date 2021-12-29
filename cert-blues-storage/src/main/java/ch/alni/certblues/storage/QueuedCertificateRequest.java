@@ -29,8 +29,6 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.jetbrains.annotations.Nullable;
-
 import ch.alni.certblues.storage.queue.MessageId;
 
 /**
@@ -74,18 +72,6 @@ public final class QueuedCertificateRequest extends CertificateRequest {
     @Override
     public String storageEndpointUrl() {
         return certificateRequest.storageEndpointUrl();
-    }
-
-    @Override
-    @Nullable
-    public String dnsZoneResourceGroup() {
-        return certificateRequest.dnsZoneResourceGroup();
-    }
-
-    @Override
-    @Nullable
-    public String dnsZone() {
-        return certificateRequest.dnsZone();
     }
 
     @JsonIgnore

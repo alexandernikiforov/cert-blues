@@ -25,14 +25,15 @@
 
 package ch.alni.certblues.storage.certbot;
 
-import reactor.core.publisher.Mono;
+public interface AuthorizationProvisionerFactory {
 
-/**
- * Interface for the certificate bot.
- */
-public interface CertBot {
+    /**
+     * How to create an HTTP challenge provisioner from the given certificate request.
+     */
+    HttpChallengeProvisioner createHttpChallengeProvisioner(CertificateRequest certificateRequest);
 
-    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
-
-    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
+    /**
+     * How to create a DNS challenge provisioner from the given certificate request.
+     */
+    DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest);
 }

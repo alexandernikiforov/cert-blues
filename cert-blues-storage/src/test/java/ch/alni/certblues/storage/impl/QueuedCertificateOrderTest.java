@@ -29,9 +29,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import ch.alni.certblues.storage.CertificateRequest;
 import ch.alni.certblues.storage.KeyType;
 import ch.alni.certblues.storage.QueuedCertificateRequest;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
 import ch.alni.certblues.storage.queue.MessageId;
 
 import static org.assertj.core.api.Assertions.assertThat;

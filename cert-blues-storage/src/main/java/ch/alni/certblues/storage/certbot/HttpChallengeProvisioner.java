@@ -23,20 +23,23 @@
  *
  */
 
-package ch.alni.certblues.acme.client.access;
+package ch.alni.certblues.storage.certbot;
 
 import reactor.core.publisher.Mono;
 
-public interface DnsChallengeProvisioner {
+/**
+ * Interface to provision ACME challenges.
+ */
+public interface HttpChallengeProvisioner {
 
     /**
-     * Provisions DNS challenge.
+     * Provisions HTTP challenge.
      *
-     * @param host  the name of the TXT record to be created in the DNS zone
-     * @param value the value of the TXT record to be created in the DNS zone
-     * @return mono that completes when the challenge has been provisioned or emits error if the challenge cannot be
+     * @param token   the token of the challenge
+     * @param keyAuth the calculated key authorization
+     * @return mono that completes  when the challenge has been provisioned or emits an error if the challenge cannot be
      * provisioned
      */
-    Mono<Void> provisionDns(String host, String value);
+    Mono<Void> provisionHttp(String token, String keyAuth);
 
 }

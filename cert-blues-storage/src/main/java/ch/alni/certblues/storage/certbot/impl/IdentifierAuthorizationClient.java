@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.facade;
+package ch.alni.certblues.storage.certbot.impl;
 
 import org.slf4j.Logger;
 
@@ -32,10 +32,10 @@ import ch.alni.certblues.acme.client.Challenge;
 import ch.alni.certblues.acme.client.DnsChallenge;
 import ch.alni.certblues.acme.client.HttpChallenge;
 import ch.alni.certblues.acme.client.Identifier;
-import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
-import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
-import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.acme.facade.AuthorizationProvisioner;
 import ch.alni.certblues.acme.key.Thumbprints;
+import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -43,18 +43,18 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Handles authorization by preparing the key authorization and provisioning one of the challenges.
  */
-public class IdentifierAuthorizationClient {
+public class IdentifierAuthorizationClient implements AuthorizationProvisioner {
     private static final Logger LOG = getLogger(IdentifierAuthorizationClient.class);
 
-    private final SigningKeyPair keyPair;
+    private final String publicKeyThumbprint;
     private final HttpChallengeProvisioner httpChallengeProvisioner;
     private final DnsChallengeProvisioner dnsChallengeProvisioner;
 
-    public IdentifierAuthorizationClient(SigningKeyPair keyPair,
+    public IdentifierAuthorizationClient(String publicKeyThumbprint,
                                          HttpChallengeProvisioner httpChallengeProvisioner,
                                          DnsChallengeProvisioner dnsChallengeProvisioner
     ) {
-        this.keyPair = keyPair;
+        this.publicKeyThumbprint = publicKeyThumbprint;
         this.httpChallengeProvisioner = httpChallengeProvisioner;
         this.dnsChallengeProvisioner = dnsChallengeProvisioner;
     }
@@ -66,6 +66,7 @@ public class IdentifierAuthorizationClient {
      * @param authorization the authorization to handle
      * @return the mono of the challenge that has been provisioned
      */
+    @Override
     public Mono<Challenge> process(Authorization authorization) {
         switch (authorization.status()) {
             case EXPIRED:
@@ -80,9 +81,8 @@ public class IdentifierAuthorizationClient {
                 return Mono.just(submittedChallenge);
             case PENDING:
                 final var challenge = selectChallenge(authorization);
-                return keyPair.getPublicKeyThumbprint()
-                        .map(thumbprint -> challenge.token() + "." + thumbprint)
-                        .flatMap(keyAuth -> provision(authorization.identifier(), challenge, keyAuth))
+                final var keyAuth = challenge.token() + "." + publicKeyThumbprint;
+                return provision(authorization.identifier(), challenge, keyAuth)
                         .then(Mono.just(challenge));
             default:
                 throw new IllegalArgumentException("unsupported authorization status " + authorization.status());

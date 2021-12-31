@@ -27,12 +27,16 @@ package ch.alni.certblues.storage.certbot;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Interface for the certificate bot.
- */
-public interface CertBot {
+public interface DnsChallengeProvisioner {
 
-    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
+    /**
+     * Provisions DNS challenge.
+     *
+     * @param host  the name of the TXT record to be created in the DNS zone
+     * @param value the value of the TXT record to be created in the DNS zone
+     * @return mono that completes when the challenge has been provisioned or emits error if the challenge cannot be
+     * provisioned
+     */
+    Mono<Void> provisionDns(String host, String value);
 
-    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
 }

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.storage;
+package ch.alni.certblues.storage.certbot;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +38,8 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import java.util.List;
 
 import ch.alni.certblues.common.json.ObjectMapperFactory;
+import ch.alni.certblues.storage.JsonTransform;
+import ch.alni.certblues.storage.KeyType;
 
 /**
  * Request information to create/renew certificate.

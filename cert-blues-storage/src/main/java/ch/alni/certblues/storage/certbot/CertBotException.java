@@ -25,14 +25,16 @@
 
 package ch.alni.certblues.storage.certbot;
 
-import reactor.core.publisher.Mono;
-
 /**
- * Interface for the certificate bot.
+ *
  */
-public interface CertBot {
+public class CertBotException extends RuntimeException {
 
-    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
+    public CertBotException(String message) {
+        super(message);
+    }
 
-    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
+    public CertBotException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import ch.alni.certblues.storage.certbot.CertificateRequest;
 import ch.alni.certblues.storage.queue.MessageId;
 
 /**

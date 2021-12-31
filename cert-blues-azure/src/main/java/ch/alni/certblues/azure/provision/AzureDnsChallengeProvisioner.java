@@ -35,7 +35,7 @@ import com.azure.resourcemanager.dns.models.TxtRecord;
 
 import java.util.List;
 
-import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
 import reactor.core.publisher.Mono;
 
 /**

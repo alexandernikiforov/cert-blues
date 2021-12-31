@@ -25,6 +25,8 @@
 
 package ch.alni.certblues.storage;
 
+import ch.alni.certblues.storage.certbot.CertificateOrder;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,7 +38,7 @@ public interface StorageService {
      * @param certificateRequest
      * @return empty mono if completed
      */
-    Mono<Void> store(CertificateRequest certificateRequest);
+    Mono<CertificateRequest> store(CertificateRequest certificateRequest);
 
     /**
      * Removes the given order so that it is not available anymore.
@@ -44,21 +46,21 @@ public interface StorageService {
      * @param certificateRequest
      * @return empty mono if completed
      */
-    Mono<Void> remove(QueuedCertificateRequest certificateRequest);
+    Mono<Void> remove(CertificateRequest certificateRequest);
 
     /**
      * Returns a flux over the pending certificate requests.
      *
      * @return
      */
-    Flux<QueuedCertificateRequest> getCertificateRequests();
+    Flux<CertificateRequest> getCertificateRequests();
 
     /**
      * Returns a flux over the submitted certificate orders.
      *
      * @return
      */
-    Flux<QueuedCertificateOrder> getCertificateOrders();
+    Flux<CertificateOrder> getCertificateOrders();
 
     /**
      * Submit the given certificate order. The originating request will not be available anymore.
@@ -66,7 +68,7 @@ public interface StorageService {
      * @param certificateOrder
      * @return empty mono if completed
      */
-    Mono<Void> store(CertificateOrder certificateOrder);
+    Mono<CertificateOrder> store(CertificateOrder certificateOrder);
 
     /**
      * Removes the given order so that it is not available anymore.
@@ -74,5 +76,5 @@ public interface StorageService {
      * @param certificateOrder
      * @return empty mono if completed
      */
-    Mono<Void> remove(QueuedCertificateOrder certificateOrder);
+    Mono<Void> remove(CertificateOrder certificateOrder);
 }

@@ -25,35 +25,37 @@
 
 package ch.alni.certblues.functions;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.HttpClient;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.TimerTrigger;
 
-import java.util.logging.Level;
+import org.slf4j.Logger;
+
 import java.util.stream.Collectors;
 
-import ch.alni.certblues.acme.client.Challenge;
+import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.Identifier;
 import ch.alni.certblues.acme.client.OrderRequest;
-import ch.alni.certblues.acme.client.OrderStatus;
-import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
-import ch.alni.certblues.acme.facade.AcmeSessionFacade;
+import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
-import ch.alni.certblues.storage.CertificateOrder;
-import ch.alni.certblues.storage.CertificateRequest;
 import ch.alni.certblues.storage.StorageService;
+import ch.alni.certblues.storage.certbot.CertBot;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.certbot.CertificateStatus;
+import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * First function to test.
+ * Function that implements the logic of submitting certificate requests and verifying the certificate orders.
  */
 @SuppressWarnings("unused")
 public class Function {
+    private static final Logger LOG = getLogger(Function.class);
 
     // static initialization makes sure that context is initialized only once at the start of the instance
     private static final Context CONTEXT = Context.getInstance();
@@ -69,7 +71,7 @@ public class Function {
     private static CertificateEntry toCertificateEntry(CertificateRequest request) {
         return new AzureKeyVaultCertificateBuilder(
                 CONTEXT.getCredential(), CONTEXT.getHttpClient(), CONTEXT.getConfiguration().keyVaultUrl()
-        ).buildFor(request);
+        ).create(request);
     }
 
     private static HttpChallengeProvisioner toHttpChallengeProvisioner(CertificateRequest request) {
@@ -77,73 +79,72 @@ public class Function {
     }
 
     @FunctionName("submitOrders")
-    public void submitOrders(@TimerTrigger(name = "keepAlive", schedule = "%Schedule%") String timerInfo,
+    public void submitOrders(@TimerTrigger(name = "submitOrdersSchedule", schedule = "%Schedule%") String timerInfo,
                              ExecutionContext context) {
 
         context.getLogger().info("Order submission started: " + timerInfo);
 
-        final TokenCredential credential = CONTEXT.getCredential();
-        final Configuration configuration = CONTEXT.getConfiguration();
-        final AcmeSessionFacade sessionFacade = CONTEXT.getSessionFacade();
         final StorageService storageService = CONTEXT.getStorageService();
+        final AcmeClient acmeClient = CONTEXT.getAcmeClient();
+
+        final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
+        final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
+
+        final CertBot certBot = new CertBotImpl(
+                acmeSession, CONTEXT.getCertificateEntryFactory(), CONTEXT.getAuthorizationProvisionerFactory()
+        );
 
         storageService.getCertificateRequests()
-                .flatMap(certificateRequest -> {
-                    final var orderRequest = toOrderRequest(certificateRequest);
-                    final var httpChallengeProvisioner = toHttpChallengeProvisioner(certificateRequest);
-                    return sessionFacade
-                            // provision the order
-                            .provisionOrder(orderRequest, null, httpChallengeProvisioner)
-                            // submit the challenges and create a certificate order
-                            .flatMap(provisionedOrder -> sessionFacade
-                                    .submitChallenges(
-                                            provisionedOrder.orderResource().getResourceUrl(),
-                                            provisionedOrder.challenges())
-                                    .map(challenges -> CertificateOrder.builder()
-                                            .certificateRequest(certificateRequest)
-                                            .challengeUrls(challenges.stream().map(Challenge::url).collect(Collectors.toList()))
-                                            .orderUrl(provisionedOrder.orderResource().getResourceUrl())
-                                            .build()))
-                            // return the tuple (request, order)
-                            .map(certificateOrder -> Tuples.of(certificateRequest, certificateOrder));
-                })
+                // make the cert bot submit the request
+                .concatMap(certBot::submit)
                 // at the end first remove the request, then store the order
-                .flatMap(tuple -> storageService.remove(tuple.getT1())
-                        .then(storageService.store(tuple.getT2()))
-                        .then(Mono.just(tuple.getT2()))
+                .flatMap(certificateOrder -> storageService
+                        .remove(certificateOrder.certificateRequest())
+                        .then(storageService.store(certificateOrder))
                 )
+                .onErrorContinue((e, certificateOrder) -> LOG.error("error while processing certificate request", e))
                 .subscribe(
-                        order -> context.getLogger().info("Order submitted: " + order),
-                        throwable -> context.getLogger().log(Level.SEVERE, "cannot submit the order", throwable)
+                        certificateOrder -> LOG.info("Order submitted {}", certificateOrder),
+                        throwable -> LOG.error("cannot submit the order", throwable),
+                        () -> LOG.info("order submission completed")
                 );
 
         context.getLogger().info("Order submission completed");
     }
 
     @FunctionName("checkOrders")
-    public void checkOrders(@TimerTrigger(name = "keepAlive", schedule = "%Schedule%") String timerInfo,
+    public void checkOrders(@TimerTrigger(name = "checkOrdersSchedule", schedule = "%Schedule%") String timerInfo,
                             ExecutionContext context) {
 
         context.getLogger().info("Order verification started: " + timerInfo);
 
-        final TokenCredential credential = CONTEXT.getCredential();
-        final Configuration configuration = CONTEXT.getConfiguration();
-        final AcmeSessionFacade sessionFacade = CONTEXT.getSessionFacade();
         final StorageService storageService = CONTEXT.getStorageService();
-        final HttpClient httpClient = CONTEXT.getHttpClient();
+        final AcmeClient acmeClient = CONTEXT.getAcmeClient();
+
+        final var accountRequest = AccountRequest.builder()
+                .termsOfServiceAgreed(true).onlyReturnExisting(true)
+                .build();
+        final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
+
+        final CertBot certBot = new CertBotImpl(
+                acmeSession, CONTEXT.getCertificateEntryFactory(), CONTEXT.getAuthorizationProvisionerFactory()
+        );
 
         storageService.getCertificateOrders()
-                .flatMap(certificateOrder -> sessionFacade.checkOrder(
-                                certificateOrder.orderUrl(), toCertificateEntry(certificateOrder.certificateRequest()))
-                        // check if valid (certificate is issued and uploaded)
-                        .filter(order -> order.status() == OrderStatus.VALID)
-                        // then return certificate order
-                        .map(order -> certificateOrder))
-                // at the end remove the completed certificate order
-                .flatMap(certificateOrder -> storageService.remove(certificateOrder).then(Mono.just(certificateOrder)))
+                // make the cert bot check the status of the certificate order
+                // and select the order where the certificate is issued
+                .flatMap(certificateOrder -> certBot
+                        .check(certificateOrder)
+                        .filter(certificateStatus -> certificateStatus == CertificateStatus.ISSUED)
+                        .then(Mono.just(certificateOrder))
+                )
+                .onErrorContinue((e, certificateOrder) -> LOG.error("error while processing certificate order", e))
+                // remove the certificate order
+                .flatMap(storageService::remove)
                 .subscribe(
-                        certificateOrder -> context.getLogger().info("Order completed: " + certificateOrder),
-                        throwable -> context.getLogger().log(Level.SEVERE, "cannot submit the order", throwable)
+                        certificateOrder -> LOG.info("Order completed {}", certificateOrder),
+                        throwable -> LOG.error("order verification error", throwable),
+                        () -> LOG.info("order verification completed")
                 );
 
         context.getLogger().info("Order verification completed");

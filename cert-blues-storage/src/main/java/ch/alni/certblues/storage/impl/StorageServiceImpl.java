@@ -25,16 +25,30 @@
 
 package ch.alni.certblues.storage.impl;
 
-import ch.alni.certblues.storage.CertificateOrder;
-import ch.alni.certblues.storage.CertificateRequest;
-import ch.alni.certblues.storage.QueuedCertificateOrder;
-import ch.alni.certblues.storage.QueuedCertificateRequest;
+import org.slf4j.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import ch.alni.certblues.storage.StorageService;
+import ch.alni.certblues.storage.certbot.CertificateOrder;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.queue.MessageId;
 import ch.alni.certblues.storage.queue.Queue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 public class StorageServiceImpl implements StorageService {
+    private static final Logger LOG = getLogger(StorageServiceImpl.class);
+
+    // the maps will keep growing, but this is not very bad as not so many requests are expected
+    // in th worst case a clean-up thread can be implemented in a later step
+    private final Map<CertificateRequest, MessageId> certificateRequests = new HashMap<>();
+    private final Map<CertificateOrder, MessageId> certificateOrders = new HashMap<>();
 
     /**
      * Queue for the certificate requests.
@@ -52,38 +66,42 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public Mono<Void> store(CertificateRequest certificateRequest) {
-        return requests.put(certificateRequest.toJson()).then();
+    public Mono<CertificateRequest> store(CertificateRequest certificateRequest) {
+        return requests.put(certificateRequest.toJson()).then(Mono.just(certificateRequest));
     }
 
     @Override
-    public Mono<Void> remove(QueuedCertificateRequest certificateRequest) {
-        final var messageId = certificateRequest.getMessageId();
-        return requests.delete(messageId);
+    public Mono<Void> remove(CertificateRequest certificateRequest) {
+        final var messageId = certificateRequests.get(certificateRequest);
+        return null == messageId ? Mono.empty() : requests.delete(messageId);
     }
 
     @Override
-    public Flux<QueuedCertificateRequest> getCertificateRequests() {
-        return requests.getMessages().map(message -> new QueuedCertificateRequest(
-                CertificateRequest.of(message.payload()), message.messageId()
-        ));
+    public Flux<CertificateRequest> getCertificateRequests() {
+        return requests.getMessages()
+                .doOnNext(message -> LOG.debug("processing payload {}", message.payload()))
+                .map(message -> Tuples.of(message.messageId(), CertificateRequest.of(message.payload())))
+                .doOnNext(tuple -> certificateRequests.put(tuple.getT2(), tuple.getT1()))
+                .map(Tuple2::getT2);
     }
 
     @Override
-    public Flux<QueuedCertificateOrder> getCertificateOrders() {
-        return orders.getMessages().map(message -> new QueuedCertificateOrder(
-                CertificateOrder.of(message.payload()), message.messageId()
-        ));
+    public Flux<CertificateOrder> getCertificateOrders() {
+        return orders.getMessages()
+                .doOnNext(message -> LOG.info("read payload {}", message.payload()))
+                .map(message -> Tuples.of(message.messageId(), CertificateOrder.of(message.payload())))
+                .doOnNext(tuple -> certificateOrders.put(tuple.getT2(), tuple.getT1()))
+                .map(Tuple2::getT2);
     }
 
     @Override
-    public Mono<Void> store(CertificateOrder certificateOrder) {
-        return requests.put(certificateOrder.toJson()).then();
+    public Mono<CertificateOrder> store(CertificateOrder certificateOrder) {
+        return requests.put(certificateOrder.toJson()).then(Mono.just(certificateOrder));
     }
 
     @Override
-    public Mono<Void> remove(QueuedCertificateOrder certificateOrder) {
-        final var messageId = certificateOrder.getMessageId();
-        return orders.delete(messageId);
+    public Mono<Void> remove(CertificateOrder certificateOrder) {
+        final var messageId = certificateOrders.get(certificateOrder);
+        return null == messageId ? Mono.empty() : orders.delete(messageId);
     }
 }

@@ -23,16 +23,16 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.acme.facade;
 
+import ch.alni.certblues.acme.client.Authorization;
+import ch.alni.certblues.acme.client.Challenge;
 import reactor.core.publisher.Mono;
 
 /**
- * Interface for the certificate bot.
+ * Hides the details of provisioning authorizations.
  */
-public interface CertBot {
+public interface AuthorizationProvisioner {
 
-    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
-
-    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
+    Mono<Challenge> process(Authorization authorization);
 }

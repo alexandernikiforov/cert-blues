@@ -25,7 +25,6 @@
 
 package ch.alni.certblues.acme.facade;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,14 +41,11 @@ import ch.alni.certblues.acme.client.access.AccountAccessor;
 import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
 import ch.alni.certblues.acme.client.access.ChallengeAccessor;
 import ch.alni.certblues.acme.client.access.DirectoryAccessor;
-import ch.alni.certblues.acme.client.access.DnsChallengeProvisioner;
-import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.client.access.OrderAccessor;
 import ch.alni.certblues.acme.client.access.PayloadSigner;
 import ch.alni.certblues.acme.client.access.RetryHandler;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
-import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
@@ -58,8 +54,6 @@ import reactor.netty.http.client.HttpClient;
  * Client session against the ACME server.
  */
 public class AcmeSession {
-
-    private final SigningKeyPair accountKeyPair;
 
     private final RequestHandler requestHandler;
 
@@ -71,6 +65,7 @@ public class AcmeSession {
     private final Mono<Directory> directoryMono;
     private final Mono<String> accountUrlMono;
     private final Mono<Account> accountMono;
+    private final Mono<String> publicKeyThumbprintMono;
 
     /**
      * Creates a new instance.
@@ -82,7 +77,6 @@ public class AcmeSession {
      * @param accountRequest request to create or retrieve the account
      */
     AcmeSession(HttpClient httpClient, NonceSource nonceSource, SigningKeyPair accountKeyPair, String directoryUrl, AccountRequest accountRequest) {
-        this.accountKeyPair = accountKeyPair;
         this.requestHandler = new RequestHandler(httpClient);
 
         final var payloadSigner = new PayloadSigner(accountKeyPair);
@@ -103,10 +97,18 @@ public class AcmeSession {
                 .flatMap(directory -> accountAccessor.getAccount(directory.newAccount(), accountRequest));
         accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl).share();
         accountMono = accountResourceMono.map(CreatedResource::getResource).share();
+        publicKeyThumbprintMono = accountKeyPair.getPublicKeyThumbprint().share();
     }
 
     public Mono<Account> getAccount() {
         return accountMono;
+    }
+
+    /**
+     * Returns the thumbprint of the account key used in this session.
+     */
+    public Mono<String> getPublicKeyThumbprint() {
+        return publicKeyThumbprintMono;
     }
 
     public Mono<CreatedResource<Order>> createOrder(OrderRequest orderRequest) {
@@ -115,6 +117,9 @@ public class AcmeSession {
         );
     }
 
+    /**
+     * Return order object by the given order URL.
+     */
     public Mono<Order> getOrder(String orderUrl) {
         return accountUrlMono.flatMap(accountUrl -> orderAccessor.getOrder(accountUrl, orderUrl));
     }
@@ -131,18 +136,13 @@ public class AcmeSession {
      * @return list of provisioned challenges (as mono)
      */
     public Mono<List<Challenge>> provision(List<String> authorizationUrls,
-                                           DnsChallengeProvisioner dnsChallengeProvisioner,
-                                           HttpChallengeProvisioner httpChallengeProvisioner) {
-
-        final var authorizationClient = new IdentifierAuthorizationClient(
-                accountKeyPair, httpChallengeProvisioner, dnsChallengeProvisioner
-        );
+                                           AuthorizationProvisioner authorizationProvisioner) {
 
         return accountUrlMono.map(accountUrl ->
                         authorizationUrls.stream()
                                 .map(authorizationUrl -> authorizationAccessor
                                         .getAuthorization(accountUrl, authorizationUrl)
-                                        .flatMap(authorizationClient::process))
+                                        .flatMap(authorizationProvisioner::process))
                                 .collect(Collectors.toList()))
                 // zip waits for all challenge provisions to complete
                 .flatMap(monoList -> Mono.zip(monoList, List::of))
@@ -151,10 +151,7 @@ public class AcmeSession {
     }
 
     /**
-     * Submit challenges
-     *
-     * @param challengeUrl
-     * @return
+     * Submit challenge identified by the given URL.
      */
     public Mono<Challenge> submitChallenge(String challengeUrl) {
         return accountUrlMono.flatMap(accountUrl -> challengeAccessor.submitChallenge(accountUrl, challengeUrl));
@@ -197,17 +194,13 @@ public class AcmeSession {
     /**
      * Finalizes the order by submitting a CSR from the given certificate entry.
      *
-     * @param finalizeUrl      the URL to submit the CSR
-     * @param certificateEntry the certificate entry to be used to create the CSR
+     * @param finalizeUrl              the URL to submit the CSR
+     * @param orderFinalizationRequest the certificate entry to be used to create the CSR
      * @return mono over the latest state of the order
      */
-    public Mono<Order> finalizeOrder(String finalizeUrl, CertificateEntry certificateEntry) {
-        final var finalizationRequestMono = certificateEntry.createCsr()
-                .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
-                .map(encodedCsr -> OrderFinalizationRequest.builder().csr(encodedCsr).build());
-
-        return Mono.zip(accountUrlMono, finalizationRequestMono)
-                .flatMap(tuple -> orderAccessor.submitCsr(tuple.getT1(), finalizeUrl, tuple.getT2()));
+    public Mono<Order> finalizeOrder(String finalizeUrl, OrderFinalizationRequest orderFinalizationRequest) {
+        return accountUrlMono
+                .flatMap(accountUrl -> orderAccessor.submitCsr(accountUrl, finalizeUrl, orderFinalizationRequest));
     }
 
     public Mono<String> downloadCertificate(String certificateUrl) {

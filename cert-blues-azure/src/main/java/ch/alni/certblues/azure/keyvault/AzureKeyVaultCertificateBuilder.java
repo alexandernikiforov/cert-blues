@@ -39,10 +39,11 @@ import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
 
 import java.util.List;
 
-import ch.alni.certblues.storage.CertificateRequest;
 import ch.alni.certblues.storage.KeyType;
+import ch.alni.certblues.storage.certbot.CertificateEntryFactory;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
 
-public final class AzureKeyVaultCertificateBuilder {
+public final class AzureKeyVaultCertificateBuilder implements CertificateEntryFactory {
 
     private static final String SERVER_CERTIFICATE_KEY_USAGE = "1.3.6.1.5.5.7.3.1";
 
@@ -64,7 +65,8 @@ public final class AzureKeyVaultCertificateBuilder {
         return CertificateKeyType.fromString(keyType.toString());
     }
 
-    public AzureKeyVaultCertificate buildFor(CertificateRequest certificateRequest) {
+    @Override
+    public AzureKeyVaultCertificate create(CertificateRequest certificateRequest) {
         Preconditions.checkNotNull(credential, "credential cannot be null");
         Preconditions.checkNotNull(vaultUrl, "vaultUrl cannot be null");
         Preconditions.checkNotNull(certificateRequest, "certificateRequest cannot be null");

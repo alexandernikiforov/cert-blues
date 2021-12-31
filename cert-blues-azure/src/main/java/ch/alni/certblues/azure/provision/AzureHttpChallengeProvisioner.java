@@ -31,7 +31,7 @@ import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 
-import ch.alni.certblues.acme.client.access.HttpChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import reactor.core.publisher.Mono;
 
 /**

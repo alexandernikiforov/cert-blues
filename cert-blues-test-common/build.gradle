@@ -30,4 +30,5 @@ plugins {
 
 dependencies {
     implementation project(':cert-blues-acme')
+    implementation project(':cert-blues-storage')
 }

@@ -26,7 +26,16 @@
 plugins {
     id 'java'
     id 'project-java-conventions'
+    id 'org.unbroken-dome.test-sets'
     id 'com.microsoft.azure.azurefunctions' version '1.8.2'
+}
+
+testSets {
+    integrationTest
+}
+
+integrationTest {
+    useJUnitPlatform()
 }
 
 dependencies {
@@ -49,6 +58,8 @@ dependencies {
     implementation project(':cert-blues-azure')
 
     runtimeOnly 'ch.qos.logback:logback-classic'
+
+    testImplementation project(':cert-blues-test-common')
 }
 
 azurefunctions {

@@ -23,23 +23,24 @@
  *
  */
 
-package ch.alni.certblues.acme.client.access;
+package ch.alni.certblues.storage.certbot.impl;
 
-import reactor.core.publisher.Mono;
+import java.util.stream.Collectors;
 
-/**
- * Interface to provision ACME challenges.
- */
-public interface HttpChallengeProvisioner {
+import ch.alni.certblues.acme.client.Identifier;
+import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
 
-    /**
-     * Provisions HTTP challenge.
-     *
-     * @param token   the token of the challenge
-     * @param keyAuth the calculated key authorization
-     * @return mono that completes  when the challenge has been provisioned or emits an error if the challenge cannot be
-     * provisioned
-     */
-    Mono<Void> provisionHttp(String token, String keyAuth);
+final class OrderRequests {
 
+    private OrderRequests() {
+    }
+
+    static OrderRequest toOrderRequest(CertificateRequest request) {
+        return OrderRequest.builder()
+                .identifiers(request.dnsNames().stream()
+                        .map(dnsName -> Identifier.builder().type("dns").value(dnsName).build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 }

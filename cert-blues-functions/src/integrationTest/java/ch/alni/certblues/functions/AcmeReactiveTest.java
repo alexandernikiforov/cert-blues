@@ -23,17 +23,10 @@
  *
  */
 
-package ch.alni.certblues.azure.keyvault;
+package ch.alni.certblues.functions;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.security.keyvault.certificates.models.CertificateContentType;
-import com.azure.security.keyvault.certificates.models.CertificateKeyType;
-import com.azure.security.keyvault.certificates.models.CertificateKeyUsage;
-import com.azure.security.keyvault.certificates.models.CertificatePolicy;
-import com.azure.security.keyvault.certificates.models.CertificatePolicyAction;
-import com.azure.security.keyvault.certificates.models.LifetimeAction;
-import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,24 +38,29 @@ import java.util.List;
 
 import javax.net.ssl.TrustManagerFactory;
 
-import ch.alni.certblues.acme.client.Challenge;
-import ch.alni.certblues.acme.client.Identifier;
+import ch.alni.certblues.acme.client.AccountRequest;
 import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.OrderStatus;
 import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.facade.AcmeSessionFacade;
-import ch.alni.certblues.acme.facade.ProvisionedOrder;
-import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.pebble.TestChallengeProvisioner;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
+import ch.alni.certblues.storage.KeyType;
+import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
+import ch.alni.certblues.storage.certbot.CertBot;
+import ch.alni.certblues.storage.certbot.CertificateOrder;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.certbot.CertificateStatus;
+import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
@@ -95,20 +93,16 @@ class AcmeReactiveTest {
     // initialize the Azure client
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
     private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(credential, KEY_ID, "RS256");
-
-    // Unknown is important here! It is a fixed value
-    private final CertificatePolicy certificatePolicy = new CertificatePolicy("Unknown", "CN=DefaultPolicy")
-            .setCertificateTransparent(false)
-            .setContentType(CertificateContentType.PKCS12)
-            .setKeySize(2048)
-            .setKeyType(CertificateKeyType.RSA)
-            .setSubjectAlternativeNames(new SubjectAlternativeNames().setDnsNames(List.of("www.testserver.com")))
-            .setKeyUsage(CertificateKeyUsage.KEY_ENCIPHERMENT, CertificateKeyUsage.DIGITAL_SIGNATURE)
-            .setEnhancedKeyUsage(List.of("1.3.6.1.5.5.7.3.1"))
-            .setValidityInMonths(12)
-            .setLifetimeActions(new LifetimeAction(CertificatePolicyAction.EMAIL_CONTACTS).setLifetimePercentage(80));
-
-    private final CertificateEntry certificateEntry = new AzureKeyVaultCertificate(credential, VAULT_URL, "test-server", certificatePolicy);
+    private final AzureKeyVaultCertificateBuilder certificateBuilder =
+            new AzureKeyVaultCertificateBuilder(credential, VAULT_URL);
+    private final CertificateRequest certificateRequest = CertificateRequest.builder()
+            .certificateName("test-server")
+            .storageEndpointUrl("does-not-matter")
+            .keyType(KeyType.RSA)
+            .keySize(2048)
+            .dnsNames(List.of("www.testserver.com"))
+            .validityInMonths(12)
+            .build();
 
     @BeforeEach
     void setUp() {
@@ -117,6 +111,7 @@ class AcmeReactiveTest {
 
     @Test
     void getCsr() {
+        final var certificateEntry = certificateBuilder.create(certificateRequest);
         final byte[] csr1 = certificateEntry.createCsr().block();
         final byte[] csr2 = certificateEntry.createCsr().block();
         assertThat(csr1).isEqualTo(csr2);
@@ -137,42 +132,43 @@ class AcmeReactiveTest {
         final String dnsChallengeUrl = String.format("http://localhost:%s/set-txt", CHALL_TEST_SRV_MGMT_PORT);
 
         final var challengeProvisioner = new TestChallengeProvisioner(httpClient, httpChallengeUrl, dnsChallengeUrl);
+        final var provisionerFactory = new AuthorizationProvisionerFactory() {
+            @Override
+            public HttpChallengeProvisioner createHttpChallengeProvisioner(CertificateRequest certificateRequest) {
+                return challengeProvisioner;
+            }
+
+            @Override
+            public DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest) {
+                return challengeProvisioner;
+            }
+        };
 
         final var acmeClient = new AcmeClient(httpClient, directoryUrl);
-        final var sessionFacade = new AcmeSessionFacade(acmeClient, accountKeyPair);
+        final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
+        final var session = acmeClient.login(accountKeyPair, accountRequest);
 
-        final var orderRequest = OrderRequest.builder()
-                .identifiers(List.of(
-                        Identifier.builder().type("dns").value("www.testserver.com").build()
-                ))
-                .build();
+        final CertBot certBot = new CertBotImpl(session, certificateBuilder, provisionerFactory);
 
-        // create and provision order
-        final ProvisionedOrder provisionedOrder = sessionFacade
-                .provisionOrder(orderRequest, challengeProvisioner, challengeProvisioner)
-                .block();
+        // provision
+        final CertificateOrder certificateOrder = certBot.submit(certificateRequest).block(Duration.ofSeconds(15));
+        assertThat(certificateOrder).isNotNull();
 
-        assertThat(provisionedOrder).isNotNull();
-        final String orderUrl = provisionedOrder.orderResource().getResourceUrl();
+        // check until the certificate has been issued
+        final CertificateStatus certificateStatus = Flux.interval(Duration.ofSeconds(1))
+                .concatMap(unused -> certBot.check(certificateOrder))
+                .takeUntil(status -> status == CertificateStatus.ISSUED)
+                .blockLast(Duration.ofSeconds(25));
 
-        // submit challenges
-        final Mono<List<Challenge>> submitChallengeMono =
-                sessionFacade.submitChallenges(orderUrl, provisionedOrder.challenges());
+        assertThat(certificateStatus).isEqualByComparingTo(CertificateStatus.ISSUED);
 
-        final List<Challenge> challengeList = submitChallengeMono.block();
-        assertThat(challengeList).isNotEmpty();
-
-        // submit the certificate request
-        // download the certificate and merge it into the key vault
-        final Order finalOrder = Flux.interval(Duration.ofSeconds(2))
-                .flatMap(unused -> sessionFacade.checkOrder(orderUrl, certificateEntry))
-                .takeUntil(order -> order.status() == OrderStatus.VALID)
-                .blockLast(Duration.ofSeconds(15));
+        // download the certificate
+        final Order finalOrder = session.getOrder(certificateOrder.orderUrl()).block();
 
         assertThat(finalOrder).isNotNull();
         assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
 
-        final String certificate = sessionFacade.downloadCertificate(finalOrder.certificate()).block();
+        final String certificate = session.downloadCertificate(finalOrder.certificate()).block();
         assertThat(certificate).isNotNull();
     }
 

@@ -25,14 +25,15 @@
 
 package ch.alni.certblues.storage.certbot;
 
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.acme.key.CertificateEntry;
 
 /**
- * Interface for the certificate bot.
+ * Describes how to create certificate entries in a vault from certificate requests.
  */
-public interface CertBot {
+public interface CertificateEntryFactory {
 
-    Mono<CertificateOrder> submit(CertificateRequest certificateRequest);
-
-    Mono<CertificateStatus> check(CertificateOrder certificateOrder);
+    /**
+     * Returns a certificate entry for the given certificate request.
+     */
+    CertificateEntry create(CertificateRequest certificateRequest);
 }

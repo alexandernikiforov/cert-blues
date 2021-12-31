@@ -36,11 +36,16 @@ import java.time.Duration;
 import javax.net.ssl.TrustManagerFactory;
 
 import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.facade.AcmeSessionFacade;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
+import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.azure.queue.AzureQueue;
 import ch.alni.certblues.storage.StorageService;
+import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
+import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.impl.StorageServiceImpl;
 import ch.alni.certblues.storage.queue.Queue;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -60,11 +65,13 @@ public final class Context {
     private static final Context INSTANCE = create();
 
     private com.azure.core.http.HttpClient httpClient;
-    private AcmeSessionFacade sessionFacade;
     private TokenCredential credential;
     private SigningKeyPair accountKeyPair;
     private StorageService storageService;
     private Configuration configuration;
+    private AcmeClient acmeClient;
+    private AzureKeyVaultCertificateBuilder certificateEntryFactory;
+    private AuthorizationProvisionerFactory authorizationProvisionerFactory;
 
     private Context() {
     }
@@ -102,9 +109,8 @@ public final class Context {
         context.accountKeyPair = new AzureKeyVaultKey(
                 context.credential, configuration.accountKeyId(), configuration.accountKeySignatureAlg()
         );
-        final var acmeClient = new AcmeClient(baseHttpClient, configuration.directoryUrl());
 
-        context.sessionFacade = new AcmeSessionFacade(acmeClient, context.accountKeyPair);
+        context.acmeClient = new AcmeClient(baseHttpClient, configuration.directoryUrl());
         context.httpClient = new NettyAsyncHttpClientBuilder(baseHttpClient).build();
 
         final Queue requestQueue = new AzureQueue(
@@ -115,6 +121,26 @@ public final class Context {
                 context.credential, context.httpClient, configuration.queueServiceUrl(), configuration.orderQueueName()
         );
         context.storageService = new StorageServiceImpl(requestQueue, orderQueue);
+
+        context.certificateEntryFactory = new AzureKeyVaultCertificateBuilder(
+                context.credential, context.httpClient, configuration.keyVaultUrl()
+        );
+
+        context.authorizationProvisionerFactory = new AuthorizationProvisionerFactory() {
+
+            @Override
+            public HttpChallengeProvisioner createHttpChallengeProvisioner(CertificateRequest certificateRequest) {
+                return new AzureHttpChallengeProvisioner(context.httpClient, certificateRequest.storageEndpointUrl());
+            }
+
+            @Override
+            public DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest) {
+                // DNS provisioning is not supported
+                return null;
+            }
+        };
+
+
         return context;
     }
 
@@ -140,10 +166,6 @@ public final class Context {
         return httpClient;
     }
 
-    public AcmeSessionFacade getSessionFacade() {
-        return sessionFacade;
-    }
-
     public TokenCredential getCredential() {
         return credential;
     }
@@ -158,5 +180,17 @@ public final class Context {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+    public AcmeClient getAcmeClient() {
+        return acmeClient;
+    }
+
+    public AzureKeyVaultCertificateBuilder getCertificateEntryFactory() {
+        return certificateEntryFactory;
+    }
+
+    public AuthorizationProvisionerFactory getAuthorizationProvisionerFactory() {
+        return authorizationProvisionerFactory;
     }
 }

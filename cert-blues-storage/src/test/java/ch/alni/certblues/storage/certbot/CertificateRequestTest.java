@@ -23,37 +23,31 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
+package ch.alni.certblues.storage.certbot;
 
-import org.slf4j.Logger;
+import org.junit.jupiter.api.Test;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.List;
 
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.storage.KeyType;
 
-import static org.slf4j.LoggerFactory.getLogger;
+import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * The source of nonce values.
- */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+class CertificateRequestTest {
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
+    @Test
+    void testWriting() {
+        final var certificateRequest = CertificateRequest.builder()
+                .keySize(2048)
+                .keyType(KeyType.RSA)
+                .dnsNames(List.of("www.cloudalni.com", "cloudalni.com"))
+                .validityInMonths(3)
+                .certificateName("cloudalni.com")
+                .subjectDn("CH=cloudalni.com")
+                .storageEndpointUrl("storageEndpointUrl")
+                .build();
 
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
-    }
-
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
-    }
-
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+        final String json = certificateRequest.toJson();
+        assertThat(CertificateRequest.of(json)).isEqualTo(certificateRequest);
     }
 }

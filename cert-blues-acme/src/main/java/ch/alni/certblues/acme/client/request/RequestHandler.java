@@ -32,9 +32,8 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-import ch.alni.certblues.acme.client.CreatedResource;
-import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsObject;
+import ch.alni.certblues.common.json.JsonObjects;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
@@ -57,21 +56,18 @@ public class RequestHandler {
     }
 
     /**
-     * Returns request to get a new nonce from the ACME server.
+     * Returns the nonce.
      *
-     * @param newNonceUrl the URL to receive the nonce
+     * @param newNonceUrl URL to get a new nonce
+     * @return mono over the nonce
      */
-    public void updateNonce(String newNonceUrl, NonceSource nonceSource) {
-        httpClient
+    public Mono<String> getNonce(String newNonceUrl) {
+        return httpClient
                 .head()
                 .uri(URI.create(newNonceUrl))
                 .response()
                 .map(HttpResponses::getNonce)
-                .filter(Objects::nonNull)
-                .subscribe(
-                        nonceSource::update,
-                        throwable -> LOG.error("unexpected error while getting a new nonce", throwable)
-                );
+                .filter(Objects::nonNull);
     }
 
     /**
@@ -153,6 +149,7 @@ public class RequestHandler {
 
     private void propagateNonce(String nonce, NonceSource nonceSource) {
         if (null != nonce) {
+            LOG.info("updating nonce {}", nonce);
             nonceSource.update(nonce);
         }
     }

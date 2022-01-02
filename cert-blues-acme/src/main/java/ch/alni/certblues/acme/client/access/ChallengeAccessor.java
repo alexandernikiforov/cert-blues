@@ -25,9 +25,9 @@
 
 package ch.alni.certblues.acme.client.access;
 
-import ch.alni.certblues.acme.client.Challenge;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
+import ch.alni.certblues.acme.protocol.Challenge;
 import reactor.core.publisher.Mono;
 
 public class ChallengeAccessor {

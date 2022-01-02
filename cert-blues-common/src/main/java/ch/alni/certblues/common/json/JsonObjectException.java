@@ -23,37 +23,22 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
-
-import org.slf4j.Logger;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
+package ch.alni.certblues.common.json;
 
 /**
- * The source of nonce values.
+ * Exception thrown from the JSON processing.
  */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+public class JsonObjectException extends RuntimeException {
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
-
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    public JsonObjectException(String message) {
+        super(message);
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
+    public JsonObjectException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+    public JsonObjectException(Throwable cause) {
+        super(cause);
     }
 }

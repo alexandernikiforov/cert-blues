@@ -27,7 +27,7 @@ package ch.alni.certblues.acme.client.access;
 
 import org.slf4j.Logger;
 
-import ch.alni.certblues.acme.client.AcmeServerException;
+import ch.alni.certblues.acme.protocol.AcmeServerException;
 import reactor.core.Exceptions;
 import reactor.util.retry.Retry;
 

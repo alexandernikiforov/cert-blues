@@ -23,37 +23,36 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
+package ch.alni.certblues.acme.protocol;
 
-import org.slf4j.Logger;
+import com.google.auto.value.AutoValue;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 /**
- * The source of nonce values.
+ * Http-01 challenge type.
  */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+@AutoValue
+@JsonDeserialize(builder = HttpChallenge.Builder.class)
+public abstract class HttpChallenge implements Challenge {
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
-
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    public static Builder builder() {
+        return new AutoValue_HttpChallenge.Builder().type("http-01");
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
-    }
+    @AutoValue.Builder
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public abstract static class Builder implements Challenge.Builder<Builder> {
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+        @JsonCreator
+        static Builder create() {
+            return builder();
+        }
+
+        public abstract HttpChallenge build();
     }
 }

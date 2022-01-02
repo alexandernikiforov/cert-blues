@@ -23,55 +23,48 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.acme.protocol;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-import ch.alni.certblues.storage.JsonTransform;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
- * The original certificate order.
+ * Metadata relating to the service provided by the ACME server.
  */
 @AutoValue
-@JsonDeserialize(builder = CertificateOrder.Builder.class)
-public abstract class CertificateOrder implements JsonTransform {
+@JsonDeserialize(builder = Meta.Builder.class)
+public abstract class Meta {
 
     public static Builder builder() {
-        return new AutoValue_CertificateOrder.Builder();
-    }
-
-    /**
-     * Transforms the given JSON string into a CertificateOrder object.
-     *
-     * @param json JSON string representing CertificateOrder
-     * @return CertificateRequest object
-     * @throws IllegalArgumentException if the object creation fails
-     */
-    public static CertificateOrder of(String json) {
-        try {
-            return ObjectMapperFactory.getObjectMapper().readerFor(CertificateOrder.class).readValue(json);
-        }
-        catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("cannot create CertificateOrder object from the provided string", e);
-        }
+        return new AutoValue_Meta.Builder()
+                .caaIdentities(List.of());
     }
 
     @JsonGetter
-    public abstract CertificateRequest certificateRequest();
+    @Nullable
+    public abstract String termsOfService();
 
-    /**
-     * URL of this order on the ACME server.
-     */
     @JsonGetter
-    public abstract String orderUrl();
+    @Nullable
+    public abstract String website();
+
+    @JsonGetter
+    @Nullable
+    public abstract ImmutableList<String> caaIdentities();
+
+    @JsonGetter
+    @Nullable
+    public abstract Boolean externalAccountRequired();
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
@@ -83,11 +76,17 @@ public abstract class CertificateOrder implements JsonTransform {
         }
 
         @JsonSetter
-        public abstract Builder certificateRequest(CertificateRequest value);
+        public abstract Builder termsOfService(String value);
 
         @JsonSetter
-        public abstract Builder orderUrl(String value);
+        public abstract Builder website(String value);
 
-        public abstract CertificateOrder build();
+        @JsonSetter
+        public abstract Builder caaIdentities(List<String> value);
+
+        @JsonSetter
+        public abstract Builder externalAccountRequired(Boolean value);
+
+        public abstract Meta build();
     }
 }

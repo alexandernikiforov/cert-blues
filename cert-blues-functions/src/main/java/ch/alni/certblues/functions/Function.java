@@ -31,20 +31,11 @@ import com.microsoft.azure.functions.annotation.TimerTrigger;
 
 import org.slf4j.Logger;
 
-import java.util.stream.Collectors;
-
-import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.Identifier;
-import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.key.CertificateEntry;
-import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
-import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
+import ch.alni.certblues.acme.protocol.AccountRequest;
 import ch.alni.certblues.storage.StorageService;
 import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.CertificateRequest;
 import ch.alni.certblues.storage.certbot.CertificateStatus;
-import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
 import reactor.core.publisher.Mono;
 
@@ -59,24 +50,6 @@ public class Function {
 
     // static initialization makes sure that context is initialized only once at the start of the instance
     private static final Context CONTEXT = Context.getInstance();
-
-    private static OrderRequest toOrderRequest(CertificateRequest request) {
-        return OrderRequest.builder()
-                .identifiers(request.dnsNames().stream()
-                        .map(dnsName -> Identifier.builder().type("dns").value(dnsName).build())
-                        .collect(Collectors.toList()))
-                .build();
-    }
-
-    private static CertificateEntry toCertificateEntry(CertificateRequest request) {
-        return new AzureKeyVaultCertificateBuilder(
-                CONTEXT.getCredential(), CONTEXT.getHttpClient(), CONTEXT.getConfiguration().keyVaultUrl()
-        ).create(request);
-    }
-
-    private static HttpChallengeProvisioner toHttpChallengeProvisioner(CertificateRequest request) {
-        return new AzureHttpChallengeProvisioner(CONTEXT.getHttpClient(), request.storageEndpointUrl());
-    }
 
     @FunctionName("submitOrders")
     public void submitOrders(@TimerTrigger(name = "submitOrdersSchedule", schedule = "%Schedule%") String timerInfo,

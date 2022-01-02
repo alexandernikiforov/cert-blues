@@ -31,15 +31,14 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import ch.alni.certblues.acme.client.Challenge;
-import ch.alni.certblues.acme.client.CreatedResource;
-import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderFinalizationRequest;
-import ch.alni.certblues.acme.client.OrderStatus;
+import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.facade.AcmeSession;
 import ch.alni.certblues.acme.key.CertificateEntry;
+import ch.alni.certblues.acme.protocol.Challenge;
+import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
+import ch.alni.certblues.acme.protocol.OrderStatus;
 import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.storage.certbot.CertBot;
 import ch.alni.certblues.storage.certbot.CertBotException;
@@ -85,31 +84,19 @@ public class CertBotImpl implements CertBot {
         }
 
         final var orderRequest = OrderRequests.toOrderRequest(certificateRequest);
-        final var httpChallengeProvisioner = provisionerFactory.createHttpChallengeProvisioner(certificateRequest);
-        final var dnsChallengeProvisioner = provisionerFactory.createDnsChallengeProvisioner(certificateRequest);
-
-        final Mono<CreatedResource<Order>> orderResourceMono = session.createOrder(orderRequest).share();
-        final Mono<List<Challenge>> authorizationMono = session.getPublicKeyThumbprint()
-                // create a client for provisioning
-                .map(thumbprint -> new IdentifierAuthorizationClient(thumbprint, httpChallengeProvisioner, dnsChallengeProvisioner))
-                // and then process the authorizations
-                .flatMap(provisioner -> orderResourceMono
-                        .map(resource -> resource.getResource().authorizations())
-                        .flatMap(authorizationUrls -> session.provision(authorizationUrls, provisioner)
-                        ));
 
         // create a subject to propagate the future certificate order
         final Sinks.One<CertificateOrder> subject = Sinks.one();
         requests.putIfAbsent(certificateRequest, subject);
 
-        // schedule the order provisioning
-        Mono.zip(orderResourceMono, authorizationMono)
+        final Mono<CreatedResource<Order>> orderResourceMono = session.createOrder(orderRequest);
+        orderResourceMono
                 .publishOn(internal)
                 .subscribeOn(internal)
                 .subscribe(
-                        tuple -> processProvisionedOrder(certificateRequest, tuple.getT1(), tuple.getT2()),
+                        order -> processCreatedOrder(certificateRequest, order),
                         throwable -> {
-                            LOG.error("certificate order {} cannot be provisioned", certificateRequest);
+                            LOG.error("certificate order {} cannot be created", certificateRequest);
                             subject.tryEmitError(throwable);
                         }
                 );
@@ -140,6 +127,51 @@ public class CertBotImpl implements CertBot {
         }
     }
 
+    private synchronized void processCreatedOrder(CertificateRequest certificateRequest, CreatedResource<Order> resource) {
+        final var order = resource.getResource();
+        final var subject = requests.get(certificateRequest);
+
+        if (order.status() == OrderStatus.INVALID) {
+            LOG.info("error while provisioning the order {}", order);
+            subject.tryEmitError(new CertBotException("order provisioning error: " + order.error()));
+        }
+        else if (order.status() == OrderStatus.PENDING) {
+            LOG.info("order created {}, order URL {}", resource.getResource(), resource.getResourceUrl());
+
+            final var httpChallengeProvisioner = provisionerFactory.createHttpChallengeProvisioner(certificateRequest);
+            final var dnsChallengeProvisioner = provisionerFactory.createDnsChallengeProvisioner(certificateRequest);
+
+            final Mono<List<Challenge>> authorizationMono = session.getPublicKeyThumbprint()
+                    // create a client for provisioning
+                    .map(thumbprint -> new IdentifierAuthorizationClient(thumbprint, httpChallengeProvisioner, dnsChallengeProvisioner))
+                    // and then process the authorizations
+                    .flatMap(provisioner -> session.provision(order.authorizations(), provisioner));
+
+            authorizationMono
+                    .publishOn(internal)
+                    .subscribeOn(internal)
+                    .subscribe(
+                            challenges -> processProvisionedOrder(certificateRequest, resource, challenges),
+                            throwable -> {
+                                LOG.error("certificate order {} cannot be provisioned", certificateRequest);
+                                subject.tryEmitError(throwable);
+                            }
+                    );
+        }
+        else {
+            LOG.info("order is ready {}", order);
+            // order is ready or valid, because the account is authorized (authorizations successfully done)
+            final var certificateOrder = CertificateOrder.builder()
+                    .certificateRequest(certificateRequest)
+                    .orderUrl(resource.getResourceUrl())
+                    .build();
+
+            requests.remove(certificateRequest);
+            subject.tryEmitValue(certificateOrder);
+            LOG.info("new certificate order has been created {}", certificateOrder);
+        }
+    }
+
     private synchronized void processProvisionedOrder(CertificateRequest certificateRequest,
                                                       CreatedResource<Order> resource, List<Challenge> challenges) {
 
@@ -155,8 +187,7 @@ public class CertBotImpl implements CertBot {
                     resource.getResource(), resource.getResourceUrl(), challenges);
 
             // submit the challenges
-            final var challengeUrls = challenges.stream().map(Challenge::url).collect(Collectors.toList());
-            final var submitChallengeMono = session.submitChallenges(challengeUrls);
+            final var submitChallengeMono = session.submitChallenges(challenges);
 
             submitChallengeMono
                     .publishOn(internal)
@@ -188,11 +219,9 @@ public class CertBotImpl implements CertBot {
             LOG.info("order submitted {}, order URL {}, challenges {}",
                     resource.getResource(), resource.getResourceUrl(), challenges);
 
-            final var challengeUrls = challenges.stream().map(Challenge::url).collect(Collectors.toList());
             final var certificateOrder = CertificateOrder.builder()
                     .certificateRequest(certificateRequest)
                     .orderUrl(resource.getResourceUrl())
-                    .challengeUrls(challengeUrls)
                     .build();
 
             requests.remove(certificateRequest);

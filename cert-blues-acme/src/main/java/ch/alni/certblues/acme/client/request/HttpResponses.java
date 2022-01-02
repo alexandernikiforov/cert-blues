@@ -30,11 +30,11 @@ import org.slf4j.Logger;
 import java.util.Map;
 import java.util.Optional;
 
-import ch.alni.certblues.acme.client.AcmeClientException;
-import ch.alni.certblues.acme.client.AcmeServerException;
-import ch.alni.certblues.acme.client.Error;
-import ch.alni.certblues.acme.json.JsonObjectException;
-import ch.alni.certblues.acme.json.JsonObjects;
+import ch.alni.certblues.acme.protocol.AcmeClientException;
+import ch.alni.certblues.acme.protocol.AcmeServerException;
+import ch.alni.certblues.acme.protocol.Error;
+import ch.alni.certblues.common.json.JsonObjectException;
+import ch.alni.certblues.common.json.JsonObjects;
 import reactor.netty.http.client.HttpClientResponse;
 
 import static org.slf4j.LoggerFactory.getLogger;

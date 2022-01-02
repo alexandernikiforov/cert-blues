@@ -27,8 +27,8 @@ package ch.alni.certblues.storage.certbot.impl;
 
 import java.util.stream.Collectors;
 
-import ch.alni.certblues.acme.client.Identifier;
-import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.protocol.Identifier;
+import ch.alni.certblues.acme.protocol.OrderRequest;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
 
 final class OrderRequests {

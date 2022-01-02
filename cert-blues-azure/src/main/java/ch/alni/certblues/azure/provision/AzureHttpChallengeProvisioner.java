@@ -30,6 +30,7 @@ import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.models.BlockBlobItem;
 
 import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import reactor.core.publisher.Mono;
@@ -38,7 +39,7 @@ import reactor.core.publisher.Mono;
  * Uses Azure services to implement the challenge provisioning for ACME.
  */
 public class AzureHttpChallengeProvisioner implements HttpChallengeProvisioner {
-    private static final String WELL_KNOWN_ACME_CHALLENGE = ".well_known/acme_challenge/";
+    private static final String WELL_KNOWN_ACME_CHALLENGE = ".well-known/acme-challenge/";
 
     private final BlobContainerAsyncClient blobContainerClient;
 
@@ -56,8 +57,8 @@ public class AzureHttpChallengeProvisioner implements HttpChallengeProvisioner {
     @Override
     public Mono<Void> provisionHttp(String token, String keyAuth) {
         final BlobAsyncClient blobClient = blobContainerClient.getBlobAsyncClient(WELL_KNOWN_ACME_CHALLENGE + token);
-        return blobClient
-                .upload(BinaryData.fromString(keyAuth), true)
-                .then();
+        final Mono<BlockBlobItem> uploadMono = blobClient.upload(BinaryData.fromString(keyAuth), true);
+        final Mono<String> readMono = blobClient.downloadContent().map(BinaryData::toString);
+        return uploadMono.then(readMono).then();
     }
 }

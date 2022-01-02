@@ -25,35 +25,26 @@
 
 package ch.alni.certblues.acme.client.request;
 
-import org.slf4j.Logger;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
-
 /**
- * The source of nonce values.
+ * Wrapper over the pair of some resource and the URL pointing to this resource.
+ *
+ * @param <T> type of the resource object
  */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+public class CreatedResource<T> {
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
+    private final T resource;
+    private final String resourceUrl;
 
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    public CreatedResource(T resource, String resourceUrl) {
+        this.resource = resource;
+        this.resourceUrl = resourceUrl;
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
+    public T getResource() {
+        return resource;
     }
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+    public String getResourceUrl() {
+        return resourceUrl;
     }
 }

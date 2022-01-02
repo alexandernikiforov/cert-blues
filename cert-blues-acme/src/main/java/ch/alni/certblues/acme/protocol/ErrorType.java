@@ -23,37 +23,31 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
+package ch.alni.certblues.acme.protocol;
 
-import org.slf4j.Logger;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
-
-/**
- * The source of nonce values.
- */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
-
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
-
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
-    }
-
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
-    }
-
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
-    }
+public enum ErrorType {
+    accountDoesNotExist,
+    alreadyRevoked,
+    badCSR,
+    badNonce,
+    badPublicKey,
+    badRevocationReason,
+    badSignatureAlgorithm,
+    caa,
+    compound,
+    connection,
+    dns,
+    externalAccountRequired,
+    incorrectResponse,
+    invalidContact,
+    malformed,
+    orderNotReady,
+    rateLimited,
+    rejectedIdentifier,
+    serverInternal,
+    tls,
+    unauthorized,
+    unsupportedContact,
+    unsupportedIdentifier,
+    userActionRequired
 }

@@ -25,9 +25,11 @@
 
 package ch.alni.certblues.acme.facade;
 
-import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.request.NonceSource;
+import ch.alni.certblues.acme.client.request.RequestHandler;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.acme.protocol.AccountRequest;
+import ch.alni.certblues.acme.protocol.Directory;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 /**
@@ -35,9 +37,8 @@ import reactor.netty.http.client.HttpClient;
  */
 public final class AcmeClient {
 
-    private final NonceSource nonceSource = new NonceSource();
-    private final HttpClient httpClient;
-    private final String directoryUrl;
+    private final RequestHandler requestHandler;
+    private final Mono<Directory> directoryMono;
 
     /**
      * Creates a new instance.
@@ -46,11 +47,11 @@ public final class AcmeClient {
      * @param directoryUrl URL of the ACME server directory
      */
     public AcmeClient(HttpClient httpClient, String directoryUrl) {
-        this.httpClient = httpClient;
-        this.directoryUrl = directoryUrl;
+        this.requestHandler = new RequestHandler(httpClient);
+        this.directoryMono = requestHandler.get(directoryUrl, Directory.class).share();
     }
 
     public AcmeSession login(SigningKeyPair accountKeyPair, AccountRequest accountRequest) {
-        return new AcmeSession(httpClient, nonceSource, accountKeyPair, directoryUrl, accountRequest);
+        return new AcmeSession(requestHandler, directoryMono, accountKeyPair, accountRequest);
     }
 }

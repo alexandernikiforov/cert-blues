@@ -23,37 +23,29 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
-
-import org.slf4j.Logger;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
+package ch.alni.certblues.acme.protocol;
 
 /**
- * The source of nonce values.
+ * Error returned by the server.
  */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+public class AcmeServerException extends RuntimeException {
+    private final Error error;
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
-
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    public AcmeServerException(String message) {
+        super(message);
+        this.error = null;
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
+    public AcmeServerException(Error error) {
+        super(null != error ? error.detail() : null);
+        this.error = error;
     }
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+    public Error getError() {
+        return error;
+    }
+
+    public boolean isRetryable() {
+        return null != error && "urn:ietf:params:acme:error:badNonce".equals(error.type());
     }
 }

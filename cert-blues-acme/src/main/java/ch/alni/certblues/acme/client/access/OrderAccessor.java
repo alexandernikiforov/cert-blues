@@ -25,12 +25,12 @@
 
 package ch.alni.certblues.acme.client.access;
 
-import ch.alni.certblues.acme.client.CreatedResource;
-import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderFinalizationRequest;
-import ch.alni.certblues.acme.client.OrderRequest;
+import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
+import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
+import ch.alni.certblues.acme.protocol.OrderRequest;
 import reactor.core.publisher.Mono;
 
 public class OrderAccessor {

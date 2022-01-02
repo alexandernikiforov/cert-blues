@@ -30,11 +30,11 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import ch.alni.certblues.acme.client.AcmeRequest;
-import ch.alni.certblues.acme.json.JsonObjects;
 import ch.alni.certblues.acme.jws.JwsHeader;
 import ch.alni.certblues.acme.jws.JwsObject;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.acme.protocol.AcmeRequest;
+import ch.alni.certblues.common.json.JsonObjects;
 import reactor.core.publisher.Mono;
 
 /**

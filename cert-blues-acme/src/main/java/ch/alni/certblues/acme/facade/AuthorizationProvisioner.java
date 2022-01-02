@@ -25,8 +25,8 @@
 
 package ch.alni.certblues.acme.facade;
 
-import ch.alni.certblues.acme.client.Authorization;
-import ch.alni.certblues.acme.client.Challenge;
+import ch.alni.certblues.acme.protocol.Authorization;
+import ch.alni.certblues.acme.protocol.Challenge;
 import reactor.core.publisher.Mono;
 
 /**

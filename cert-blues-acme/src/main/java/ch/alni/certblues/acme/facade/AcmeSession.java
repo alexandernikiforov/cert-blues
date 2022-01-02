@@ -28,34 +28,31 @@ package ch.alni.certblues.acme.facade;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ch.alni.certblues.acme.client.Account;
-import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.Authorization;
-import ch.alni.certblues.acme.client.Challenge;
-import ch.alni.certblues.acme.client.CreatedResource;
-import ch.alni.certblues.acme.client.Directory;
-import ch.alni.certblues.acme.client.Order;
-import ch.alni.certblues.acme.client.OrderFinalizationRequest;
-import ch.alni.certblues.acme.client.OrderRequest;
 import ch.alni.certblues.acme.client.access.AccountAccessor;
 import ch.alni.certblues.acme.client.access.AuthorizationAccessor;
 import ch.alni.certblues.acme.client.access.ChallengeAccessor;
-import ch.alni.certblues.acme.client.access.DirectoryAccessor;
 import ch.alni.certblues.acme.client.access.OrderAccessor;
 import ch.alni.certblues.acme.client.access.PayloadSigner;
 import ch.alni.certblues.acme.client.access.RetryHandler;
+import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.acme.protocol.Account;
+import ch.alni.certblues.acme.protocol.AccountRequest;
+import ch.alni.certblues.acme.protocol.Authorization;
+import ch.alni.certblues.acme.protocol.Challenge;
+import ch.alni.certblues.acme.protocol.ChallengeStatus;
+import ch.alni.certblues.acme.protocol.Directory;
+import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
+import ch.alni.certblues.acme.protocol.OrderRequest;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 
 /**
  * Client session against the ACME server.
  */
 public class AcmeSession {
-
-    private final RequestHandler requestHandler;
 
     private final AccountAccessor accountAccessor;
     private final OrderAccessor orderAccessor;
@@ -70,29 +67,26 @@ public class AcmeSession {
     /**
      * Creates a new instance.
      *
-     * @param httpClient     the HTTP client to use
-     * @param nonceSource    the source for of nonce values
+     * @param requestHandler interface to handle HTTP requests
      * @param accountKeyPair the key pair identifying the account on the ACME server
-     * @param directoryUrl   URL of the directory on ACME server
+     * @param directoryMono  how to get the directory information from ACME server
      * @param accountRequest request to create or retrieve the account
      */
-    AcmeSession(HttpClient httpClient, NonceSource nonceSource, SigningKeyPair accountKeyPair, String directoryUrl, AccountRequest accountRequest) {
-        this.requestHandler = new RequestHandler(httpClient);
-
+    AcmeSession(RequestHandler requestHandler, Mono<Directory> directoryMono, SigningKeyPair accountKeyPair, AccountRequest accountRequest) {
         final var payloadSigner = new PayloadSigner(accountKeyPair);
         final var retryHandler = new RetryHandler(5);
+
+        // we create one nonce source per session
+        final var nonceSource = new NonceSource(directoryMono.map(Directory::newNonce).flatMap(requestHandler::getNonce));
 
         this.accountAccessor = new AccountAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         this.orderAccessor = new OrderAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         this.authorizationAccessor = new AuthorizationAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
         this.challengeAccessor = new ChallengeAccessor(nonceSource, payloadSigner, retryHandler, requestHandler);
 
-        // pre-build the basis mono's
-        final var directoryAccessor = new DirectoryAccessor(requestHandler, directoryUrl);
-        directoryMono = directoryAccessor.getDirectory()
-                .doOnNext(directory -> requestHandler.updateNonce(directory.newNonce(), nonceSource))
-                .share();
+        this.directoryMono = directoryMono;
 
+        // pre-build the base mono's
         final var accountResourceMono = directoryMono
                 .flatMap(directory -> accountAccessor.getAccount(directory.newAccount(), accountRequest));
         accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl).share();
@@ -100,18 +94,18 @@ public class AcmeSession {
         publicKeyThumbprintMono = accountKeyPair.getPublicKeyThumbprint().share();
     }
 
-    public Mono<Account> getAccount() {
+    public synchronized Mono<Account> getAccount() {
         return accountMono;
     }
 
     /**
      * Returns the thumbprint of the account key used in this session.
      */
-    public Mono<String> getPublicKeyThumbprint() {
+    public synchronized Mono<String> getPublicKeyThumbprint() {
         return publicKeyThumbprintMono;
     }
 
-    public Mono<CreatedResource<Order>> createOrder(OrderRequest orderRequest) {
+    public synchronized Mono<CreatedResource<Order>> createOrder(OrderRequest orderRequest) {
         return Mono.zip(directoryMono, accountUrlMono).flatMap(tuple ->
                 orderAccessor.createOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest)
         );
@@ -120,7 +114,7 @@ public class AcmeSession {
     /**
      * Return order object by the given order URL.
      */
-    public Mono<Order> getOrder(String orderUrl) {
+    public synchronized Mono<Order> getOrder(String orderUrl) {
         return accountUrlMono.flatMap(accountUrl -> orderAccessor.getOrder(accountUrl, orderUrl));
     }
 
@@ -152,19 +146,26 @@ public class AcmeSession {
 
     /**
      * Submit challenge identified by the given URL.
+     *
+     * @param challenge submitted challenge or the same challenge if its status is not PENDING
      */
-    public Mono<Challenge> submitChallenge(String challengeUrl) {
-        return accountUrlMono.flatMap(accountUrl -> challengeAccessor.submitChallenge(accountUrl, challengeUrl));
+    public Mono<Challenge> submitChallenge(Challenge challenge) {
+        if (challenge.status() == ChallengeStatus.PENDING) {
+            return accountUrlMono.flatMap(accountUrl -> challengeAccessor.submitChallenge(accountUrl, challenge.url()));
+        }
+        else {
+            return Mono.just(challenge);
+        }
     }
 
     /**
      * Submits the following challenges identified by their respective URLs.
      *
-     * @param challengeUrls URLs pointing to the
+     * @param challenges URLs pointing to the
      * @return mono of the list of submitted challenges
      */
-    public Mono<List<Challenge>> submitChallenges(List<String> challengeUrls) {
-        final var challengeMonoList = challengeUrls.stream()
+    public Mono<List<Challenge>> submitChallenges(List<Challenge> challenges) {
+        final var challengeMonoList = challenges.stream()
                 .map(this::submitChallenge)
                 .collect(Collectors.toList());
 

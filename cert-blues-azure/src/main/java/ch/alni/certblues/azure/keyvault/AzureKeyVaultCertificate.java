@@ -113,6 +113,7 @@ public class AzureKeyVaultCertificate implements CertificateEntry {
         final var certificateOperationFlux = client.getCertificateOperation(certificateName);
 
         return beginCertificateFlux
+                .doOnError(throwable -> LOG.error("error while trying to create a new certificate", throwable))
                 // try to return the currently running operation
                 // if the attempt to create a new certificate version fails
                 .onErrorResume(throwable -> certificateOperationFlux)

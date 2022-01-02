@@ -23,37 +23,47 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
+package ch.alni.certblues.acme.protocol;
 
-import org.slf4j.Logger;
+import com.google.auto.value.AutoValue;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
-import reactor.core.publisher.Mono;
+@AutoValue
+@JsonDeserialize(builder = Identifier.Builder.class)
+public abstract class Identifier {
 
-import static org.slf4j.LoggerFactory.getLogger;
+    public static final String TYPE_DNS = "dns";
 
-/**
- * The source of nonce values.
- */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
-
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
-
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    public static Builder builder() {
+        return new AutoValue_Identifier.Builder();
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
-    }
+    @JsonGetter
+    public abstract String type();
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+    @JsonGetter
+    public abstract String value();
+
+    @AutoValue.Builder
+    @JsonPOJOBuilder(withPrefix = "")
+    public abstract static class Builder {
+
+        @JsonCreator
+        static Builder create() {
+            return builder();
+        }
+
+        @JsonSetter
+        public abstract Builder type(String value);
+
+        @JsonSetter
+        public abstract Builder value(String value);
+
+        public abstract Identifier build();
     }
 }

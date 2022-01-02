@@ -94,6 +94,12 @@ public abstract class CertificateRequest implements JsonTransform {
     public abstract int validityInMonths();
 
     /**
+     * Subject name for the certificate. Must include a domain name.
+     */
+    @JsonGetter
+    public abstract String subjectDn();
+
+    /**
      * A list of DNS names to be supported by the new certificate.
      */
     @JsonGetter
@@ -132,6 +138,9 @@ public abstract class CertificateRequest implements JsonTransform {
 
         @JsonSetter
         public abstract Builder dnsNames(List<String> value);
+
+        @JsonSetter
+        public abstract Builder subjectDn(String value);
 
         @JsonSetter
         public abstract Builder certificateName(String value);

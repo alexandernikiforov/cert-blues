@@ -25,11 +25,11 @@
 
 package ch.alni.certblues.acme.client.access;
 
-import ch.alni.certblues.acme.client.Account;
-import ch.alni.certblues.acme.client.AccountRequest;
-import ch.alni.certblues.acme.client.CreatedResource;
+import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.client.request.NonceSource;
 import ch.alni.certblues.acme.client.request.RequestHandler;
+import ch.alni.certblues.acme.protocol.Account;
+import ch.alni.certblues.acme.protocol.AccountRequest;
 import reactor.core.publisher.Mono;
 
 public class AccountAccessor {

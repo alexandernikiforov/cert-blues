@@ -23,37 +23,45 @@
  *
  */
 
-package ch.alni.certblues.acme.client.request;
+package ch.alni.certblues.acme.protocol;
 
-import org.slf4j.Logger;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import reactor.core.publisher.Mono;
-
-import static org.slf4j.LoggerFactory.getLogger;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * The source of nonce values.
+ * Possible status of an account.
  */
-public class NonceSource {
-    private static final Logger LOG = getLogger(NonceSource.class);
+public enum AccountStatus {
+    VALID("valid"),
+    DEACTIVATED("deactivated"),
+    REVOKED("revoked");
 
-    private final Queue<String> nonceValues = new ConcurrentLinkedQueue<>();
-    private final Mono<String> nonceMono;
+    private final static Map<String, AccountStatus> VALUE_MAP =
+            Stream.of(values()).collect(Collectors.toMap(
+                    AccountStatus::getValue,
+                    Function.identity()
+            ));
 
-    public NonceSource(Mono<String> nonceMono) {
-        this.nonceMono = nonceMono;
+    private final String value;
+
+    AccountStatus(String value) {
+        this.value = value;
     }
 
-    public Mono<String> getNonce() {
-        // tries to extract the nonce value from the queue, and resorts to the query if the queue is empty
-        return Mono.fromSupplier(nonceValues::poll).switchIfEmpty(nonceMono)
-                .doOnNext(nonce -> LOG.info("using nonce {}", nonce));
+    @JsonCreator
+    public static AccountStatus fromValue(String value) {
+        return Optional.ofNullable(VALUE_MAP.get(value))
+                .orElseThrow(() -> new IllegalArgumentException("invalid value " + value));
     }
 
-    public void update(String nonce) {
-        nonceValues.offer(nonce);
+    @JsonValue
+    public String getValue() {
+        return value;
     }
 }

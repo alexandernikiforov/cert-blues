@@ -72,18 +72,19 @@ public final class AzureKeyVaultCertificateBuilder implements CertificateEntryFa
         Preconditions.checkNotNull(certificateRequest, "certificateRequest cannot be null");
 
         // Unknown is important here! It is a fixed value
-        final CertificatePolicy certificatePolicy = new CertificatePolicy("Unknown", "CN=DefaultPolicy")
-                .setCertificateTransparent(false)
-                .setContentType(CertificateContentType.PKCS12)
-                .setKeySize(certificateRequest.keySize())
-                .setKeyType(toCertificateKeyType(certificateRequest.keyType()))
-                .setSubjectAlternativeNames(new SubjectAlternativeNames().setDnsNames(
-                        certificateRequest.dnsNames()
-                ))
-                .setKeyUsage(CertificateKeyUsage.KEY_ENCIPHERMENT, CertificateKeyUsage.DIGITAL_SIGNATURE)
-                .setEnhancedKeyUsage(List.of(SERVER_CERTIFICATE_KEY_USAGE))
-                .setValidityInMonths(certificateRequest.validityInMonths())
-                .setLifetimeActions(new LifetimeAction(CertificatePolicyAction.EMAIL_CONTACTS).setLifetimePercentage(80));
+        final CertificatePolicy certificatePolicy =
+                new CertificatePolicy("Unknown", certificateRequest.subjectDn())
+                        .setCertificateTransparent(false)
+                        .setContentType(CertificateContentType.PKCS12)
+                        .setKeySize(certificateRequest.keySize())
+                        .setKeyType(toCertificateKeyType(certificateRequest.keyType()))
+                        .setSubjectAlternativeNames(new SubjectAlternativeNames().setDnsNames(
+                                certificateRequest.dnsNames()
+                        ))
+                        .setKeyUsage(CertificateKeyUsage.KEY_ENCIPHERMENT, CertificateKeyUsage.DIGITAL_SIGNATURE)
+                        .setEnhancedKeyUsage(List.of(SERVER_CERTIFICATE_KEY_USAGE))
+                        .setValidityInMonths(certificateRequest.validityInMonths())
+                        .setLifetimeActions(new LifetimeAction(CertificatePolicyAction.EMAIL_CONTACTS).setLifetimePercentage(80));
 
         return new AzureKeyVaultCertificate(
                 credential, httpClient, vaultUrl, certificateRequest.certificateName(), certificatePolicy

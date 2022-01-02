@@ -23,58 +23,60 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.acme.protocol;
 
 import com.google.auto.value.AutoValue;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
-import ch.alni.certblues.storage.JsonTransform;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * The original certificate order.
+ * In order to help clients configure themselves with the right URLs for each ACME operation, ACME servers provide a
+ * directory object. This should be the only URL needed to configure clients. It is a JSON object, whose field names are
+ * drawn from the resource registry and whose values are the corresponding URLs.
  */
 @AutoValue
-@JsonDeserialize(builder = CertificateOrder.Builder.class)
-public abstract class CertificateOrder implements JsonTransform {
+@JsonDeserialize(builder = Directory.Builder.class)
+public abstract class Directory {
 
     public static Builder builder() {
-        return new AutoValue_CertificateOrder.Builder();
-    }
-
-    /**
-     * Transforms the given JSON string into a CertificateOrder object.
-     *
-     * @param json JSON string representing CertificateOrder
-     * @return CertificateRequest object
-     * @throws IllegalArgumentException if the object creation fails
-     */
-    public static CertificateOrder of(String json) {
-        try {
-            return ObjectMapperFactory.getObjectMapper().readerFor(CertificateOrder.class).readValue(json);
-        }
-        catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("cannot create CertificateOrder object from the provided string", e);
-        }
+        return new AutoValue_Directory.Builder();
     }
 
     @JsonGetter
-    public abstract CertificateRequest certificateRequest();
+    public abstract String newNonce();
 
-    /**
-     * URL of this order on the ACME server.
-     */
     @JsonGetter
-    public abstract String orderUrl();
+    public abstract String newAccount();
+
+    @JsonGetter
+    public abstract String newOrder();
+
+    @JsonGetter
+    @Nullable
+    public abstract String newAuthz();
+
+    @JsonGetter
+    @Nullable
+    public abstract String revokeCert();
+
+    @JsonGetter
+    @Nullable
+    public abstract String keyChange();
+
+    @JsonGetter
+    @Nullable
+    public abstract Meta meta();
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public abstract static class Builder {
 
         @JsonCreator
@@ -83,11 +85,26 @@ public abstract class CertificateOrder implements JsonTransform {
         }
 
         @JsonSetter
-        public abstract Builder certificateRequest(CertificateRequest value);
+        public abstract Builder newNonce(String value);
 
         @JsonSetter
-        public abstract Builder orderUrl(String value);
+        public abstract Builder newAccount(String value);
 
-        public abstract CertificateOrder build();
+        @JsonSetter
+        public abstract Builder newOrder(String value);
+
+        @JsonSetter
+        public abstract Builder newAuthz(String value);
+
+        @JsonSetter
+        public abstract Builder revokeCert(String value);
+
+        @JsonSetter
+        public abstract Builder keyChange(String value);
+
+        @JsonSetter
+        public abstract Builder meta(Meta value);
+
+        public abstract Directory build();
     }
 }

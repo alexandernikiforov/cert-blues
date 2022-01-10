@@ -23,14 +23,28 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.storage.certbot.events;
 
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.storage.certbot.impl.OrderProcess;
 
 /**
- * Interface for the certificate bot.
+ * Event triggered when order is not complete and needs to be checked again.
  */
-public interface CertBot {
+public class OrderCheckNeededEvent extends OrderStateEvent {
 
-    Mono<String> submit(CertificateRequest certificateRequest);
+    private final String orderUrl;
+
+    public OrderCheckNeededEvent(OrderProcess process, String orderUrl) {
+        super(process);
+        this.orderUrl = orderUrl;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public String getOrderUrl() {
+        return orderUrl;
+    }
 }

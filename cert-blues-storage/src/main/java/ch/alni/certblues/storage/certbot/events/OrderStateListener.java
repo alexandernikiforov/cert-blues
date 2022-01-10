@@ -23,14 +23,15 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.storage.certbot.events;
 
-import reactor.core.publisher.Mono;
+public interface OrderStateListener {
 
-/**
- * Interface for the certificate bot.
- */
-public interface CertBot {
+    void on(OrderCreatedEvent event);
 
-    Mono<String> submit(CertificateRequest certificateRequest);
+    void on(OrderCheckNeededEvent event);
+
+    void on(OrderReadyEvent event);
+
+    void on(OrderValidEvent event);
 }

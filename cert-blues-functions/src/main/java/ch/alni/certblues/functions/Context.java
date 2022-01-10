@@ -34,13 +34,14 @@ import java.time.Duration;
 
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
-import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.azure.queue.AzureQueue;
 import ch.alni.certblues.storage.StorageService;
 import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.certbot.CertificateStore;
 import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.impl.StorageServiceImpl;
@@ -64,7 +65,7 @@ public final class Context {
     private StorageService storageService;
     private Configuration configuration;
     private AcmeClient acmeClient;
-    private AzureKeyVaultCertificateBuilder certificateEntryFactory;
+    private CertificateStore certificateStore;
     private AuthorizationProvisionerFactory authorizationProvisionerFactory;
 
     private Context() {
@@ -109,7 +110,7 @@ public final class Context {
         );
         context.storageService = new StorageServiceImpl(requestQueue, orderQueue);
 
-        context.certificateEntryFactory = new AzureKeyVaultCertificateBuilder(
+        context.certificateStore = new AzureKeyVaultCertificate(
                 context.credential, context.httpClient, configuration.keyVaultUrl()
         );
 
@@ -155,8 +156,8 @@ public final class Context {
         return acmeClient;
     }
 
-    public AzureKeyVaultCertificateBuilder getCertificateEntryFactory() {
-        return certificateEntryFactory;
+    public CertificateStore getCertificateStore() {
+        return certificateStore;
     }
 
     public AuthorizationProvisionerFactory getAuthorizationProvisionerFactory() {

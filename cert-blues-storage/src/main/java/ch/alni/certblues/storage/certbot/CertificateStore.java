@@ -27,10 +27,19 @@ package ch.alni.certblues.storage.certbot;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Interface for the certificate bot.
- */
-public interface CertBot {
+public interface CertificateStore {
 
-    Mono<String> submit(CertificateRequest certificateRequest);
+    /**
+     * Creates a new certificate sign request. If the certificate with the name in the request does not exist, it will
+     * be created.
+     */
+    Mono<byte[]> createCsr(CertificateRequest certificateRequest);
+
+    /**
+     * Uploads certificate in PEM format to this certificate store.
+     *
+     * @param name        the name of the certificate in the store
+     * @param certificate certificate in PEM format
+     */
+    Mono<Void> upload(String name, String certificate);
 }

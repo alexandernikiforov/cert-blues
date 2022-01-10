@@ -23,30 +23,21 @@
  *
  */
 
-package ch.alni.certblues.acme.key;
+package ch.alni.certblues.storage.certbot.events;
 
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.storage.certbot.impl.OrderProcess;
 
-/**
- * Abstraction over a certificate entry in the key vault.
- */
-public interface CertificateEntry {
+public abstract class OrderStateEvent {
 
-    /**
-     * Returns the reference to the signing key pair.
-     */
-    Mono<SigningKeyPair> getSigningKeyPair();
+    private final OrderProcess orderProcess;
 
-    /**
-     * Returns the certificate sign request for this certificate in base64-urlencoded form. This call will start
-     * creation of a new certificate or returns a CSR for the already running operation.
-     */
-    Mono<byte[]> createCsr();
+    protected OrderStateEvent(OrderProcess orderProcess) {
+        this.orderProcess = orderProcess;
+    }
 
-    /**
-     * Uploads certificate in PEM format to this entry.
-     *
-     * @param certificate certificate in PEM format
-     */
-    Mono<Void> upload(String certificate);
+    public abstract void accept(OrderStateListener listener);
+
+    public OrderProcess getProcess() {
+        return orderProcess;
+    }
 }

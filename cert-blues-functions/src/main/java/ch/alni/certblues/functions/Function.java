@@ -35,7 +35,6 @@ import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.protocol.AccountRequest;
 import ch.alni.certblues.storage.StorageService;
 import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.CertificateStatus;
 import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
 import reactor.core.publisher.Mono;
 
@@ -64,62 +63,22 @@ public class Function {
         final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
 
         final CertBot certBot = new CertBotImpl(
-                acmeSession, CONTEXT.getCertificateEntryFactory(), CONTEXT.getAuthorizationProvisionerFactory()
+                acmeSession, CONTEXT.getCertificateStore(), CONTEXT.getAuthorizationProvisionerFactory()
         );
 
         storageService.getCertificateRequests()
                 // make the cert bot submit the request
-                .concatMap(certBot::submit)
+                .flatMap(request -> certBot.submit(request)
+                        .then(storageService.remove(request))
+                        .then(Mono.just(request)))
                 // at the end first remove the request, then store the order
-                .flatMap(certificateOrder -> storageService
-                        .remove(certificateOrder.certificateRequest())
-                        .then(storageService.store(certificateOrder))
-                )
-                .onErrorContinue((e, certificateOrder) -> LOG.error("error while processing certificate request", e))
+                .onErrorContinue((e, request) -> LOG.error("error while processing certificate request", e))
                 .subscribe(
-                        certificateOrder -> LOG.info("Order submitted {}", certificateOrder),
+                        request -> LOG.info("certificate request processed {}", request),
                         throwable -> LOG.error("cannot submit the order", throwable),
                         () -> LOG.info("order submission completed")
                 );
 
         context.getLogger().info("Order submission completed");
-    }
-
-    @FunctionName("checkOrders")
-    public void checkOrders(@TimerTrigger(name = "checkOrdersSchedule", schedule = "%Schedule%") String timerInfo,
-                            ExecutionContext context) {
-
-        context.getLogger().info("Order verification started: " + timerInfo);
-
-        final StorageService storageService = CONTEXT.getStorageService();
-        final AcmeClient acmeClient = CONTEXT.getAcmeClient();
-
-        final var accountRequest = AccountRequest.builder()
-                .termsOfServiceAgreed(true).onlyReturnExisting(true)
-                .build();
-        final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
-
-        final CertBot certBot = new CertBotImpl(
-                acmeSession, CONTEXT.getCertificateEntryFactory(), CONTEXT.getAuthorizationProvisionerFactory()
-        );
-
-        storageService.getCertificateOrders()
-                // make the cert bot check the status of the certificate order
-                // and select the order where the certificate is issued
-                .flatMap(certificateOrder -> certBot
-                        .check(certificateOrder)
-                        .filter(certificateStatus -> certificateStatus == CertificateStatus.ISSUED)
-                        .then(Mono.just(certificateOrder))
-                )
-                .onErrorContinue((e, certificateOrder) -> LOG.error("error while processing certificate order", e))
-                // remove the certificate order
-                .flatMap(storageService::remove)
-                .subscribe(
-                        certificateOrder -> LOG.info("Order completed {}", certificateOrder),
-                        throwable -> LOG.error("order verification error", throwable),
-                        () -> LOG.info("order verification completed")
-                );
-
-        context.getLogger().info("Order verification completed");
     }
 }

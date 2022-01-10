@@ -27,27 +27,28 @@ package ch.alni.certblues.storage.certbot.impl;
 
 import org.slf4j.Logger;
 
+import java.time.Duration;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.facade.AcmeSession;
-import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.protocol.Challenge;
 import ch.alni.certblues.acme.protocol.Order;
 import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
-import ch.alni.certblues.acme.protocol.OrderStatus;
+import ch.alni.certblues.acme.protocol.OrderRequest;
 import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.CertBotException;
-import ch.alni.certblues.storage.certbot.CertificateEntryFactory;
-import ch.alni.certblues.storage.certbot.CertificateOrder;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
-import ch.alni.certblues.storage.certbot.CertificateStatus;
+import ch.alni.certblues.storage.certbot.CertificateStore;
+import ch.alni.certblues.storage.certbot.events.OrderCheckNeededEvent;
+import ch.alni.certblues.storage.certbot.events.OrderCreatedEvent;
+import ch.alni.certblues.storage.certbot.events.OrderReadyEvent;
+import ch.alni.certblues.storage.certbot.events.OrderStateListener;
+import ch.alni.certblues.storage.certbot.events.OrderValidEvent;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -57,86 +58,21 @@ public class CertBotImpl implements CertBot {
 
     private static final Logger LOG = getLogger(CertBotImpl.class);
 
-    private final Scheduler internal = Schedulers.newSingle("certBot");
-    private final Map<CertificateRequest, Sinks.One<CertificateOrder>> requests = new HashMap<>();
-    private final Map<CertificateOrder, Sinks.One<CertificateStatus>> orders = new HashMap<>();
+    private final Scheduler internal = Schedulers.newBoundedElastic(2, 20, "certBot");
+
+    private final Map<CertificateRequest, OrderProcess> requests = new ConcurrentHashMap<>();
 
     private final AcmeSession session;
-    private final CertificateEntryFactory certificateEntryFactory;
+    private final CertificateStore certificateStore;
     private final AuthorizationProvisionerFactory provisionerFactory;
 
-    public CertBotImpl(AcmeSession session,
-                       CertificateEntryFactory certificateEntryFactory,
-                       AuthorizationProvisionerFactory provisionerFactory) {
-        this.session = session;
-        this.certificateEntryFactory = certificateEntryFactory;
-        this.provisionerFactory = provisionerFactory;
-    }
+    private final OrderStateListener listener = new OrderStateListener() {
 
-    @Override
-    public synchronized Mono<CertificateOrder> submit(CertificateRequest certificateRequest) {
-        LOG.info("submitting a new certificate request {}", certificateRequest);
-
-        final Sinks.One<CertificateOrder> existingSubject = requests.get(certificateRequest);
-        if (null != existingSubject) {
-            // return existing subject
-            return existingSubject.asMono();
-        }
-
-        final var orderRequest = OrderRequests.toOrderRequest(certificateRequest);
-
-        // create a subject to propagate the future certificate order
-        final Sinks.One<CertificateOrder> subject = Sinks.one();
-        requests.putIfAbsent(certificateRequest, subject);
-
-        final Mono<CreatedResource<Order>> orderResourceMono = session.createOrder(orderRequest);
-        orderResourceMono
-                .publishOn(internal)
-                .subscribeOn(internal)
-                .subscribe(
-                        order -> processCreatedOrder(certificateRequest, order),
-                        throwable -> {
-                            LOG.error("certificate order {} cannot be created", certificateRequest);
-                            subject.tryEmitError(throwable);
-                        }
-                );
-
-        return subject.asMono().cache();
-    }
-
-    @Override
-    public synchronized Mono<CertificateStatus> check(CertificateOrder certificateOrder) {
-        LOG.info("checking certificate order {}", certificateOrder);
-
-        final Sinks.One<CertificateStatus> existingSubject = orders.get(certificateOrder);
-        if (null != existingSubject) {
-            // return existing subject
-            return existingSubject.asMono();
-        }
-        else {
-            // create a subject to propagate the certificate status
-            final Sinks.One<CertificateStatus> subject = Sinks.one();
-            orders.put(certificateOrder, subject);
-
-            session.getOrder(certificateOrder.orderUrl())
-                    .publishOn(internal)
-                    .subscribeOn(internal)
-                    .subscribe(order -> processOrder(certificateOrder, order), subject::tryEmitError);
-
-            return subject.asMono();
-        }
-    }
-
-    private synchronized void processCreatedOrder(CertificateRequest certificateRequest, CreatedResource<Order> resource) {
-        final var order = resource.getResource();
-        final var subject = requests.get(certificateRequest);
-
-        if (order.status() == OrderStatus.INVALID) {
-            LOG.info("error while provisioning the order {}", order);
-            subject.tryEmitError(new CertBotException("order provisioning error: " + order.error()));
-        }
-        else if (order.status() == OrderStatus.PENDING) {
-            LOG.info("order created {}, order URL {}", resource.getResource(), resource.getResourceUrl());
+        @Override
+        public void on(OrderCreatedEvent event) {
+            final var process = event.getProcess();
+            final var certificateRequest = process.getCertificateRequest();
+            final var order = event.getOrder();
 
             final var httpChallengeProvisioner = provisionerFactory.createHttpChallengeProvisioner(certificateRequest);
             final var dnsChallengeProvisioner = provisionerFactory.createDnsChallengeProvisioner(certificateRequest);
@@ -145,161 +81,120 @@ public class CertBotImpl implements CertBot {
                     // create a client for provisioning
                     .map(thumbprint -> new IdentifierAuthorizationClient(thumbprint, httpChallengeProvisioner, dnsChallengeProvisioner))
                     // and then process the authorizations
-                    .flatMap(provisioner -> session.provision(order.authorizations(), provisioner));
+                    .flatMap(provisioner -> session.provision(order.authorizations(), provisioner))
+                    // submit the returned challenges
+                    .flatMap(session::submitChallenges);
 
             authorizationMono
                     .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(
-                            challenges -> processProvisionedOrder(certificateRequest, resource, challenges),
+                            challenges -> process.onOrderProvisioned(),
                             throwable -> {
                                 LOG.error("certificate order {} cannot be provisioned", certificateRequest);
-                                subject.tryEmitError(throwable);
+                                process.fail(throwable);
                             }
                     );
         }
-        else {
-            LOG.info("order is ready {}", order);
-            // order is ready or valid, because the account is authorized (authorizations successfully done)
-            final var certificateOrder = CertificateOrder.builder()
-                    .certificateRequest(certificateRequest)
-                    .orderUrl(resource.getResourceUrl())
-                    .build();
 
-            requests.remove(certificateRequest);
-            subject.tryEmitValue(certificateOrder);
-            LOG.info("new certificate order has been created {}", certificateOrder);
+        @Override
+        public void on(OrderCheckNeededEvent event) {
+            final var orderUrl = event.getOrderUrl();
+            final var process = event.getProcess();
+
+            Mono.just(orderUrl)
+                    .delayElement(Duration.ofSeconds(2L))
+                    .flatMap(session::getOrder)
+                    .publishOn(internal)
+                    .subscribeOn(internal)
+                    .subscribe(process::onOrderChanged,
+                            throwable -> {
+                                LOG.error("error while checking order status", throwable);
+                                process.fail(throwable);
+                            });
         }
-    }
 
-    private synchronized void processProvisionedOrder(CertificateRequest certificateRequest,
-                                                      CreatedResource<Order> resource, List<Challenge> challenges) {
+        @Override
+        public void on(OrderReadyEvent event) {
+            final var process = event.getProcess();
+            final var finalizeUrl = event.getFinalizeUrl();
+            final var certificateRequest = process.getCertificateRequest();
 
-        final var order = resource.getResource();
-        final var subject = requests.get(certificateRequest);
+            final var finalizationRequestMono = certificateStore.createCsr(certificateRequest)
+                    .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
+                    .map(encodedCsr -> OrderFinalizationRequest.builder().csr(encodedCsr).build());
 
-        if (order.status() == OrderStatus.INVALID) {
-            LOG.info("error while provisioning the order {}", order);
-            subject.tryEmitError(new CertBotException("order provisioning error: " + order.error()));
+            final Mono<Order> orderMono = finalizationRequestMono
+                    .flatMap(request -> session.finalizeOrder(finalizeUrl, request));
+
+            orderMono
+                    .publishOn(internal)
+                    .subscribeOn(internal)
+                    .subscribe(process::onOrderChanged,
+                            throwable -> {
+                                LOG.error("error while finalizing order", throwable);
+                                process.fail(throwable);
+                            });
         }
-        else if (order.status() == OrderStatus.PENDING) {
-            LOG.info("order provisioned {}, order URL {}, challenges {}",
-                    resource.getResource(), resource.getResourceUrl(), challenges);
 
-            // submit the challenges
-            final var submitChallengeMono = session.submitChallenges(challenges);
+        @Override
+        public void on(OrderValidEvent event) {
+            final var certificateUrl = event.getCertificateUrl();
+            final var process = event.getProcess();
+            final var certificateRequest = process.getCertificateRequest();
 
-            submitChallengeMono
+            // download the certificate and upload it to the certificate store
+            final Mono<String> certMono = session.downloadCertificate(certificateUrl)
+                    .flatMap(s -> certificateStore
+                            .upload(certificateRequest.certificateName(), s)
+                            // return the downloaded certificate
+                            .then(Mono.just(s)));
+
+            certMono
                     .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(
-                            submittedChallenges -> processSubmittedOrder(certificateRequest, resource, challenges),
+                            process::onCertificateDownloaded,
                             throwable -> {
-                                LOG.error("certificate order {} cannot be submitted", certificateRequest);
-                                subject.tryEmitError(throwable);
-                            }
-                    );
+                                LOG.error("certificate download error", throwable);
+                                process.fail(throwable);
+                            });
         }
-        else {
-            processSubmittedOrder(certificateRequest, resource, challenges);
-        }
+
+    };
+
+    public CertBotImpl(AcmeSession session, CertificateStore certificateStore,
+                       AuthorizationProvisionerFactory provisionerFactory) {
+        this.session = session;
+        this.certificateStore = certificateStore;
+        this.provisionerFactory = provisionerFactory;
     }
 
-    private synchronized void processSubmittedOrder(CertificateRequest certificateRequest,
-                                                    CreatedResource<Order> resource, List<Challenge> challenges) {
+    @Override
+    public Mono<String> submit(CertificateRequest certificateRequest) {
+        LOG.info("submitting a new certificate request {}", certificateRequest);
 
-        final var order = resource.getResource();
-        final var subject = requests.get(certificateRequest);
-
-        if (order.status() == OrderStatus.INVALID) {
-            LOG.info("error while submitting the order {}", order);
-            subject.tryEmitError(new CertBotException("order submission error: " + order.error()));
-        }
-        else {
-            LOG.info("order submitted {}, order URL {}, challenges {}",
-                    resource.getResource(), resource.getResourceUrl(), challenges);
-
-            final var certificateOrder = CertificateOrder.builder()
-                    .certificateRequest(certificateRequest)
-                    .orderUrl(resource.getResourceUrl())
-                    .build();
-
-            requests.remove(certificateRequest);
-            subject.tryEmitValue(certificateOrder);
-            LOG.info("new certificate order has been created {}", certificateOrder);
-        }
+        final OrderProcess orderProcess = requests.computeIfAbsent(certificateRequest, this::create);
+        return orderProcess.getCertificate();
     }
 
-    private synchronized void processOrder(CertificateOrder certificateOrder, Order order) {
-        switch (order.status()) {
-            case INVALID:
-                final var subject = orders.get(certificateOrder);
-                subject.tryEmitError(new CertBotException("order processing error: " + order.error()));
-                break;
-            case READY:
-                LOG.info("order authorization successful for {}", order);
-                doProcessReadyOrder(certificateOrder, order);
-                break;
-            case VALID:
-                LOG.info("ordered certificate issued for {}", order);
-                doProcessValidOrder(certificateOrder, order);
-                break;
-            default:
-                LOG.info("order is processing {}", order);
-                doProcessIncompleteOrder(certificateOrder);
-                break;
-        }
-    }
+    private OrderProcess create(CertificateRequest certificateRequest) {
+        final OrderProcess orderProcess = new OrderProcess(certificateRequest, listener);
 
-    private synchronized void doFinishOrder(CertificateOrder certificateOrder) {
-        LOG.info("certificate installed for order {}", certificateOrder);
-        final var subject = orders.get(certificateOrder);
-        orders.remove(certificateOrder);
-        subject.tryEmitValue(CertificateStatus.ISSUED);
-    }
+        final OrderRequest orderRequest = OrderRequests.toOrderRequest(certificateRequest);
+        final Mono<CreatedResource<Order>> orderResourceMono = session.createOrder(orderRequest);
 
-    private void doProcessValidOrder(CertificateOrder certificateOrder, Order order) {
-        final var subject = orders.get(certificateOrder);
-        final CertificateEntry certificateEntry = certificateEntryFactory.create(
-                certificateOrder.certificateRequest()
-        );
-
-        LOG.info("storing certificate for {}", order);
-        final Mono<Void> certMono = session.downloadCertificate(order.certificate()).flatMap(certificateEntry::upload);
-        certMono
+        orderResourceMono
                 .publishOn(internal)
                 .subscribeOn(internal)
                 .subscribe(
-                        unused -> LOG.info("certificate uploaded"),
-                        throwable -> subject.tryEmitError(new CertBotException("cannot download certificate", throwable)),
-                        () -> doFinishOrder(certificateOrder)
+                        order -> orderProcess.onOrderCreated(order.getResource(), order.getResourceUrl()),
+                        throwable -> {
+                            LOG.error("certificate order {} cannot be created", certificateRequest);
+                            orderProcess.fail(throwable);
+                        }
                 );
-    }
 
-    private void doProcessReadyOrder(CertificateOrder certificateOrder, Order order) {
-        final var subject = orders.get(certificateOrder);
-        final CertificateEntry certificateEntry = certificateEntryFactory.create(
-                certificateOrder.certificateRequest()
-        );
-
-        LOG.info("starting order finalization for {}", order);
-        final var finalizationRequestMono = certificateEntry.createCsr()
-                .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
-                .map(encodedCsr -> OrderFinalizationRequest.builder().csr(encodedCsr).build());
-
-        final Mono<Order> orderMono = finalizationRequestMono
-                .flatMap(request -> session.finalizeOrder(order.finalizeUrl(), request));
-
-        orderMono
-                .publishOn(internal)
-                .subscribeOn(internal)
-                .subscribe(checkedOrder -> processOrder(certificateOrder, checkedOrder), subject::tryEmitError);
-    }
-
-    private void doProcessIncompleteOrder(CertificateOrder certificateOrder) {
-        final var subject = orders.get(certificateOrder);
-
-        orders.remove(certificateOrder);
-        subject.tryEmitValue(CertificateStatus.PENDING);
+        return orderProcess;
     }
 }

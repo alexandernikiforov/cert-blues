@@ -30,16 +30,23 @@ import com.azure.core.exception.HttpResponseException;
 import com.azure.core.http.HttpClient;
 import com.azure.security.keyvault.certificates.CertificateAsyncClient;
 import com.azure.security.keyvault.certificates.CertificateClientBuilder;
+import com.azure.security.keyvault.certificates.models.CertificateContentType;
 import com.azure.security.keyvault.certificates.models.CertificateKeyType;
+import com.azure.security.keyvault.certificates.models.CertificateKeyUsage;
 import com.azure.security.keyvault.certificates.models.CertificatePolicy;
+import com.azure.security.keyvault.certificates.models.CertificatePolicyAction;
+import com.azure.security.keyvault.certificates.models.LifetimeAction;
 import com.azure.security.keyvault.certificates.models.MergeCertificateOptions;
+import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
 
 import org.slf4j.Logger;
 
 import java.util.List;
 
-import ch.alni.certblues.acme.key.CertificateEntry;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.storage.KeyType;
+import ch.alni.certblues.storage.certbot.CertificateRequest;
+import ch.alni.certblues.storage.certbot.CertificateStore;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -47,34 +54,28 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Implementation of the key vault certificate based on the Azure certificate from a KeyVault.
  */
-public class AzureKeyVaultCertificate implements CertificateEntry {
+public class AzureKeyVaultCertificate implements CertificateStore {
 
     private static final Logger LOG = getLogger(AzureKeyVaultCertificate.class);
 
+    private static final String SERVER_CERTIFICATE_KEY_USAGE = "1.3.6.1.5.5.7.3.1";
+
     private final CertificateAsyncClient client;
-    private final String certificateName;
-    private final CertificatePolicy certificatePolicy;
     private final TokenCredential credential;
 
     public AzureKeyVaultCertificate(TokenCredential credential,
                                     HttpClient httpClient,
-                                    String keyVaultUrl,
-                                    String certificateName, CertificatePolicy certificatePolicy) {
+                                    String keyVaultUrl) {
         this.credential = credential;
         this.client = new CertificateClientBuilder()
                 .credential(credential)
                 .vaultUrl(keyVaultUrl)
                 .httpClient(httpClient)
                 .buildAsyncClient();
-
-        this.certificateName = certificateName;
-        this.certificatePolicy = certificatePolicy;
     }
 
-    public AzureKeyVaultCertificate(TokenCredential credential,
-                                    String keyVaultUrl,
-                                    String certificateName, CertificatePolicy certificatePolicy) {
-        this(credential, null, keyVaultUrl, certificateName, certificatePolicy);
+    public AzureKeyVaultCertificate(TokenCredential credential, String keyVaultUrl) {
+        this(credential, null, keyVaultUrl);
     }
 
     private static String toSignatureAlg(CertificateKeyType keyType) {
@@ -99,8 +100,11 @@ public class AzureKeyVaultCertificate implements CertificateEntry {
         }
     }
 
-    @Override
-    public Mono<SigningKeyPair> getSigningKeyPair() {
+    private static CertificateKeyType toCertificateKeyType(KeyType keyType) {
+        return CertificateKeyType.fromString(keyType.toString());
+    }
+
+    public Mono<SigningKeyPair> getSigningKeyPair(String certificateName) {
         return client.getCertificate(certificateName)
                 .map(keyVaultCertificateWithPolicy -> new AzureKeyVaultKey(
                         credential, keyVaultCertificateWithPolicy.getKeyId(), toSignatureAlg(keyVaultCertificateWithPolicy.getPolicy().getKeyType())
@@ -108,7 +112,33 @@ public class AzureKeyVaultCertificate implements CertificateEntry {
     }
 
     @Override
-    public Mono<byte[]> createCsr() {
+    public Mono<Void> upload(String certificateName, String certificateChain) {
+        final List<byte[]> encodedCertificates = Certificates.getEncodedCertificates(certificateChain);
+        return client.mergeCertificate(new MergeCertificateOptions(certificateName, encodedCertificates))
+                // workaround around the bug in MS library (it reports an error on status code 201)
+                .onErrorResume(AzureKeyVaultCertificate::isCertificateCreated, throwable -> Mono.empty())
+                .then();
+    }
+
+    @Override
+    public Mono<byte[]> createCsr(CertificateRequest certificateRequest) {
+        final String certificateName = certificateRequest.certificateName();
+
+        // Unknown is important here! It is a fixed value
+        final CertificatePolicy certificatePolicy =
+                new CertificatePolicy("Unknown", certificateRequest.subjectDn())
+                        .setCertificateTransparent(false)
+                        .setContentType(CertificateContentType.PKCS12)
+                        .setKeySize(certificateRequest.keySize())
+                        .setKeyType(toCertificateKeyType(certificateRequest.keyType()))
+                        .setSubjectAlternativeNames(new SubjectAlternativeNames().setDnsNames(
+                                certificateRequest.dnsNames()
+                        ))
+                        .setKeyUsage(CertificateKeyUsage.KEY_ENCIPHERMENT, CertificateKeyUsage.DIGITAL_SIGNATURE)
+                        .setEnhancedKeyUsage(List.of(SERVER_CERTIFICATE_KEY_USAGE))
+                        .setValidityInMonths(certificateRequest.validityInMonths())
+                        .setLifetimeActions(new LifetimeAction(CertificatePolicyAction.EMAIL_CONTACTS).setLifetimePercentage(80));
+
         final var beginCertificateFlux = client.beginCreateCertificate(certificateName, certificatePolicy);
         final var certificateOperationFlux = client.getCertificateOperation(certificateName);
 
@@ -119,14 +149,5 @@ public class AzureKeyVaultCertificate implements CertificateEntry {
                 .onErrorResume(throwable -> certificateOperationFlux)
                 .next()
                 .map(response -> response.getValue().getCsr());
-    }
-
-    @Override
-    public Mono<Void> upload(String certificateChain) {
-        final List<byte[]> encodedCertificates = Certificates.getEncodedCertificates(certificateChain);
-        return client.mergeCertificate(new MergeCertificateOptions(certificateName, encodedCertificates))
-                // workaround around the bug in MS library (it reports an error on status code 201)
-                .onErrorResume(AzureKeyVaultCertificate::isCertificateCreated, throwable -> Mono.empty())
-                .then();
     }
 }

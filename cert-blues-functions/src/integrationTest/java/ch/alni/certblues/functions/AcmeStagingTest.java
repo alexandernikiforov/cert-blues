@@ -29,7 +29,6 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.util.List;
@@ -37,34 +36,26 @@ import java.util.List;
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.acme.protocol.Order;
-import ch.alni.certblues.acme.protocol.OrderStatus;
-import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.storage.KeyType;
 import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.CertificateOrder;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
-import ch.alni.certblues.storage.certbot.CertificateStatus;
 import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.logging.LogLevel;
-import reactor.core.publisher.Flux;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.slf4j.LoggerFactory.getLogger;
 
 class AcmeStagingTest {
-    private static final Logger LOG = getLogger(AcmeStagingTest.class);
-
     private static final String DIRECTORY_URL = "https://acme-staging-v02.api.letsencrypt.org/directory";
 
     private static final String VAULT_URL = "https://cert-blues-dev.vault.azure.net";
@@ -85,8 +76,8 @@ class AcmeStagingTest {
     // initialize the Azure client
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
     private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(credential, KEY_ID, "RS256");
-    private final AzureKeyVaultCertificateBuilder certificateBuilder =
-            new AzureKeyVaultCertificateBuilder(credential, VAULT_URL);
+    private final AzureKeyVaultCertificate azureKeyVaultCertificate =
+            new AzureKeyVaultCertificate(credential, VAULT_URL);
 
     private final CertificateRequest certificateRequest = CertificateRequest.builder()
             .subjectDn("CN=cloudalni.com")
@@ -116,24 +107,10 @@ class AcmeStagingTest {
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
-        final CertBot certBot = new CertBotImpl(session, certificateBuilder, provisionerFactory);
+        final CertBot certBot = new CertBotImpl(session, azureKeyVaultCertificate, provisionerFactory);
 
         // provision
-        final CertificateOrder certificateOrder = certBot.submit(certificateRequest).block(Duration.ofSeconds(120));
-        assertThat(certificateOrder).isNotNull();
-
-        // check until the certificate has been issued
-        final CertificateStatus certificateStatus = Flux.interval(Duration.ofSeconds(1))
-                .concatMap(unused -> certBot.check(certificateOrder))
-                .takeUntil(status -> status == CertificateStatus.ISSUED)
-                .blockLast(Duration.ofSeconds(25));
-
-        assertThat(certificateStatus).isEqualByComparingTo(CertificateStatus.ISSUED);
-
-        // download the certificate
-        final Order finalOrder = session.getOrder(certificateOrder.orderUrl()).block();
-
-        assertThat(finalOrder).isNotNull();
-        assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
+        final String certificate = certBot.submit(certificateRequest).block(Duration.ofSeconds(120));
+        assertThat(certificate).isNotNull();
     }
 }

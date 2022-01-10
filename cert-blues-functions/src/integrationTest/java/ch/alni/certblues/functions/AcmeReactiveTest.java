@@ -42,16 +42,12 @@ import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.pebble.TestChallengeProvisioner;
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.acme.protocol.Order;
-import ch.alni.certblues.acme.protocol.OrderStatus;
-import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificateBuilder;
+import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
 import ch.alni.certblues.storage.KeyType;
 import ch.alni.certblues.storage.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.CertificateOrder;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
-import ch.alni.certblues.storage.certbot.CertificateStatus;
 import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
@@ -60,7 +56,6 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import reactor.core.publisher.Flux;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
@@ -93,8 +88,9 @@ class AcmeReactiveTest {
     // initialize the Azure client
     private final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
     private final SigningKeyPair accountKeyPair = new AzureKeyVaultKey(credential, KEY_ID, "RS256");
-    private final AzureKeyVaultCertificateBuilder certificateBuilder =
-            new AzureKeyVaultCertificateBuilder(credential, VAULT_URL);
+    private final AzureKeyVaultCertificate azureKeyVaultCertificate =
+            new AzureKeyVaultCertificate(credential, VAULT_URL);
+
     private final CertificateRequest certificateRequest = CertificateRequest.builder()
             .certificateName("test-server2")
             .storageEndpointUrl("does-not-matter")
@@ -112,15 +108,14 @@ class AcmeReactiveTest {
 
     @Test
     void getCsr() {
-        final var certificateEntry = certificateBuilder.create(certificateRequest);
-        final byte[] csr1 = certificateEntry.createCsr().block();
-        final byte[] csr2 = certificateEntry.createCsr().block();
+        final byte[] csr1 = azureKeyVaultCertificate.createCsr(certificateRequest).block();
+        final byte[] csr2 = azureKeyVaultCertificate.createCsr(certificateRequest).block();
         assertThat(csr1).isEqualTo(csr2);
 
-        final String thumbprint1 = certificateEntry.getSigningKeyPair()
+        final String thumbprint1 = azureKeyVaultCertificate.getSigningKeyPair(certificateRequest.certificateName())
                 .flatMap(SigningKeyPair::getPublicKeyThumbprint)
                 .block();
-        final String thumbprint2 = certificateEntry.getSigningKeyPair()
+        final String thumbprint2 = azureKeyVaultCertificate.getSigningKeyPair(certificateRequest.certificateName())
                 .flatMap(SigningKeyPair::getPublicKeyThumbprint)
                 .block();
         assertThat(thumbprint1).isEqualTo(thumbprint2);
@@ -149,27 +144,10 @@ class AcmeReactiveTest {
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 
-        final CertBot certBot = new CertBotImpl(session, certificateBuilder, provisionerFactory);
+        final CertBot certBot = new CertBotImpl(session, azureKeyVaultCertificate, provisionerFactory);
 
-        // provision
-        final CertificateOrder certificateOrder = certBot.submit(certificateRequest).block(Duration.ofSeconds(15));
-        assertThat(certificateOrder).isNotNull();
-
-        // check until the certificate has been issued
-        final CertificateStatus certificateStatus = Flux.interval(Duration.ofSeconds(1))
-                .concatMap(unused -> certBot.check(certificateOrder))
-                .takeUntil(status -> status == CertificateStatus.ISSUED)
-                .blockLast(Duration.ofSeconds(25));
-
-        assertThat(certificateStatus).isEqualByComparingTo(CertificateStatus.ISSUED);
-
-        // download the certificate
-        final Order finalOrder = session.getOrder(certificateOrder.orderUrl()).block();
-
-        assertThat(finalOrder).isNotNull();
-        assertThat(finalOrder.status()).isEqualByComparingTo(OrderStatus.VALID);
-
-        final String certificate = session.downloadCertificate(finalOrder.certificate()).block();
+        // wait for certificate and upload it
+        final String certificate = certBot.submit(certificateRequest).block(Duration.ofSeconds(60));
         assertThat(certificate).isNotNull();
     }
 

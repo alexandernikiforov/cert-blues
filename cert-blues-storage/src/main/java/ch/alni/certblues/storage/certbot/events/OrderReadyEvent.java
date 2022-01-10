@@ -23,17 +23,29 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.storage.certbot.events;
 
-import ch.alni.certblues.acme.key.CertificateEntry;
+import ch.alni.certblues.storage.certbot.impl.OrderProcess;
 
 /**
- * Describes how to create certificate entries in a vault from certificate requests.
+ * Event triggered when order is not complete and needs to be checked again.
  */
-public interface CertificateEntryFactory {
+public class OrderReadyEvent extends OrderStateEvent {
 
-    /**
-     * Returns a certificate entry for the given certificate request.
-     */
-    CertificateEntry create(CertificateRequest certificateRequest);
+    private final String finalizeUrl;
+
+    public OrderReadyEvent(OrderProcess process, String finalizeUrl) {
+        super(process);
+        this.finalizeUrl = finalizeUrl;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public String getFinalizeUrl() {
+        return finalizeUrl;
+    }
+
 }

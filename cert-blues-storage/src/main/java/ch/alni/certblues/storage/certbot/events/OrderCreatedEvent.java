@@ -23,14 +23,29 @@
  *
  */
 
-package ch.alni.certblues.storage.certbot;
+package ch.alni.certblues.storage.certbot.events;
 
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.storage.certbot.impl.OrderProcess;
 
 /**
- * Interface for the certificate bot.
+ * Event triggered when order is created on the ACME server (or the information about existing order is returned).
  */
-public interface CertBot {
+public class OrderCreatedEvent extends OrderStateEvent {
 
-    Mono<String> submit(CertificateRequest certificateRequest);
+    private final Order order;
+
+    public OrderCreatedEvent(OrderProcess process, Order order) {
+        super(process);
+        this.order = order;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public Order getOrder() {
+        return order;
+    }
 }

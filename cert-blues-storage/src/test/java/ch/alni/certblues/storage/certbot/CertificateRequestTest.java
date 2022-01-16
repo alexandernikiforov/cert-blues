@@ -40,7 +40,7 @@ class CertificateRequestTest {
         final var certificateRequest = CertificateRequest.builder()
                 .keySize(2048)
                 .keyType(KeyType.RSA)
-                .dnsNames(List.of("www.cloudalni.com", "cloudalni.com"))
+                .dnsNames(List.of("*.cloudalni.com", "cloudalni.com"))
                 .validityInMonths(3)
                 .certificateName("cloudalni.com")
                 .subjectDn("CH=cloudalni.com")

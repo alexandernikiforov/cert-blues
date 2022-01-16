@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.functions;
+package ch.alni.certblues.app;
 
 import com.google.auto.value.AutoValue;
 
@@ -63,11 +63,6 @@ public abstract class Configuration {
     public abstract String queueServiceUrl();
 
     /**
-     * Name of the queue to hold the certificate orders.
-     */
-    public abstract String orderQueueName();
-
-    /**
      * Name of the queue to hold the certificate requests.
      */
     public abstract String requestQueueName();
@@ -84,8 +79,6 @@ public abstract class Configuration {
         public abstract Builder directoryUrl(String value);
 
         public abstract Builder queueServiceUrl(String value);
-
-        public abstract Builder orderQueueName(String value);
 
         public abstract Builder requestQueueName(String value);
 

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.functions;
+package ch.alni.certblues.app;
 
 /**
  * Loads configuration
@@ -36,7 +36,6 @@ public final class ConfigurationLoader {
     public static final String ENV_DIRECTORY_URL = "DirectoryUrl";
     public static final String ENV_QUEUE_SERVICE_URL = "QueueServiceUrl";
     public static final String ENV_REQUEST_QUEUE_NAME = "RequestQueueName";
-    public static final String ENV_ORDER_QUEUE_NAME = "OrderQueueName";
 
     ConfigurationLoader() {
     }
@@ -53,7 +52,6 @@ public final class ConfigurationLoader {
                 .directoryUrl(getEnvValue(ENV_DIRECTORY_URL))
                 .queueServiceUrl(getEnvValue(ENV_QUEUE_SERVICE_URL))
                 .requestQueueName(getEnvValue(ENV_REQUEST_QUEUE_NAME))
-                .orderQueueName(getEnvValue(ENV_ORDER_QUEUE_NAME))
                 .build();
     }
 }

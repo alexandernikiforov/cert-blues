@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import ch.alni.certblues.storage.StorageService;
-import ch.alni.certblues.storage.certbot.CertificateOrder;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
 import ch.alni.certblues.storage.queue.MessageId;
 import ch.alni.certblues.storage.queue.Queue;
@@ -48,60 +47,29 @@ public class StorageServiceImpl implements StorageService {
     // the maps will keep growing, but this is not very bad as not so many requests are expected
     // in th worst case a clean-up thread can be implemented in a later step
     private final Map<CertificateRequest, MessageId> certificateRequests = new HashMap<>();
-    private final Map<CertificateOrder, MessageId> certificateOrders = new HashMap<>();
 
     /**
      * Queue for the certificate requests.
      */
     private final Queue requests;
 
-    /**
-     * Queue for the certificate requests.
-     */
-    private final Queue orders;
-
-    public StorageServiceImpl(Queue requests, Queue orders) {
+    public StorageServiceImpl(Queue requests) {
         this.requests = requests;
-        this.orders = orders;
-    }
-
-    @Override
-    public Mono<CertificateRequest> store(CertificateRequest certificateRequest) {
-        return requests.put(certificateRequest.toJson()).then(Mono.just(certificateRequest));
     }
 
     @Override
     public Mono<Void> remove(CertificateRequest certificateRequest) {
         final var messageId = certificateRequests.get(certificateRequest);
-        return null == messageId ? Mono.empty() : requests.delete(messageId);
+        return null == messageId ? Mono.empty() : requests.delete(messageId)
+                .doOnSuccess(id -> LOG.info("message with {} successfully removed from request queue", id));
     }
 
     @Override
     public Flux<CertificateRequest> getCertificateRequests() {
         return requests.getMessages()
-                .doOnNext(message -> LOG.debug("processing payload {}", message.payload()))
+                .doOnNext(message -> LOG.info("processing payload {}", message.payload()))
                 .map(message -> Tuples.of(message.messageId(), CertificateRequest.of(message.payload())))
                 .doOnNext(tuple -> certificateRequests.put(tuple.getT2(), tuple.getT1()))
                 .map(Tuple2::getT2);
-    }
-
-    @Override
-    public Flux<CertificateOrder> getCertificateOrders() {
-        return orders.getMessages()
-                .doOnNext(message -> LOG.info("read payload {}", message.payload()))
-                .map(message -> Tuples.of(message.messageId(), CertificateOrder.of(message.payload())))
-                .doOnNext(tuple -> certificateOrders.put(tuple.getT2(), tuple.getT1()))
-                .map(Tuple2::getT2);
-    }
-
-    @Override
-    public Mono<CertificateOrder> store(CertificateOrder certificateOrder) {
-        return requests.put(certificateOrder.toJson()).then(Mono.just(certificateOrder));
-    }
-
-    @Override
-    public Mono<Void> remove(CertificateOrder certificateOrder) {
-        final var messageId = certificateOrders.get(certificateOrder);
-        return null == messageId ? Mono.empty() : orders.delete(messageId);
     }
 }

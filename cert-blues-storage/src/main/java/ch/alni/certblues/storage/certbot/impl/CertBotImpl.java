@@ -58,7 +58,8 @@ public class CertBotImpl implements CertBot {
 
     private static final Logger LOG = getLogger(CertBotImpl.class);
 
-    private final Scheduler internal = Schedulers.newBoundedElastic(2, 20, "certBot");
+    // a workaround around warnings in IntelliJ
+    private final Scheduler internal = Schedulers.immediate();
 
     private final Map<CertificateRequest, OrderProcess> requests = new ConcurrentHashMap<>();
 
@@ -86,7 +87,6 @@ public class CertBotImpl implements CertBot {
                     .flatMap(session::submitChallenges);
 
             authorizationMono
-                    .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(
                             challenges -> process.onOrderProvisioned(),
@@ -105,7 +105,6 @@ public class CertBotImpl implements CertBot {
             Mono.just(orderUrl)
                     .delayElement(Duration.ofSeconds(2L))
                     .flatMap(session::getOrder)
-                    .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(process::onOrderChanged,
                             throwable -> {
@@ -128,7 +127,6 @@ public class CertBotImpl implements CertBot {
                     .flatMap(request -> session.finalizeOrder(finalizeUrl, request));
 
             orderMono
-                    .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(process::onOrderChanged,
                             throwable -> {
@@ -151,7 +149,6 @@ public class CertBotImpl implements CertBot {
                             .then(Mono.just(s)));
 
             certMono
-                    .publishOn(internal)
                     .subscribeOn(internal)
                     .subscribe(
                             process::onCertificateDownloaded,
@@ -185,7 +182,6 @@ public class CertBotImpl implements CertBot {
         final Mono<CreatedResource<Order>> orderResourceMono = session.createOrder(orderRequest);
 
         orderResourceMono
-                .publishOn(internal)
                 .subscribeOn(internal)
                 .subscribe(
                         order -> orderProcess.onOrderCreated(order.getResource(), order.getResourceUrl()),

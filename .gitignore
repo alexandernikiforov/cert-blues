@@ -18,3 +18,4 @@ gradle-app.setting
 # gradle/wrapper/gradle-wrapper.properties
 
 local.settings.json
+local.settings.env

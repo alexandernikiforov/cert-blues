@@ -114,10 +114,17 @@ public class AzureKeyVaultCertificate implements CertificateStore {
     @Override
     public Mono<Void> upload(String certificateName, String certificateChain) {
         final List<byte[]> encodedCertificates = Certificates.getEncodedCertificates(certificateChain);
-        return client.mergeCertificate(new MergeCertificateOptions(certificateName, encodedCertificates))
+
+        final var certificateOperationFlux = client.getCertificateOperation(certificateName);
+        final var mergeCertificateMono = client.mergeCertificate(new MergeCertificateOptions(certificateName, encodedCertificates))
                 // workaround around the bug in MS library (it reports an error on status code 201)
                 .onErrorResume(AzureKeyVaultCertificate::isCertificateCreated, throwable -> Mono.empty())
                 .then();
+
+        return certificateOperationFlux.next()
+                .doOnError(throwable -> LOG.warn("error while checking if certificate operation is complete: " + throwable.getMessage()))
+                .then(mergeCertificateMono)
+                .onErrorResume(throwable -> Mono.empty());
     }
 
     @Override

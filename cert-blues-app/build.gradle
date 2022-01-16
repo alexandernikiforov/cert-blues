@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'project-java-conventions'
+    id 'org.unbroken-dome.test-sets'
+    id 'application'
+}
+
+testSets {
+    integrationTest
+}
+
+integrationTest {
+    useJUnitPlatform()
+}
+
+dependencies {
+    compileOnly 'com.google.auto.value:auto-value-annotations'
+    annotationProcessor 'com.google.auto.value:auto-value'
+
+    compileOnly 'org.jetbrains:annotations'
+
+    implementation(group: 'com.google.guava', name: 'guava') {
+        transitive = false
+    }
+
+    implementation 'com.azure:azure-identity'
+
+    implementation project(':cert-blues-acme')
+    implementation project(':cert-blues-storage')
+    implementation project(':cert-blues-azure')
+
+    runtimeOnly 'ch.qos.logback:logback-classic'
+
+    testImplementation project(':cert-blues-test-common')
+}
+
+application {
+    mainClass = 'ch.alni.certblues.app.Runner'
+}
+
+tasks.register('copyContextDeps', Copy) {
+    description = 'Copies the Dockerfile context dependencies'
+
+    from {
+        tasks.distTar.outputs
+    }
+    into 'build/context'
+}
+
+tasks.register('buildImage', Exec) {
+    group = 'build'
+    description = 'Builds the Docker image for local tests'
+    dependsOn 'copyContextDeps'
+
+    executable = 'docker'
+
+    args = [
+            'build',
+            '--build-arg', "APP_VERSION=${project.version}",
+            '-t', "cert-blues-app:${project.version}",
+            '-t', 'cert-blues-app:latest',
+            '.'
+    ]
+}
+
+task runContainer(type: Exec) {
+    description = 'Runs container with the app JAR locally in Docker'
+    executable = 'docker'
+
+    args = [
+            'run',
+            '--rm',
+            '--env-file', 'local.settings.env',
+            '--name', 'cert-blues-app',
+            'cert-blues-app:latest'
+    ]
+}

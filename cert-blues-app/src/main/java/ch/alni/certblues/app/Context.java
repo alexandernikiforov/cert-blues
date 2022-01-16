@@ -23,12 +23,14 @@
  *
  */
 
-package ch.alni.certblues.functions;
+package ch.alni.certblues.app;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.DefaultAzureCredentialBuilder;
+
+import org.slf4j.Logger;
 
 import java.time.Duration;
 
@@ -36,6 +38,7 @@ import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
+import ch.alni.certblues.azure.provision.AzureDnsChallengeProvisioner;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.azure.queue.AzureQueue;
 import ch.alni.certblues.storage.StorageService;
@@ -46,16 +49,18 @@ import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
 import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
 import ch.alni.certblues.storage.impl.StorageServiceImpl;
 import ch.alni.certblues.storage.queue.Queue;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.logging.LogLevel;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
 /**
  * Context for running the function application.
  */
 public final class Context {
+    private static final Logger LOG = getLogger(Context.class);
 
     private static final Context INSTANCE = create();
 
@@ -89,7 +94,6 @@ public final class Context {
         final var baseHttpClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
                 .secure()
                 .protocol(HttpProtocol.HTTP11, HttpProtocol.H2)
-                .runOn(new NioEventLoopGroup(2))
                 .wiretap("reactor.netty.http.client.HttpClient", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
                 .responseTimeout(Duration.ofSeconds(30));
 
@@ -105,10 +109,7 @@ public final class Context {
                 context.credential, context.httpClient, configuration.queueServiceUrl(), configuration.requestQueueName()
         );
 
-        final Queue orderQueue = new AzureQueue(
-                context.credential, context.httpClient, configuration.queueServiceUrl(), configuration.orderQueueName()
-        );
-        context.storageService = new StorageServiceImpl(requestQueue, orderQueue);
+        context.storageService = new StorageServiceImpl(requestQueue);
 
         context.certificateStore = new AzureKeyVaultCertificate(
                 context.credential, context.httpClient, configuration.keyVaultUrl()
@@ -123,8 +124,15 @@ public final class Context {
 
             @Override
             public DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest) {
-                // DNS provisioning is not supported
-                return null;
+                if (certificateRequest.dnsZone() != null && certificateRequest.dnsZoneResourceGroup() != null) {
+                    return new AzureDnsChallengeProvisioner(
+                            context.credential, certificateRequest.dnsZoneResourceGroup(), certificateRequest.dnsZone()
+                    );
+                }
+                else {
+                    // DNS challenges are not supported
+                    return null;
+                }
             }
         };
 

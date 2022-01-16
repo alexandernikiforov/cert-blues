@@ -27,7 +27,7 @@
 <configuration>
   <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%5p [%t] %logger{36} - %msg%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSSXXX, UTC} %5p [%t] %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 

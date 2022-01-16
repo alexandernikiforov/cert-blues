@@ -35,6 +35,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 import ch.alni.certblues.common.json.ObjectMapperFactory;
@@ -118,6 +120,21 @@ public abstract class CertificateRequest implements JsonTransform {
     @JsonGetter
     public abstract String storageEndpointUrl();
 
+    /**
+     * Resource group of the DNS zone to be used in the DNS challenges. It can be null if DNS challenges are not used.
+     */
+    @JsonGetter
+    @Nullable
+    public abstract String dnsZoneResourceGroup();
+
+    /**
+     * DNS zone name to be used in the DNS challenges. This is the resource name within the resource group. It can be
+     * null if DNS challenges are not used.
+     */
+    @JsonGetter
+    @Nullable
+    public abstract String dnsZone();
+
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
     public static abstract class Builder {
@@ -147,6 +164,12 @@ public abstract class CertificateRequest implements JsonTransform {
 
         @JsonSetter
         public abstract Builder storageEndpointUrl(String value);
+
+        @JsonSetter
+        public abstract Builder dnsZoneResourceGroup(String value);
+
+        @JsonSetter
+        public abstract Builder dnsZone(String value);
 
         public abstract CertificateRequest build();
     }

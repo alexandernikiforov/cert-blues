@@ -83,7 +83,7 @@ public class AzureQueue implements Queue {
     public Flux<QueuedMessage> getMessages() {
         return queueClient.receiveMessages(MAX_RECEIVED_QUEUE_ITEMS, VISIBILITY_TIMEOUT_READ)
                 .map(queueMessageItem -> QueuedMessage.create(
-                        new MessageIdWithReceipt(queueMessageItem.getPopReceipt(), queueMessageItem.getMessageId()),
+                        new MessageIdWithReceipt(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt()),
                         queueMessageItem.getBody().toString()
                 ));
     }

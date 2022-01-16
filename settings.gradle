@@ -9,6 +9,7 @@ rootProject.name = 'cert-blues'
 includeBuild 'cert-blues-conventions'
 
 include 'cert-blues-acme',
+        'cert-blues-app',
         'cert-blues-functions',
         'cert-blues-platform',
         'cert-blues-azure',

@@ -109,6 +109,7 @@ public class IdentifierAuthorizationClient implements AuthorizationProvisioner {
     }
 
     private Challenge selectChallenge(Authorization authorization) {
+        // HTTP challenges have priority
         if (authorization.hasChallenge("http-01")) {
             final var challenge = authorization.getChallenge("http-01");
             LOG.info("provisioning challenge {}", challenge);

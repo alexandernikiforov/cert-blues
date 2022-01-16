@@ -25,20 +25,11 @@
 
 package ch.alni.certblues.storage;
 
-import ch.alni.certblues.storage.certbot.CertificateOrder;
 import ch.alni.certblues.storage.certbot.CertificateRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface StorageService {
-
-    /**
-     * Store the given certificate order.
-     *
-     * @param certificateRequest
-     * @return empty mono if completed
-     */
-    Mono<CertificateRequest> store(CertificateRequest certificateRequest);
 
     /**
      * Removes the given order so that it is not available anymore.
@@ -54,27 +45,4 @@ public interface StorageService {
      * @return
      */
     Flux<CertificateRequest> getCertificateRequests();
-
-    /**
-     * Returns a flux over the submitted certificate orders.
-     *
-     * @return
-     */
-    Flux<CertificateOrder> getCertificateOrders();
-
-    /**
-     * Submit the given certificate order. The originating request will not be available anymore.
-     *
-     * @param certificateOrder
-     * @return empty mono if completed
-     */
-    Mono<CertificateOrder> store(CertificateOrder certificateOrder);
-
-    /**
-     * Removes the given order so that it is not available anymore.
-     *
-     * @param certificateOrder
-     * @return empty mono if completed
-     */
-    Mono<Void> remove(CertificateOrder certificateOrder);
 }

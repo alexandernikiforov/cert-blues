@@ -31,12 +31,7 @@ import com.microsoft.azure.functions.annotation.TimerTrigger;
 
 import org.slf4j.Logger;
 
-import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.storage.StorageService;
-import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
-import reactor.core.publisher.Mono;
+import ch.alni.certblues.app.Runner;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -47,37 +42,13 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class Function {
     private static final Logger LOG = getLogger(Function.class);
 
-    // static initialization makes sure that context is initialized only once at the start of the instance
-    private static final Context CONTEXT = Context.getInstance();
-
     @FunctionName("submitOrders")
     public void submitOrders(@TimerTrigger(name = "submitOrdersSchedule", schedule = "%Schedule%") String timerInfo,
                              ExecutionContext context) {
 
         context.getLogger().info("Order submission started: " + timerInfo);
 
-        final StorageService storageService = CONTEXT.getStorageService();
-        final AcmeClient acmeClient = CONTEXT.getAcmeClient();
-
-        final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
-        final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
-
-        final CertBot certBot = new CertBotImpl(
-                acmeSession, CONTEXT.getCertificateStore(), CONTEXT.getAuthorizationProvisionerFactory()
-        );
-
-        storageService.getCertificateRequests()
-                // make the cert bot submit the request
-                .flatMap(request -> certBot.submit(request)
-                        .then(storageService.remove(request))
-                        .then(Mono.just(request)))
-                // at the end first remove the request, then store the order
-                .onErrorContinue((e, request) -> LOG.error("error while processing certificate request", e))
-                .subscribe(
-                        request -> LOG.info("certificate request processed {}", request),
-                        throwable -> LOG.error("cannot submit the order", throwable),
-                        () -> LOG.info("order submission completed")
-                );
+        Runner.main(new String[]{});
 
         context.getLogger().info("Order submission completed");
     }

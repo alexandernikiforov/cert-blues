@@ -44,4 +44,12 @@ public class MessageIdWithReceipt implements MessageId {
     public String getPopReceipt() {
         return popReceipt;
     }
+
+    @Override
+    public String toString() {
+        return "MessageIdWithReceipt{" +
+                "messageId='" + messageId + '\'' +
+                ", popReceipt='" + popReceipt + '\'' +
+                '}';
+    }
 }

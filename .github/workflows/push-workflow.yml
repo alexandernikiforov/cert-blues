@@ -27,7 +27,7 @@ jobs:
         run: ./gradlew build
 
       - name: Print project version
-        id: version
+        id: get-version
         run: |
           ./gradlew properties --console=plain | grep version | awk -F': ' '{ print "::set-output name=VERSION::" $2; }'
 
@@ -38,3 +38,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/alexandernikiforov/cert-blues-app
+          tags: |
+            type=ref,event=branch
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: cert-blues-app
+          build-args: |
+            APP_VERSION=${{ steps.get-version.outputs.VERSION }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=ghcr.io/alexandernikiforov/cert-blues-app:${{ steps.meta.outputs.tags }}
+          cache-to: type=inline

@@ -54,5 +54,5 @@ jobs:
             APP_VERSION=${{ steps.get-version.outputs.VERSION }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=ghcr.io/alexandernikiforov/cert-blues-app:${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.tags }}
           cache-to: type=inline

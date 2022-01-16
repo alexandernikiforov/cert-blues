@@ -1,5 +1,7 @@
 # cert-blues
 
-The project aims to create an Azure function that would provide and renew a Let's Encrypt certificate.
+![Build](https://github.com/alexandernikiforov/cert-blues/actions/workflows/push-workflow.yml/badge.svg?branch=main)
 
-The ultimate goal is learning how to work with Azure functions and key vaults in Java.
+The project aims to create an Azure-based certificate bot that would provide and renew a Let's Encrypt certificate.
+
+The ultimate goal is learning how to work with Azure SDK and key vaults in Java.

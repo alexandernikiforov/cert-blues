@@ -24,7 +24,7 @@ jobs:
         uses: docker/setup-buildx-action@v1
 
       - name: Execute Gradle build
-        run: ./gradlew build copyContextDependencies
+        run: ./gradlew build copyContextDeps
 
       - name: Print project version
         id: get-version

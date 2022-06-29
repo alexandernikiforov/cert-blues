@@ -14,11 +14,8 @@ var keyVaultName = 'cert-blues-dev'
 var accountKeyName = 'account-key-${uniqueString(seed)}'
 var storageAccountName = 'certbluesdev'
 
-// object ID of the application registration for 'cert-blues-dev'
-// var principalId = '36ffc98b-398b-4558-9009-f7e4922cdf97'
-
 // start by deploying the container group
-module containers 'containerInstances.bicep' = {
+module containerGroupModule 'containerInstances.bicep' = {
   name: 'containers'
   params: {
     name: containerGroupName
@@ -27,8 +24,6 @@ module containers 'containerInstances.bicep' = {
   }
 }
 
-var principalId = containers.outputs.managedIdentityId
-
 module keyVaultModule 'keyVault.bicep' = {
   name: 'keyVault'
   params: {
@@ -36,7 +31,6 @@ module keyVaultModule 'keyVault.bicep' = {
     accountKeyName: accountKeyName
     location: location
     tags: tags
-    principalId: principalId
   }
 }
 
@@ -46,9 +40,11 @@ module storageAccountModule 'storageAccount.bicep' = {
     name: storageAccountName
     location: location
     tags: tags
-    principalId: principalId
   }
 }
+
+// roles for the container group, read the ID of the managed identity
+var principalId = containerGroupModule.outputs.managedIdentityId
 
 module dnsZoneModule 'dnsZone.bicep' = {
   name: 'dnsZone'
@@ -59,3 +55,59 @@ module dnsZoneModule 'dnsZone.bicep' = {
   }
 }
 
+module storageAccountRolesModule 'storageAccountRoles.bicep' = {
+  name: 'storageAccountRoles'
+  dependsOn: [
+    storageAccountModule
+  ]
+  params: {
+    name: storageAccountName
+    principalId: principalId
+  }
+}
+
+module keyVaultRolesModule 'keyVaultRoles.bicep' = {
+  name: 'keyVaultRoles'
+  dependsOn: [
+    keyVaultModule
+  ]
+  params: {
+    name: keyVaultName
+    principalId: principalId
+  }
+}
+
+// add roles to the test application, we should be able to use it outside of the container group
+// object ID of the application registration for 'cert-blues-dev'
+var certBluesDevAppId = '36ffc98b-398b-4558-9009-f7e4922cdf97'
+
+module dnsZoneRolesForTestModule 'dnsZone.bicep' = {
+  name: 'dnsZoneRolesForTest'
+  scope: resourceGroup('mydomainnames')
+  params: {
+    name: 'cloudalni.com'
+    principalId: certBluesDevAppId
+  }
+}
+
+module storageAccountRolesForTestModule 'storageAccountRoles.bicep' = {
+  name: 'storageAccountRolesForTest'
+  dependsOn: [
+    storageAccountModule
+  ]
+  params: {
+    name: storageAccountName
+    principalId: certBluesDevAppId
+  }
+}
+
+module keyVaultRolesForTestModule 'keyVaultRoles.bicep' = {
+  name: 'keyVaultRolesForTest'
+  dependsOn: [
+    keyVaultModule
+  ]
+  params: {
+    name: keyVaultName
+    principalId: certBluesDevAppId
+  }
+}

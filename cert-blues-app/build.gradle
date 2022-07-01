@@ -31,6 +31,10 @@ dependencies {
 
     runtimeOnly 'ch.qos.logback:logback-classic'
 
+    // add static native libraries from netty to support HTTP/2.0 over TLS with OpenSSL
+    runtimeOnly group: 'io.netty', name: 'netty-tcnative-boringssl-static', classifier: 'linux-x86_64'
+    runtimeOnly group: 'io.netty', name: 'netty-tcnative-boringssl-static', classifier: 'windows-x86_64'
+
     testImplementation project(':cert-blues-test-common')
 }
 

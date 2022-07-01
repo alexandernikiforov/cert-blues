@@ -64,7 +64,8 @@ public class Runner {
                 .flatMap(request -> certBot.submit(request)
                         .then(storageService.remove(request))
                         .then(Mono.just(request)))
-                .onErrorContinue((e, request) -> LOG.error("error while processing certificate request", e))
+                .onErrorStop()
+                .doOnError(e -> LOG.error("error while processing certificate request", e))
                 .doOnNext(request -> LOG.info("certificate request processed {}", request))
                 .doOnComplete(() -> LOG.info("no more certificates requests found"))
                 .blockLast(Duration.ofMinutes(10));

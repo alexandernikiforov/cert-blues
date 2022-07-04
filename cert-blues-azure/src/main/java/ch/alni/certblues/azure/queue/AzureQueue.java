@@ -35,9 +35,9 @@ import com.azure.storage.queue.QueueServiceClientBuilder;
 
 import java.time.Duration;
 
-import ch.alni.certblues.storage.queue.MessageId;
-import ch.alni.certblues.storage.queue.Queue;
-import ch.alni.certblues.storage.queue.QueuedMessage;
+import ch.alni.certblues.certbot.queue.MessageId;
+import ch.alni.certblues.certbot.queue.Queue;
+import ch.alni.certblues.certbot.queue.QueuedMessage;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

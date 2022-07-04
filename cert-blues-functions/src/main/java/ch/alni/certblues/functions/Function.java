@@ -31,8 +31,6 @@ import com.microsoft.azure.functions.annotation.TimerTrigger;
 
 import org.slf4j.Logger;
 
-import ch.alni.certblues.app.Runner;
-
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -48,7 +46,7 @@ public class Function {
 
         context.getLogger().info("Order submission started: " + timerInfo);
 
-        Runner.main(new String[]{});
+//        new Runner().run(new String[]{});
 
         context.getLogger().info("Order submission completed");
     }

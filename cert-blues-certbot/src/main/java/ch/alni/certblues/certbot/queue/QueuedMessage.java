@@ -23,12 +23,21 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.queue;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import com.google.auto.value.AutoValue;
+
+/**
+ * Represents a message from a queue.
+ */
+@AutoValue
+public abstract class QueuedMessage {
+
+    public static QueuedMessage create(MessageId messageId, String payload) {
+        return new AutoValue_QueuedMessage(messageId, payload);
+    }
+
+    public abstract MessageId messageId();
+
+    public abstract String payload();
 }

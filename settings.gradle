@@ -14,6 +14,6 @@ include 'cert-blues-acme',
         'cert-blues-functions',
         'cert-blues-platform',
         'cert-blues-azure',
-        'cert-blues-storage',
+        'cert-blues-certbot',
         'cert-blues-common',
         'cert-blues-test-common'

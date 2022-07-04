@@ -23,12 +23,29 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.events;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import ch.alni.certblues.certbot.impl.OrderProcess;
+
+/**
+ * Event triggered when order is not complete and needs to be checked again.
+ */
+public class OrderReadyEvent extends OrderStateEvent {
+
+    private final String finalizeUrl;
+
+    public OrderReadyEvent(OrderProcess process, String finalizeUrl) {
+        super(process);
+        this.finalizeUrl = finalizeUrl;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public String getFinalizeUrl() {
+        return finalizeUrl;
+    }
+
 }

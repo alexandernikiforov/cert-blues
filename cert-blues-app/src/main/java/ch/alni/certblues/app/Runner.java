@@ -26,14 +26,16 @@
 package ch.alni.certblues.app;
 
 import org.slf4j.Logger;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.storage.StorageService;
-import ch.alni.certblues.storage.certbot.CertBot;
-import ch.alni.certblues.storage.certbot.impl.CertBotImpl;
+import ch.alni.certblues.certbot.CertBot;
+import ch.alni.certblues.certbot.StorageService;
+import ch.alni.certblues.certbot.impl.CertBotImpl;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -41,13 +43,14 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Entry point for the application.
  */
-public class Runner {
+@Component
+public class Runner implements CommandLineRunner {
     private static final Logger LOG = getLogger(Runner.class);
 
     // static initialization makes sure that context is initialized only once at the start of the instance
     private static final Context CONTEXT = Context.getInstance();
 
-    public static void main(String[] args) {
+    public void run(String... args) {
         LOG.info("Certificate request processing started");
 
         final StorageService storageService = CONTEXT.getStorageService();

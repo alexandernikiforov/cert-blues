@@ -23,12 +23,21 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.events;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import ch.alni.certblues.certbot.impl.OrderProcess;
+
+public abstract class OrderStateEvent {
+
+    private final OrderProcess orderProcess;
+
+    protected OrderStateEvent(OrderProcess orderProcess) {
+        this.orderProcess = orderProcess;
+    }
+
+    public abstract void accept(OrderStateListener listener);
+
+    public OrderProcess getProcess() {
+        return orderProcess;
+    }
 }

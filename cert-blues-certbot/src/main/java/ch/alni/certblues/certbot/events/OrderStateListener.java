@@ -23,12 +23,15 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.events;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+public interface OrderStateListener {
+
+    void on(OrderCreatedEvent event);
+
+    void on(OrderCheckNeededEvent event);
+
+    void on(OrderReadyEvent event);
+
+    void on(OrderValidEvent event);
 }

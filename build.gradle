@@ -1,9 +1,10 @@
 plugins {
     id 'org.unbroken-dome.test-sets' version '4.0.0' apply false
+    id 'org.springframework.boot' version '2.7.1' apply false
 }
 
 wrapper {
-    gradleVersion = '7.3.3'
+    gradleVersion = '7.4.2'
 }
 
 allprojects {

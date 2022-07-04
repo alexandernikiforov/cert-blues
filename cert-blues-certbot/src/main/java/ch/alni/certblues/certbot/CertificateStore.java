@@ -23,12 +23,23 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import reactor.core.publisher.Mono;
+
+public interface CertificateStore {
+
+    /**
+     * Creates a new certificate sign request. If the certificate with the name in the request does not exist, it will
+     * be created.
+     */
+    Mono<byte[]> createCsr(CertificateRequest certificateRequest);
+
+    /**
+     * Uploads certificate in PEM format to this certificate store.
+     *
+     * @param name        the name of the certificate in the store
+     * @param certificate certificate in PEM format
+     */
+    Mono<Void> upload(String name, String certificate);
 }

@@ -23,12 +23,18 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+/**
+ *
+ */
+public class CertBotException extends RuntimeException {
+
+    public CertBotException(String message) {
+        super(message);
+    }
+
+    public CertBotException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

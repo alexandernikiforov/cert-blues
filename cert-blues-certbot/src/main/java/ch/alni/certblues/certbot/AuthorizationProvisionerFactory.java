@@ -23,12 +23,20 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
+import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
+
+public interface AuthorizationProvisionerFactory {
+
+    /**
+     * How to create an HTTP challenge provisioner from the given certificate request.
+     */
+    HttpChallengeProvisioner createHttpChallengeProvisioner(CertificateRequest certificateRequest);
+
+    /**
+     * How to create a DNS challenge provisioner from the given certificate request.
+     */
+    DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest);
 }

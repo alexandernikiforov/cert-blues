@@ -64,6 +64,7 @@ public class AcmeSession {
     private final Mono<Account> accountMono;
     private final Mono<String> publicKeyThumbprintMono;
 
+    private final AuthorizationProvisioner authorizationProvisioner;
     /**
      * Creates a new instance.
      *
@@ -92,20 +93,21 @@ public class AcmeSession {
         accountUrlMono = accountResourceMono.map(CreatedResource::getResourceUrl).share();
         accountMono = accountResourceMono.map(CreatedResource::getResource).share();
         publicKeyThumbprintMono = accountKeyPair.getPublicKeyThumbprint().share();
+        authorizationProvisioner = new AuthorizationProvisioner(publicKeyThumbprintMono);
     }
 
-    public synchronized Mono<Account> getAccount() {
+    public Mono<Account> getAccount() {
         return accountMono;
     }
 
     /**
      * Returns the thumbprint of the account key used in this session.
      */
-    public synchronized Mono<String> getPublicKeyThumbprint() {
+    public Mono<String> getPublicKeyThumbprint() {
         return publicKeyThumbprintMono;
     }
 
-    public synchronized Mono<CreatedResource<Order>> createOrder(OrderRequest orderRequest) {
+    public Mono<CreatedResource<Order>> createOrder(OrderRequest orderRequest) {
         return Mono.zip(directoryMono, accountUrlMono).flatMap(tuple ->
                 orderAccessor.createOrder(tuple.getT2(), tuple.getT1().newOrder(), orderRequest)
         );
@@ -129,14 +131,12 @@ public class AcmeSession {
      *
      * @return list of provisioned challenges (as mono)
      */
-    public Mono<List<Challenge>> provision(List<String> authorizationUrls,
-                                           AuthorizationProvisioner authorizationProvisioner) {
+    public Mono<List<Challenge>> provision(List<String> authorizationUrls, AuthorizationProvisioningStrategy strategy) {
 
         return accountUrlMono.map(accountUrl ->
                         authorizationUrls.stream()
-                                .map(authorizationUrl -> authorizationAccessor
-                                        .getAuthorization(accountUrl, authorizationUrl)
-                                        .flatMap(authorizationProvisioner::process))
+                                .map(authorizationUrl -> authorizationAccessor.getAuthorization(accountUrl, authorizationUrl)
+                                        .flatMap(authorization -> authorizationProvisioner.process(authorization, strategy)))
                                 .collect(Collectors.toList()))
                 // zip waits for all challenge provisions to complete
                 .flatMap(monoList -> Mono.zip(monoList, List::of))

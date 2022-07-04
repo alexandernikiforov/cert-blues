@@ -32,7 +32,7 @@ import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.models.BlockBlobItem;
 
-import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
+import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import reactor.core.publisher.Mono;
 
 /**

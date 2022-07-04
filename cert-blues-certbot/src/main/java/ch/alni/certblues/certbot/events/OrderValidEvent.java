@@ -23,12 +23,29 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.events;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import ch.alni.certblues.certbot.impl.OrderProcess;
+
+/**
+ * Event triggered when certificate is ready and can be downloaded.
+ */
+public class OrderValidEvent extends OrderStateEvent {
+
+    private final String certificateUrl;
+
+    public OrderValidEvent(OrderProcess process, String certificateUrl) {
+        super(process);
+        this.certificateUrl = certificateUrl;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public String getCertificateUrl() {
+        return certificateUrl;
+    }
+
 }

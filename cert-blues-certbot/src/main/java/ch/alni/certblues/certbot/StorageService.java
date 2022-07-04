@@ -23,12 +23,25 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public interface StorageService {
+
+    /**
+     * Removes the given order so that it is not available anymore.
+     *
+     * @param certificateRequest
+     * @return empty mono if completed
+     */
+    Mono<Void> remove(CertificateRequest certificateRequest);
+
+    /**
+     * Returns a flux over the pending certificate requests.
+     *
+     * @return
+     */
+    Flux<CertificateRequest> getCertificateRequests();
 }

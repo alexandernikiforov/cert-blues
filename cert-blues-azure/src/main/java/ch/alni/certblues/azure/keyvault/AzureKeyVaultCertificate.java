@@ -44,9 +44,9 @@ import org.slf4j.Logger;
 import java.util.List;
 
 import ch.alni.certblues.acme.key.SigningKeyPair;
-import ch.alni.certblues.storage.KeyType;
-import ch.alni.certblues.storage.certbot.CertificateRequest;
-import ch.alni.certblues.storage.certbot.CertificateStore;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.CertificateStore;
+import ch.alni.certblues.certbot.KeyType;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;

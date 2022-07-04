@@ -23,12 +23,32 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class CertificateRequestTest {
+
+    @Test
+    void testWriting() {
+        final var certificateRequest = CertificateRequest.builder()
+                .keySize(2048)
+                .keyType(KeyType.RSA)
+                .dnsNames(List.of("*.cloudalni.com", "cloudalni.com"))
+                .validityInMonths(3)
+                .certificateName("cloudalni.com")
+                .subjectDn("CH=cloudalni.com")
+                .storageEndpointUrl("storageEndpointUrl")
+                .build();
+
+        final String json = certificateRequest.toJson();
+        assertThat(CertificateRequest.of(json)).isEqualTo(certificateRequest);
+    }
 }

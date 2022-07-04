@@ -23,12 +23,29 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.events;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.certbot.impl.OrderProcess;
+
+/**
+ * Event triggered when order is created on the ACME server (or the information about existing order is returned).
+ */
+public class OrderCreatedEvent extends OrderStateEvent {
+
+    private final Order order;
+
+    public OrderCreatedEvent(OrderProcess process, Order order) {
+        super(process);
+        this.order = order;
+    }
+
+    @Override
+    public void accept(OrderStateListener listener) {
+        listener.on(this);
+    }
+
+    public Order getOrder() {
+        return order;
+    }
 }

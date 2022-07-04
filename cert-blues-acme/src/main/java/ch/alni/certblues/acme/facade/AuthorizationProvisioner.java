@@ -25,14 +25,94 @@
 
 package ch.alni.certblues.acme.facade;
 
+import org.slf4j.Logger;
+
+import ch.alni.certblues.acme.key.Thumbprints;
 import ch.alni.certblues.acme.protocol.Authorization;
 import ch.alni.certblues.acme.protocol.Challenge;
+import ch.alni.certblues.acme.protocol.ChallengeStatus;
+import ch.alni.certblues.acme.protocol.DnsChallenge;
+import ch.alni.certblues.acme.protocol.HttpChallenge;
+import ch.alni.certblues.acme.protocol.Identifier;
 import reactor.core.publisher.Mono;
 
-/**
- * Hides the details of provisioning authorizations.
- */
-public interface AuthorizationProvisioner {
+import static org.slf4j.LoggerFactory.getLogger;
 
-    Mono<Challenge> process(Authorization authorization);
+/**
+ * Handles authorization by preparing the key authorization and provisioning one of the challenges.
+ */
+class AuthorizationProvisioner {
+    private static final Logger LOG = getLogger(AuthorizationProvisioner.class);
+
+    private final Mono<String> publicKeyThumbprintMono;
+
+    AuthorizationProvisioner(Mono<String> publicKeyThumbprintMono) {
+        this.publicKeyThumbprintMono = publicKeyThumbprintMono;
+    }
+
+    /**
+     * Calls the process of the identifier authorization. Returns a mono that emits when the client has handled this
+     * authorization.
+     *
+     * @param authorization the authorization to handle
+     * @return the mono of the challenge that has been provisioned
+     */
+    Mono<Challenge> process(Authorization authorization, AuthorizationProvisioningStrategy strategy) {
+        switch (authorization.status()) {
+            case EXPIRED:
+            case DEACTIVATED:
+            case INVALID:
+            case REVOKED:
+                return Mono.error(new IllegalArgumentException("cannot proceed with authorization of status " + authorization.status()));
+            case VALID:
+                // this authorization is already done
+                final var submittedChallenge = selectChallenge(authorization);
+                return Mono.just(submittedChallenge);
+            case PENDING:
+                final var challenge = selectChallenge(authorization);
+                if (challenge.status() != ChallengeStatus.PENDING) {
+                    // do not provision challenges that are not pending
+                    return Mono.just(challenge);
+                }
+
+                // calculate the key auth
+                final Mono<String> keyAuthMono = publicKeyThumbprintMono.map(publicKeyThumbprint -> challenge.token() + "." + publicKeyThumbprint);
+
+                // then provision and return the provisioned challenge
+                return keyAuthMono.flatMap(keyAuth -> provision(authorization.identifier(), challenge, keyAuth, strategy)).then(Mono.just(challenge));
+            default:
+                throw new IllegalArgumentException("unsupported authorization status " + authorization.status());
+        }
+    }
+
+    private Mono<Void> provision(Identifier identifier, Challenge challenge, String keyAuth, AuthorizationProvisioningStrategy strategy) {
+        if (challenge instanceof DnsChallenge && strategy.isDnsProvisioningSupported()) {
+            final var name = identifier.value();
+            final var value = Thumbprints.getSha256Digest(keyAuth);
+            return strategy.getDnsChallengeProvisioner().provisionDns(name, value);
+        }
+        else if (challenge instanceof HttpChallenge && strategy.isHttpProvisioningSupported()) {
+            return strategy.getHttpChallengeProvisioner().provisionHttp(challenge.token(), keyAuth);
+        }
+        else {
+            throw new IllegalArgumentException("unsupported challenge type " + challenge);
+        }
+    }
+
+    private Challenge selectChallenge(Authorization authorization) {
+        // HTTP challenges have priority
+        if (authorization.hasChallenge("http-01")) {
+            final var challenge = authorization.getChallenge("http-01");
+            LOG.info("provisioning challenge {}", challenge);
+            return challenge;
+        }
+        else if (authorization.hasChallenge("dns-01")) {
+            final var challenge = authorization.getChallenge("dns-01");
+            LOG.info("provisioning challenge {}", challenge);
+            return challenge;
+        }
+        else {
+            throw new IllegalArgumentException("cannot find any of the supported challenges (http-01, dns-01) in " + authorization.challenges());
+        }
+    }
 }

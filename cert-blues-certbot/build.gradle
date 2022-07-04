@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+    id 'project-java-conventions'
+}
+
+description = 'CertBot implementation that uses ACME protocol'
+
+dependencies {
+    compileOnly 'com.google.auto.value:auto-value-annotations'
+    annotationProcessor 'com.google.auto.value:auto-value'
+
+    compileOnly 'org.jetbrains:annotations'
+
+    compileOnly 'org.slf4j:slf4j-api'
+
+    api(group: 'com.google.guava', name: 'guava') {
+        transitive = false
+    }
+
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+
+    api 'io.projectreactor:reactor-core'
+
+    implementation project(':cert-blues-acme')
+    implementation project(':cert-blues-common')
+    implementation 'org.springframework.boot:spring-boot'
+}

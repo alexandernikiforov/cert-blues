@@ -23,12 +23,10 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.queue;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+/**
+ * Message ID to be implemented by a particular implementation.
+ */
+public interface MessageId {
 }

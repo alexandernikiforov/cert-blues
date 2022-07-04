@@ -23,12 +23,23 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.acme.facade;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import reactor.core.publisher.Mono;
+
+/**
+ * Interface to provision ACME challenges.
+ */
+public interface HttpChallengeProvisioner {
+
+    /**
+     * Provisions HTTP challenge.
+     *
+     * @param token   the token of the challenge
+     * @param keyAuth the calculated key authorization
+     * @return mono that completes  when the challenge has been provisioned or emits an error if the challenge cannot be
+     * provisioned
+     */
+    Mono<Void> provisionHttp(String token, String keyAuth);
+
 }

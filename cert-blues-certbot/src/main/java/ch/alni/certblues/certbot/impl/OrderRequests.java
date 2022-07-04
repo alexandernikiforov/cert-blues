@@ -23,12 +23,24 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot.impl;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import java.util.stream.Collectors;
+
+import ch.alni.certblues.acme.protocol.Identifier;
+import ch.alni.certblues.acme.protocol.OrderRequest;
+import ch.alni.certblues.certbot.CertificateRequest;
+
+final class OrderRequests {
+
+    private OrderRequests() {
+    }
+
+    static OrderRequest toOrderRequest(CertificateRequest request) {
+        return OrderRequest.builder()
+                .identifiers(request.dnsNames().stream()
+                        .map(dnsName -> Identifier.builder().type("dns").value(dnsName).build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 }

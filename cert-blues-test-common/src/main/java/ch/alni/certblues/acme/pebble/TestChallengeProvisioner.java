@@ -27,8 +27,8 @@ package ch.alni.certblues.acme.pebble;
 
 import java.net.URI;
 
-import ch.alni.certblues.storage.certbot.DnsChallengeProvisioner;
-import ch.alni.certblues.storage.certbot.HttpChallengeProvisioner;
+import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
+import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;

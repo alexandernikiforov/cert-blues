@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
 plugins {
     id 'java-platform'
 }
@@ -30,4 +32,5 @@ dependencies {
     api platform('io.projectreactor:reactor-bom:2020.0.20')
     api platform('com.azure:azure-sdk-bom:1.2.2')
     api platform('com.fasterxml.jackson:jackson-bom:2.13.1')
+    api platform(SpringBootPlugin.BOM_COORDINATES)
 }

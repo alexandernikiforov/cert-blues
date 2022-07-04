@@ -23,12 +23,26 @@
  *
  */
 
-plugins {
-    id 'java'
-    id 'project-java-conventions'
-}
+package ch.alni.certblues.certbot;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import ch.alni.certblues.common.json.ObjectMapperFactory;
+
+public interface JsonTransform {
+
+    /**
+     * Serializes this object as JSON.
+     *
+     * @return this object as JSON string
+     * @throws IllegalStateException if an error occurs
+     */
+    default String toJson() {
+        try {
+            return ObjectMapperFactory.getObjectMapper().writeValueAsString(this);
+        }
+        catch (JsonProcessingException e) {
+            throw new IllegalStateException("cannot write this object as JSON", e);
+        }
+    }
 }

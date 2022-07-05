@@ -23,38 +23,27 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'project-java-conventions'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.certbot.config;
 
-testSets {
-    integrationTest
-}
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-integrationTest {
-    useJUnitPlatform()
-}
+import ch.alni.certblues.acme.facade.AcmeClient;
+import reactor.netty.http.client.HttpClient;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+@Configuration
+@EnableConfigurationProperties(LetsEncryptProperties.class)
+public class CertBotConfiguration {
 
-    implementation 'org.slf4j:slf4j-api'
+    private final LetsEncryptProperties letsEncryptProperties;
 
-    implementation(group: 'com.google.guava', name: 'guava') {
-        transitive = false
+    public CertBotConfiguration(LetsEncryptProperties letsEncryptProperties) {
+        this.letsEncryptProperties = letsEncryptProperties;
     }
 
-    implementation 'com.azure:azure-identity'
-    implementation 'com.azure:azure-security-keyvault-keys'
-    implementation 'com.azure:azure-security-keyvault-certificates'
-    implementation 'com.azure:azure-storage-blob'
-    implementation 'com.azure:azure-storage-queue'
-
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns'
-
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    implementation 'org.springframework.boot:spring-boot'
+    @Bean
+    public AcmeClient acmeClient(HttpClient httpClient) {
+        return new AcmeClient(httpClient, letsEncryptProperties.getDirectoryUrl());
+    }
 }

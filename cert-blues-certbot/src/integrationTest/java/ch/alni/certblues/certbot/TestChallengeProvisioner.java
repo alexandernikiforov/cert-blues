@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.acme.pebble;
+package ch.alni.certblues.certbot;
 
 import java.net.URI;
 

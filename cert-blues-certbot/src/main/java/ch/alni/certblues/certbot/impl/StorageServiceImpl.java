@@ -26,6 +26,7 @@
 package ch.alni.certblues.certbot.impl;
 
 import org.slf4j.Logger;
+import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +42,8 @@ import reactor.util.function.Tuples;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-public class StorageServiceImpl implements StorageService {
+@Service
+class StorageServiceImpl implements StorageService {
     private static final Logger LOG = getLogger(StorageServiceImpl.class);
 
     // the maps will keep growing, but this is not very bad as not so many requests are expected

@@ -27,7 +27,6 @@ dependencies {
 
     compileOnly 'org.slf4j:slf4j-api'
 
-    implementation 'org.bouncycastle:bcpkix-jdk15on:1.69'
     implementation project(':cert-blues-common')
 
     testImplementation project(':cert-blues-test-common')

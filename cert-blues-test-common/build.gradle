@@ -29,6 +29,10 @@ plugins {
 }
 
 dependencies {
+    compileOnly 'org.slf4j:slf4j-api'
+
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+
     implementation project(':cert-blues-acme')
     implementation project(':cert-blues-certbot')
 }

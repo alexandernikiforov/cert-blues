@@ -1,3 +1,17 @@
+azure:
+  account-key:
+    id: https://cert-blues-dev.vault.azure.net/keys/account-key-ellpjdvnj4ijs/04e473c7f4cc474ea9a823a4825e90d0
+    signature-alg: RS256
+  key-vault:
+    url: https://cert-blues-dev.vault.azure.net
+  queue-storage:
+    service-url: https://certbluesdev.queue.core.windows.net
+    request-queue-name: requests
+
+lets-encrypt:
+  directory-url: https://acme-staging-v02.api.letsencrypt.org/directory
+
 spring:
-  jmx:
-    enabled: false
+  sql:
+    init:
+      mode: never

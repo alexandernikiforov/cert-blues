@@ -23,38 +23,31 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'project-java-conventions'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.certbot.impl;
 
-testSets {
-    integrationTest
-}
+import org.springframework.stereotype.Component;
 
-integrationTest {
-    useJUnitPlatform()
-}
+import ch.alni.certblues.acme.facade.AcmeSession;
+import ch.alni.certblues.certbot.AuthorizationProvisionerFactory;
+import ch.alni.certblues.certbot.CertBot;
+import ch.alni.certblues.certbot.CertificateStore;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+@Component
+public class CertBotFactory {
 
-    implementation 'org.slf4j:slf4j-api'
+    private final CertificateStore certificateStore;
 
-    implementation(group: 'com.google.guava', name: 'guava') {
-        transitive = false
+    private final AuthorizationProvisionerFactory provisionerFactory;
+
+    public CertBotFactory(CertificateStore certificateStore, AuthorizationProvisionerFactory provisionerFactory) {
+        this.certificateStore = certificateStore;
+        this.provisionerFactory = provisionerFactory;
     }
 
-    implementation 'com.azure:azure-identity'
-    implementation 'com.azure:azure-security-keyvault-keys'
-    implementation 'com.azure:azure-security-keyvault-certificates'
-    implementation 'com.azure:azure-storage-blob'
-    implementation 'com.azure:azure-storage-queue'
-
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns'
-
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    implementation 'org.springframework.boot:spring-boot'
+    /**
+     * Creates a new cert bot with the given session against the ACME server.
+     */
+    public CertBot create(AcmeSession session) {
+        return new CertBotImpl(session, certificateStore, provisionerFactory);
+    }
 }

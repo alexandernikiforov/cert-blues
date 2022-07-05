@@ -28,6 +28,7 @@ package ch.alni.certblues.acme.protocol;
 import com.google.auto.value.AutoValue;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
@@ -44,6 +45,7 @@ public abstract class DnsChallenge implements Challenge {
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public abstract static class Builder implements Challenge.Builder<Builder> {
 
         @JsonCreator

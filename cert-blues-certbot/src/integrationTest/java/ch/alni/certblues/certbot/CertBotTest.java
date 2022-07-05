@@ -23,60 +23,50 @@
  *
  */
 
-package ch.alni.certblues.app;
+package ch.alni.certblues.certbot;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.util.List;
 
-import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.certbot.CertBot;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
-import ch.alni.certblues.certbot.impl.CertBotFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-class AcmeStagingTest {
+@ExtendWith(SpringExtension.class)
+class CertBotTest extends CertBotTestSupport {
 
     private final CertificateRequest certificateRequest = CertificateRequest.builder()
-            .subjectDn("CN=cloudalni.com")
-            .certificateName("cloudalni5")
-            .dnsZone("cloudalni.com")
-            .dnsZoneResourceGroup("mydomainnames")
-            .storageEndpointUrl("https://cloudalni.blob.core.windows.net/$web")
+            .certificateName("test-server2")
+            .storageEndpointUrl("does-not-matter")
             .keyType(KeyType.RSA)
             .keySize(2048)
-            .dnsNames(List.of("cloudalni.com", "*.cloudalni.com"))
-//            .dnsNames(List.of("*.cloudalni.com"))
-//            .dnsNames(List.of("cloudalni.com"))
+            .subjectDn("CN=testserver2.com")
+            .dnsNames(List.of("*.testserver2.com", "testserver2.com"))
             .validityInMonths(12)
             .build();
 
-    @Autowired
-    private AcmeClient acmeClient;
-
-    @Autowired
-    private SigningKeyPair accountKeyPair;
-
-    @Autowired
-    private CertBotFactory certBotFactory;
-
     @Test
-    void getDirectory() {
+    void getCsr() {
+        final byte[] csr1 = certificateStore.createCsr(certificateRequest).block();
+        final byte[] csr2 = certificateStore.createCsr(certificateRequest).block();
+        assertThat(csr1).isEqualTo(csr2);
+    }
+
+    /**
+     * This test runs against Pebble installation.
+     */
+    @Test
+    void testCertificateIssueWithPebble() {
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final var session = acmeClient.login(accountKeyPair, accountRequest);
-
         final CertBot certBot = certBotFactory.create(session);
 
-        // provision
-        final String certificate = certBot.submit(certificateRequest).block(Duration.ofSeconds(120));
+        // wait for certificate and upload it
+        final String certificate = certBot.submit(certificateRequest).block(Duration.ofSeconds(60));
         assertThat(certificate).isNotNull();
     }
 }

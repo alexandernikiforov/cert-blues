@@ -40,8 +40,10 @@ class AzureBasedChallengeProvisionerTest {
 
     @Test
     void provisionHttp() {
+        final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
         final AzureHttpChallengeProvisioner httpChallengeProvisioner =
-                new AzureHttpChallengeProvisioner(STORAGE_ENDPOINT_URL);
+                new AzureHttpChallengeProvisioner(credential, STORAGE_ENDPOINT_URL);
 
         final Mono<Void> provisionHttp = httpChallengeProvisioner.provisionHttp("test", "keyAuth3");
         provisionHttp.block();

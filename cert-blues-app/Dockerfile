@@ -18,7 +18,7 @@ RUN jpackage \
     --input /cert-blues-app-${APP_VERSION}/lib  \
     --name cert-blues  \
     --main-jar cert-blues-app-${APP_VERSION}.jar  \
-    --main-class ch.alni.certblues.app.Runner  \
+    --main-class ch.alni.certblues.Runner  \
     --verbose \
     --dest /opt/image
 

@@ -23,38 +23,22 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'project-java-conventions'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.certbot.config;
 
-testSets {
-    integrationTest
-}
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
-integrationTest {
-    useJUnitPlatform()
-}
+@ConfigurationProperties(prefix = "lets-encrypt")
+@ConstructorBinding
+public class LetsEncryptProperties {
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+    private final String directoryUrl;
 
-    implementation 'org.slf4j:slf4j-api'
-
-    implementation(group: 'com.google.guava', name: 'guava') {
-        transitive = false
+    public LetsEncryptProperties(String directoryUrl) {
+        this.directoryUrl = directoryUrl;
     }
 
-    implementation 'com.azure:azure-identity'
-    implementation 'com.azure:azure-security-keyvault-keys'
-    implementation 'com.azure:azure-security-keyvault-certificates'
-    implementation 'com.azure:azure-storage-blob'
-    implementation 'com.azure:azure-storage-queue'
-
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns'
-
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    implementation 'org.springframework.boot:spring-boot'
+    public String getDirectoryUrl() {
+        return directoryUrl;
+    }
 }

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.app;
+package ch.alni.certblues;
 
 import com.google.auto.value.AutoValue;
 

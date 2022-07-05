@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.app;
+package ch.alni.certblues;
 
 import org.slf4j.Logger;
 import org.springframework.boot.CommandLineRunner;
@@ -32,10 +32,11 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 import ch.alni.certblues.acme.facade.AcmeClient;
+import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
 import ch.alni.certblues.certbot.CertBot;
 import ch.alni.certblues.certbot.StorageService;
-import ch.alni.certblues.certbot.impl.CertBotImpl;
+import ch.alni.certblues.certbot.impl.CertBotFactory;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -47,21 +48,28 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class Runner implements CommandLineRunner {
     private static final Logger LOG = getLogger(Runner.class);
 
-    // static initialization makes sure that context is initialized only once at the start of the instance
-    private static final Context CONTEXT = Context.getInstance();
+    private final CertBotFactory certBotFactory;
+    private final StorageService storageService;
+    private final SigningKeyPair accountKeyPair;
+    private final AcmeClient acmeClient;
 
+    public Runner(CertBotFactory certBotFactory,
+                  StorageService storageService,
+                  SigningKeyPair accountKeyPair,
+                  AcmeClient acmeClient) {
+        this.certBotFactory = certBotFactory;
+        this.storageService = storageService;
+        this.accountKeyPair = accountKeyPair;
+        this.acmeClient = acmeClient;
+    }
+
+    @Override
     public void run(String... args) {
         LOG.info("Certificate request processing started");
 
-        final StorageService storageService = CONTEXT.getStorageService();
-        final AcmeClient acmeClient = CONTEXT.getAcmeClient();
-
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
-        final var acmeSession = acmeClient.login(CONTEXT.getAccountKeyPair(), accountRequest);
-
-        final CertBot certBot = new CertBotImpl(
-                acmeSession, CONTEXT.getCertificateStore(), CONTEXT.getAuthorizationProvisionerFactory()
-        );
+        final var acmeSession = acmeClient.login(accountKeyPair, accountRequest);
+        final CertBot certBot = certBotFactory.create(acmeSession);
 
         storageService.getCertificateRequests()
                 .flatMap(request -> certBot.submit(request)

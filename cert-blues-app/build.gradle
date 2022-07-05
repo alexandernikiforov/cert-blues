@@ -24,6 +24,7 @@ dependencies {
         transitive = false
     }
 
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     implementation 'org.springframework.boot:spring-boot-starter'
 
     implementation 'com.azure:azure-identity'
@@ -39,6 +40,9 @@ dependencies {
     runtimeOnly group: 'io.netty', name: 'netty-tcnative-boringssl-static', classifier: 'windows-x86_64'
 
     testImplementation project(':cert-blues-test-common')
+
+    integrationTestImplementation 'org.springframework.boot:spring-boot-test'
+    integrationTestImplementation 'org.springframework:spring-test'
 }
 
 application {

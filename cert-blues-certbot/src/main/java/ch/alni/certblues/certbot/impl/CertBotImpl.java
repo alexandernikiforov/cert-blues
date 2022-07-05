@@ -26,7 +26,6 @@
 package ch.alni.certblues.certbot.impl;
 
 import org.slf4j.Logger;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Base64;
@@ -56,8 +55,7 @@ import reactor.core.scheduler.Schedulers;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-@Service
-public class CertBotImpl implements CertBot {
+class CertBotImpl implements CertBot {
 
     private static final Logger LOG = getLogger(CertBotImpl.class);
 
@@ -162,8 +160,8 @@ public class CertBotImpl implements CertBot {
 
     };
 
-    public CertBotImpl(AcmeSession session, CertificateStore certificateStore,
-                       AuthorizationProvisionerFactory provisionerFactory) {
+    CertBotImpl(AcmeSession session, CertificateStore certificateStore,
+                AuthorizationProvisionerFactory provisionerFactory) {
         this.session = session;
         this.certificateStore = certificateStore;
         this.provisionerFactory = provisionerFactory;

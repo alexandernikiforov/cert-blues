@@ -23,38 +23,34 @@
  *
  */
 
-plugins {
-    id 'java-library'
-    id 'project-java-conventions'
-    id 'org.unbroken-dome.test-sets'
-}
+package ch.alni.certblues.certbot;
 
-testSets {
-    integrationTest
-}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 
-integrationTest {
-    useJUnitPlatform()
-}
+import ch.alni.certblues.acme.facade.AcmeClient;
+import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.certbot.impl.CertBotFactory;
+import ch.alni.certblues.certbot.queue.Queue;
 
-dependencies {
-    implementation project(':cert-blues-acme')
-    implementation project(':cert-blues-certbot')
+@ContextConfiguration(classes = CertBotTestConfiguration.class)
+@TestPropertySource("/test.properties")
+public class CertBotTestSupport {
 
-    implementation 'org.slf4j:slf4j-api'
+    @Autowired
+    protected AcmeClient acmeClient;
 
-    implementation(group: 'com.google.guava', name: 'guava') {
-        transitive = false
-    }
+    @Autowired
+    protected SigningKeyPair accountKeyPair;
 
-    implementation 'com.azure:azure-identity'
-    implementation 'com.azure:azure-security-keyvault-keys'
-    implementation 'com.azure:azure-security-keyvault-certificates'
-    implementation 'com.azure:azure-storage-blob'
-    implementation 'com.azure:azure-storage-queue'
+    @Autowired
+    protected CertBotFactory certBotFactory;
 
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-dns'
+    @Autowired
+    protected CertificateStore certificateStore;
 
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    implementation 'org.springframework.boot:spring-boot'
+    @MockBean
+    protected Queue queue;
 }

@@ -6,11 +6,15 @@ plugins {
 }
 
 testSets {
-    integrationTest
+    stagingTest
 }
 
-integrationTest {
+stagingTest {
     useJUnitPlatform()
+}
+
+bootJar {
+    exclude 'application-dev.yml'
 }
 
 dependencies {
@@ -40,8 +44,8 @@ dependencies {
 
     testImplementation project(':cert-blues-test-common')
 
-    integrationTestImplementation 'org.springframework.boot:spring-boot-test'
-    integrationTestImplementation 'org.springframework:spring-test'
+    stagingTestImplementation 'org.springframework.boot:spring-boot-test'
+    stagingTestImplementation 'org.springframework:spring-test'
 }
 
 tasks.register('copyContextDeps', Copy) {

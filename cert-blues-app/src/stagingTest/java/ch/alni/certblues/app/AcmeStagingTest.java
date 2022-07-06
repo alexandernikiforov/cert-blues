@@ -28,6 +28,7 @@ package ch.alni.certblues.app;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
 import java.util.List;
@@ -43,6 +44,7 @@ import ch.alni.certblues.certbot.impl.CertBotFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@ActiveProfiles(profiles = "dev")
 class AcmeStagingTest {
 
     private final CertificateRequest certificateRequest = CertificateRequest.builder()
@@ -54,8 +56,6 @@ class AcmeStagingTest {
             .keyType(KeyType.RSA)
             .keySize(2048)
             .dnsNames(List.of("test.cloudalni.com", "*.test.cloudalni.com"))
-//            .dnsNames(List.of("*.cloudalni.com"))
-//            .dnsNames(List.of("cloudalni.com"))
             .validityInMonths(12)
             .build();
 

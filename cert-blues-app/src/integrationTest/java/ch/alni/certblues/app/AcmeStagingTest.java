@@ -46,14 +46,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AcmeStagingTest {
 
     private final CertificateRequest certificateRequest = CertificateRequest.builder()
-            .subjectDn("CN=cloudalni.com")
+            .subjectDn("CN=test.cloudalni.com")
             .certificateName("cloudalni5")
             .dnsZone("cloudalni.com")
             .dnsZoneResourceGroup("mydomainnames")
-            .storageEndpointUrl("https://cloudalni.blob.core.windows.net/$web")
+            .storageEndpointUrl("https://cloudalnitest.blob.core.windows.net/$web")
             .keyType(KeyType.RSA)
             .keySize(2048)
-            .dnsNames(List.of("cloudalni.com", "*.cloudalni.com"))
+            .dnsNames(List.of("test.cloudalni.com", "*.test.cloudalni.com"))
 //            .dnsNames(List.of("*.cloudalni.com"))
 //            .dnsNames(List.of("cloudalni.com"))
             .validityInMonths(12)

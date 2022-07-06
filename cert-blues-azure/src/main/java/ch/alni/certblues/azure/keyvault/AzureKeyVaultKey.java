@@ -27,11 +27,12 @@ package ch.alni.certblues.azure.keyvault;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
-import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
-import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.security.keyvault.keys.KeyAsyncClient;
+import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
+import com.azure.security.keyvault.keys.models.KeyVaultKeyIdentifier;
 
 import org.slf4j.Logger;
 
@@ -55,27 +56,34 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class AzureKeyVaultKey implements SigningKeyPair {
     private static final Logger LOG = getLogger(AzureKeyVaultKey.class);
 
-    private final CryptographyAsyncClient client;
+    private final KeyAsyncClient client;
     private final String alg;
 
     private final Mono<PublicJwk> publicJwkMono;
     private final Mono<String> publicKeyThumbprintMono;
+
+    private final String keyName;
+    private final String keyVersion;
 
     public AzureKeyVaultKey(TokenCredential credential, String keyId, String alg) {
         this(credential, null, keyId, alg);
     }
 
     public AzureKeyVaultKey(TokenCredential credential, HttpClient httpClient, String keyId, String alg) {
-        this.client = new CryptographyClientBuilder()
+        final KeyVaultKeyIdentifier keyIdentifier = new KeyVaultKeyIdentifier(keyId);
+        this.client = new KeyClientBuilder()
                 .httpClient(httpClient)
-                .keyIdentifier(keyId)
+                .vaultUrl(keyIdentifier.getVaultUrl())
                 .credential(credential)
                 .buildAsyncClient();
 
         this.alg = alg;
 
+        // retrieve the latest version of the key
         // cache the latest result for this key
-        publicJwkMono = client.getKey().map(AzureKeyVaultKey::toPublicJwk).cache();
+        this.keyName = keyIdentifier.getName();
+        this.keyVersion = keyIdentifier.getVersion();
+        publicJwkMono = client.getKey(keyName).map(AzureKeyVaultKey::toPublicJwk).cache();
         publicKeyThumbprintMono = publicJwkMono.map(Thumbprints::getSha256Thumbprint).cache();
     }
 
@@ -135,7 +143,8 @@ public class AzureKeyVaultKey implements SigningKeyPair {
         final byte[] digest = createDigest(data);
         final var signatureAlgorithm = SignatureAlgorithm.fromString(alg);
 
-        return client.sign(signatureAlgorithm, digest)
+        return client.getCryptographyAsyncClient(keyName, keyVersion)
+                .sign(signatureAlgorithm, digest)
                 .map(signResult -> Base64.getUrlEncoder().withoutPadding().encodeToString(signResult.getSignature()));
     }
 

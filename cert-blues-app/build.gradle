@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'project-java-conventions'
     id 'org.unbroken-dome.test-sets'
-    id 'application'
     id 'org.springframework.boot'
 }
 
@@ -45,15 +44,11 @@ dependencies {
     integrationTestImplementation 'org.springframework:spring-test'
 }
 
-application {
-    mainClass = 'ch.alni.certblues.app.Runner'
-}
-
 tasks.register('copyContextDeps', Copy) {
     description = 'Copies the Dockerfile context dependencies'
 
     from {
-        tasks.distTar.outputs
+        tasks.bootJar.outputs
     }
     into 'build/context'
 }

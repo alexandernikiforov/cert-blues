@@ -10,7 +10,7 @@ RUN jlink \
     --output /opt/java/jdk
 
 ARG APP_VERSION
-ADD build/context/cert-blues-app-${APP_VERSION}.tar .
+COPY build/context/cert-blues-app-${APP_VERSION}.jar /cert-blues-app-${APP_VERSION}/lib/
 
 RUN jpackage \
     --runtime-image /opt/java/jdk \
@@ -18,7 +18,7 @@ RUN jpackage \
     --input /cert-blues-app-${APP_VERSION}/lib  \
     --name cert-blues  \
     --main-jar cert-blues-app-${APP_VERSION}.jar  \
-    --main-class ch.alni.certblues.Runner  \
+    --main-class org.springframework.boot.loader.JarLauncher  \
     --verbose \
     --dest /opt/image
 

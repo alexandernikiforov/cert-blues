@@ -1,5 +1,4 @@
 plugins {
-    id 'java'
     id 'project-java-conventions'
     id 'org.unbroken-dome.test-sets'
     id 'org.springframework.boot'
@@ -7,14 +6,6 @@ plugins {
 
 testSets {
     stagingTest
-}
-
-stagingTest {
-    useJUnitPlatform()
-}
-
-bootJar {
-    exclude 'application-dev.yml'
 }
 
 dependencies {
@@ -46,6 +37,14 @@ dependencies {
 
     stagingTestImplementation 'org.springframework.boot:spring-boot-test'
     stagingTestImplementation 'org.springframework:spring-test'
+}
+
+bootJar {
+    exclude 'application-dev.yml'
+}
+
+stagingTest {
+    useJUnitPlatform()
 }
 
 tasks.register('copyContextDeps', Copy) {

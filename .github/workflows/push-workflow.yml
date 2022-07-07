@@ -26,6 +26,18 @@ jobs:
       - name: Execute Gradle build
         run: ./gradlew build copyContextDeps
 
+      - name: Upload unit-test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test
+          path: build/reports/tests/unit-test/aggregated-results
+
+      - name: Upload test coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-coverage
+          path: build/reports/jacoco/testCodeCoverageReport
+
       - name: Run staging test
         run: ./gradlew stagingTest
         env:
@@ -33,6 +45,12 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Upload staging test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: staging-test
+          path: cert-blues-app/build/reports/tests/stagingTest
 
       - name: Print project version
         id: get-version

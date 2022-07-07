@@ -1,10 +1,29 @@
 plugins {
     id 'org.unbroken-dome.test-sets' version '4.0.0' apply false
     id 'org.springframework.boot' version '2.7.1' apply false
+
+    id 'base'
+    id 'jacoco-report-aggregation'
+    id 'test-report-aggregation'
 }
 
 wrapper {
     gradleVersion = '7.4.2'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// configure test aggregation
+dependencies {
+    jacocoAggregation project(':cert-blues-azure')
+    jacocoAggregation project(':cert-blues-acme')
+    jacocoAggregation project(':cert-blues-certbot')
+
+    testReportAggregation project(':cert-blues-azure')
+    testReportAggregation project(':cert-blues-acme')
+    testReportAggregation project(':cert-blues-certbot')
 }
 
 allprojects {
@@ -17,3 +36,18 @@ allprojects {
     }
 }
 
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testType = TestSuiteType.UNIT_TEST
+        }
+        testAggregateTestReport(AggregateTestReport) {
+            testType = TestSuiteType.UNIT_TEST
+        }
+    }
+}
+
+tasks.check.dependsOn {
+    tasks.named('testCodeCoverageReport', JacocoReport)
+    tasks.named('testAggregateTestReport', TestReport)
+}

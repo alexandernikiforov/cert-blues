@@ -21,6 +21,7 @@ jobs:
       - name: Deploy to TEST
         uses: azure/CLI@v1
         with:
+          azcliversion: 2.37.0
           inlineScript: |
             az login --service-principal \
               -u ${{ secrets.DEPLOYMENT_AZURE_CLIENT_ID }} \ 

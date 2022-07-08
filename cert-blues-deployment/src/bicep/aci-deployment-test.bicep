@@ -23,7 +23,7 @@ module containerGroupModule 'containerInstances.bicep' = {
     location: location
     environment: [
       {
-        name: 'spring.profiles.active'
+        name: 'SPRING_PROFILES_ACTIVE'
         value: 'test'
       }
       {
@@ -35,7 +35,7 @@ module containerGroupModule 'containerInstances.bicep' = {
         secureValue: tenantId
       }
     ]
-    appImage: 'ghcr.io/alexandernikiforov/cert-blues-app:main'
+    appImage: image
   }
 }
 

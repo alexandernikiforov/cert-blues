@@ -26,8 +26,8 @@ jobs:
               -u ${{ secrets.DEPLOYMENT_AZURE_CLIENT_ID }} \ 
               -p ${{ secrets.DEPLOYMENT_AZURE_CLIENT_SECRET }} \ 
               --tenant ${{ secrets.AZURE_TENANT_ID }}
-            
-            az deployment group create \
-              --resource-group cert-blues-dev \
-              --parameters image=${{ steps.meta.outputs.tags }} \
-              --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep 
+#
+#            az deployment group create \
+#              --resource-group cert-blues-dev \
+#              --parameters image=${{ steps.meta.outputs.tags }} \
+#              --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

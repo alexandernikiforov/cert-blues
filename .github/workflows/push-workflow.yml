@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths-ignore:
       - '.github/workflows/**'
-      - 'certblues-deployment/**'
+      - 'cert-blues-deployment/**'
 
 jobs:
   build:

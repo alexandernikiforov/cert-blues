@@ -8,19 +8,16 @@ var seed = resourceGroup().id
 // var keyVaultName = 'cert-blues-dev-${uniqueString(seed)}'
 // var storageAccountName = 'certblues${uniqueString(seed)}'
 
-var containerGroupName = 'cert-blues-dev-${uniqueString(seed)}'
-
 var keyVaultName = 'cert-blues-dev'
 var accountKeyName = 'account-key-${uniqueString(seed)}'
 var storageAccountName = 'certbluesdev'
+var identityName = 'cert-blues-dev'
 
-// start by deploying the container group
-module containerGroupModule 'containerInstances.bicep' = {
-  name: 'containers'
+module identityModule 'identity.bicep' = {
+  name: 'certBluesIdentity'
   params: {
-    name: containerGroupName
+    name: identityName
     location: location
-    appImage: 'ghcr.io/alexandernikiforov/cert-blues-app:main'
   }
 }
 
@@ -44,10 +41,10 @@ module storageAccountModule 'storageAccount.bicep' = {
 }
 
 // roles for the container group, read the ID of the managed identity
-var principalId = containerGroupModule.outputs.managedIdentityId
+var principalId = identityModule.outputs.managedIdentityId
 
-module dnsZoneModule 'dnsZone.bicep' = {
-  name: 'dnsZone'
+module dnsZoneRolesModule 'dnsZone.bicep' = {
+  name: 'dnsZoneRoles'
   scope: resourceGroup('mydomainnames')
   params: {
     name: 'cloudalni.com'

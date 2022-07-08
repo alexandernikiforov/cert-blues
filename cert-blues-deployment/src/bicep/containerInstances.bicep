@@ -1,18 +1,32 @@
 @description('The name of the container group to run container with the cert bot, must be unique in Azure')
 param name string
 
+@description('The name of the user-managed identity to assign to this container group')
+param identity string
+
 @description('The location of the storage account resource')
 param location string
+
+@description('The location of the storage account resource')
+param environment array
 
 @description('The full name of the Docker image to pull to create the running container')
 param appImage string
 
+// existing user-assigned identity will be assigned to the container group
+resource certBluesIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
+  name: identity
+}
+
 resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01' = {
   name: name
   location: location
-  // assign the system identity to this container group
+  // assign the user-managed identity to this container group
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${certBluesIdentity.id}': {}
+    }
   }
   properties: {
     containers: [
@@ -26,6 +40,8 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01'
               memoryInGB: 1
             }
           }
+          // these environment variables are needed to manage the DNS zone
+          environmentVariables: environment
         }
       }
     ]
@@ -33,5 +49,3 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01'
     restartPolicy: 'Never'
   }
 }
-
-output managedIdentityId string = containerGroup.identity.principalId

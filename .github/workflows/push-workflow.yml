@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up JDK 11
         uses: actions/setup-java@v2
@@ -31,12 +31,14 @@ jobs:
         with:
           name: unit-test
           path: build/reports/tests/unit-test/aggregated-results
+        if: always()
 
       - name: Upload test coverage report
         uses: actions/upload-artifact@v3
         with:
           name: test-coverage
           path: build/reports/jacoco/testCodeCoverageReport
+        if: always()
 
       - name: Run staging test
         run: ./gradlew stagingTest
@@ -51,6 +53,7 @@ jobs:
         with:
           name: staging-test
           path: cert-blues-app/build/reports/tests/stagingTest
+        if: always()
 
       - name: Print project version
         id: get-version

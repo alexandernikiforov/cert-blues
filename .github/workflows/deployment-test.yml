@@ -19,8 +19,7 @@ jobs:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
             type=ref,event=branch,priority=100
-            type=semver,pattern={{version}},priority=200
-            type=sha,prefix=,priority=300
+            type=raw,value={{tag}},enable=${{ contains(github.ref, 'refs/tags/') }}
 
       - name: Deploy to TEST
         uses: azure/CLI@v1
@@ -34,5 +33,5 @@ jobs:
             
             az deployment group create \
               --resource-group cert-blues-dev \
-              --parameters image=${{ fromJSON(steps.meta.outputs).tags[0] }} \
+              --parameters image=${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
               --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

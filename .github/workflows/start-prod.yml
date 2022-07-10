@@ -1,0 +1,23 @@
+name: Run PROD (recurring)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # restarts the already deployed containers
+  start:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Restart TEST
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az login --service-principal \
+              -u ${{ secrets.DEPLOYMENT_AZURE_CLIENT_ID }} \
+              -p ${{ secrets.DEPLOYMENT_AZURE_CLIENT_SECRET }} \
+              --tenant ${{ secrets.AZURE_TENANT_ID }}
+            
+            az container restart \
+              --resource-group cert-blues-dev \
+              --name cert-blues-dev-ellpjdvnj4ijs

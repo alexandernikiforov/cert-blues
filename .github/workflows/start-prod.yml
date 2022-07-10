@@ -18,6 +18,6 @@ jobs:
               -p ${{ secrets.DEPLOYMENT_AZURE_CLIENT_SECRET }} \
               --tenant ${{ secrets.AZURE_TENANT_ID }}
             
-            az container restart \
+            az container start \
               --resource-group cert-blues-dev \
               --name cert-blues-dev-ellpjdvnj4ijs

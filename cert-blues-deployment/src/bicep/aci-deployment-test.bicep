@@ -28,11 +28,11 @@ module containerGroupModule 'containerInstances.bicep' = {
       }
       {
         name: 'AZURE_SUBSCRIPTION_ID'
-        secureValue: subscriptionId
+        value: subscriptionId
       }
       {
         name: 'AZURE_TENANT_ID'
-        secureValue: tenantId
+        value: tenantId
       }
     ]
     appImage: image

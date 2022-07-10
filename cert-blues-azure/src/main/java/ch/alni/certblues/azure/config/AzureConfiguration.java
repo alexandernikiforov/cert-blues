@@ -40,6 +40,7 @@ import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
+import ch.alni.certblues.azure.provision.AuthenticatedDnsZoneManager;
 import ch.alni.certblues.azure.provision.AzureDnsChallengeProvisioner;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.azure.queue.AzureQueue;
@@ -91,6 +92,8 @@ public class AzureConfiguration {
 
     @Bean
     public AuthorizationProvisionerFactory provisionerFactory(TokenCredential credential, HttpClient httpClient) {
+        final AuthenticatedDnsZoneManager dnsZoneManager = new AuthenticatedDnsZoneManager(credential);
+
         return new AuthorizationProvisionerFactory() {
 
             @Override
@@ -103,7 +106,7 @@ public class AzureConfiguration {
             public DnsChallengeProvisioner createDnsChallengeProvisioner(CertificateRequest certificateRequest) {
                 if (certificateRequest.dnsZone() != null && certificateRequest.dnsZoneResourceGroup() != null) {
                     return new AzureDnsChallengeProvisioner(
-                            credential, certificateRequest.dnsZoneResourceGroup(), certificateRequest.dnsZone()
+                            dnsZoneManager, certificateRequest.dnsZoneResourceGroup(), certificateRequest.dnsZone()
                     );
                 }
                 else {

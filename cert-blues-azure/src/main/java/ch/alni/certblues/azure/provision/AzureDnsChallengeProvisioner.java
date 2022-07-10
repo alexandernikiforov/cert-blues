@@ -25,10 +25,6 @@
 
 package ch.alni.certblues.azure.provision;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.management.AzureEnvironment;
-import com.azure.core.management.profile.AzureProfile;
-import com.azure.resourcemanager.dns.DnsZoneManager;
 import com.azure.resourcemanager.dns.fluent.models.RecordSetInner;
 import com.azure.resourcemanager.dns.models.RecordType;
 import com.azure.resourcemanager.dns.models.TxtRecord;
@@ -45,21 +41,20 @@ public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
 
     public static final String RECORD_SET_NAME_ACME_CHALLENGE = "_acme-challenge";
 
-    private final DnsZoneManager dnsZoneManager;
+    private final AuthenticatedDnsZoneManager dnsZoneManager;
     private final String resourceGroupName;
     private final String dnsZoneName;
 
-    public AzureDnsChallengeProvisioner(TokenCredential credential, String resourceGroupName, String dnsZoneName) {
-        final var profile = new AzureProfile(AzureEnvironment.AZURE);
-
-        this.dnsZoneManager = DnsZoneManager.authenticate(credential, profile);
+    public AzureDnsChallengeProvisioner(AuthenticatedDnsZoneManager dnsZoneManager,
+                                        String resourceGroupName, String dnsZoneName) {
+        this.dnsZoneManager = dnsZoneManager;
         this.resourceGroupName = resourceGroupName;
         this.dnsZoneName = dnsZoneName;
     }
 
     @Override
     public Mono<Void> provisionDns(String host, String value) {
-        return dnsZoneManager.serviceClient()
+        return dnsZoneManager.getDnsZoneManager().serviceClient()
                 .getRecordSets()
                 .createOrUpdateAsync(
                         resourceGroupName,

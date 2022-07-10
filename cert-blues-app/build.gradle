@@ -56,7 +56,7 @@ tasks.register('copyContextDeps', Copy) {
     into 'build/context'
 }
 
-tasks.register('buildLocalImage', Exec) {
+tasks.register('buildImage', Exec) {
     group = 'build'
     description = 'Builds the Docker image for local tests'
     dependsOn 'copyContextDeps'

@@ -19,7 +19,8 @@ jobs:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
             type=ref,event=branch,priority=100
-            type=sha,prefix=,priority=200
+            type=ref,event=tag,priority=200
+            type=sha,prefix=,priority=300
 
       - name: Deploy to TEST
         uses: azure/CLI@v1

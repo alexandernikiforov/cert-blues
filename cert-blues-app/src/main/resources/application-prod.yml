@@ -1,0 +1,17 @@
+azure:
+  account-key:
+    id: https://cert-blues-kjcce3rlfa45m.vault.azure.net/keys/account-key-kjcce3rlfa45m
+    signature-alg: RS256
+  key-vault:
+    url: https://cert-blues-kjcce3rlfa45m.vault.azure.net
+  queue-storage:
+    service-url: https://certblueskjcce3rlfa45m.queue.core.windows.net
+    request-queue-name: requests
+
+lets-encrypt:
+  directory-url: https://acme-v02.api.letsencrypt.org/directory
+
+spring:
+  sql:
+    init:
+      mode: never

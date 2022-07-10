@@ -1,0 +1,34 @@
+name: Deployment to PROD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/alexandernikiforov/cert-blues-app
+          tags: |
+            type=ref,event=branch
+
+      - name: Deploy to TEST
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.37.0
+          inlineScript: |
+            az login --service-principal \
+              -u ${{ secrets.DEPLOYMENT_AZURE_CLIENT_ID }} \
+              -p ${{ secrets.DEPLOYMENT_AZURE_CLIENT_SECRET }} \
+              --tenant ${{ secrets.AZURE_TENANT_ID }}
+            
+            az deployment group create \
+              --resource-group cert-blues-prod \
+              --parameters image=${{ steps.meta.outputs.tags }} \
+              --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

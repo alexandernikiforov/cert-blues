@@ -48,7 +48,7 @@ public class AzureQueue implements Queue {
     /**
      * How long the message should be invisible after reading until it appears in the queue for further operations.
      */
-    private static final Duration VISIBILITY_TIMEOUT_READ = Duration.ofMinutes(15);
+    private static final Duration VISIBILITY_TIMEOUT_READ = Duration.ofSeconds(10);
 
     /**
      * How long the message should be invisible after writing until it appears in the queue for further operations.

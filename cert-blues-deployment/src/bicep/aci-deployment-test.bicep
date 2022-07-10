@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 @description('ID of the subscription, it is used to manage the DNS zone in the container')
-param subscriptionId string = subscription().id
+param subscriptionId string = subscription().subscriptionId
 
 @description('ID of the tenant, it is used to manage the DNS zone in the container')
 param tenantId string = subscription().tenantId

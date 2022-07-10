@@ -31,4 +31,4 @@ jobs:
             az deployment group create \
               --resource-group cert-blues-prod \
               --parameters image=${{ steps.meta.outputs.tags }} \
-              --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep
+              --template-file cert-blues-deployment/src/bicep/aci-deployment-prod.bicep

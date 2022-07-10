@@ -28,7 +28,7 @@ dependencies {
 
 allprojects {
     group = 'ch.alni'
-    version = '0.1.0'
+    version = '1.0.0'
 
     ext {
         buildNumber = System.getenv('TRAVIS') ? System.getenv('TRAVIS_BUILD_NUMBER') : '0'

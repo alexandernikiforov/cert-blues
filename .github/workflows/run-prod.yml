@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Restart TEST
+      - name: Run PROD
         uses: azure/CLI@v1
         with:
           inlineScript: |
@@ -19,5 +19,5 @@ jobs:
               --tenant ${{ secrets.AZURE_TENANT_ID }}
             
             az container start \
-              --resource-group cert-blues-dev \
-              --name cert-blues-dev-ellpjdvnj4ijs
+              --resource-group cert-blues-prod \
+              --name cert-blues-prod-kjcce3rlfa45m

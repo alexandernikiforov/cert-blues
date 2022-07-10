@@ -79,6 +79,7 @@ jobs:
         with:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
+            type=sha,prefix=
             type=ref,event=branch
 
       - name: Build and push Docker image

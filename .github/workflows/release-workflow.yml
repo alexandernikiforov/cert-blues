@@ -1,4 +1,4 @@
-name: Release (Automatic)
+name: Release Tag (Automatic)
 
 on:
   release:

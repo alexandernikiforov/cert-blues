@@ -25,10 +25,12 @@
 
 package ch.alni.certblues.azure.provision;
 
+import com.azure.resourcemanager.dns.fluent.RecordSetsClient;
 import com.azure.resourcemanager.dns.fluent.models.RecordSetInner;
 import com.azure.resourcemanager.dns.models.RecordType;
 import com.azure.resourcemanager.dns.models.TxtRecord;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
@@ -54,18 +56,46 @@ public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
 
     @Override
     public Mono<Void> provisionDns(String host, String value) {
-        return dnsZoneManager.getDnsZoneManager().serviceClient()
-                .getRecordSets()
-                .createOrUpdateAsync(
+        final RecordSetsClient recordSetsClient = dnsZoneManager.getDnsZoneManager()
+                .serviceClient()
+                .getRecordSets();
+
+        return recordSetsClient.getWithResponseAsync(
+                        resourceGroupName,
+                        dnsZoneName,
+                        getRecordSetName(host),
+                        RecordType.TXT
+                )
+                .flatMap(response -> {
+                    final TxtRecord txtRecord = new TxtRecord().withValue(List.of(value));
+
+                    if (response.getValue() == null) {
+                        // there is no such record set with this name yet, it should be created
+                        return updateRecordSet(recordSetsClient, host, List.of(txtRecord));
+                    }
+                    else {
+                        // add a new record into the existing record set
+                        final List<TxtRecord> txtRecords = response.getValue().txtRecords();
+                        final int size = txtRecords.size();
+
+                        // leave at most 5 records in the record set
+                        final List<TxtRecord> updatedRecordSet = new ArrayList<>();
+                        updatedRecordSet.add(txtRecord);
+                        updatedRecordSet.addAll(txtRecords.subList(0, Math.min(size, 5)));
+
+                        return updateRecordSet(recordSetsClient, host, updatedRecordSet);
+                    }
+                });
+    }
+
+    private Mono<Void> updateRecordSet(RecordSetsClient recordSetsClient, String host, List<TxtRecord> txtRecords) {
+        return recordSetsClient.createOrUpdateAsync(
                         resourceGroupName,
                         dnsZoneName,
                         getRecordSetName(host),
                         RecordType.TXT,
-                        new RecordSetInner()
-                                .withTxtRecords(List.of(new TxtRecord().withValue(List.of(value))))
-                                .withTtl(3600L)
-
-                ).then();
+                        new RecordSetInner().withTxtRecords(txtRecords).withTtl(3600L))
+                .then();
     }
 
     private String getRecordSetName(String host) {

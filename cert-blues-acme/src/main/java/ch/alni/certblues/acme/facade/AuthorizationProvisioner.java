@@ -65,11 +65,11 @@ class AuthorizationProvisioner {
             case REVOKED:
                 return Mono.error(new IllegalArgumentException("cannot proceed with authorization of status " + authorization.status()));
             case VALID:
-                // this authorization is already done
-                final var submittedChallenge = selectChallenge(authorization);
+                // this authorization is already done, there should be at least one valid challenge
+                final var submittedChallenge = selectValidChallenge(authorization);
                 return Mono.just(submittedChallenge);
             case PENDING:
-                final var challenge = selectChallenge(authorization);
+                final var challenge = selectChallenge(authorization, strategy);
                 if (challenge.status() != ChallengeStatus.PENDING) {
                     // do not provision challenges that are not pending
                     return Mono.just(challenge);
@@ -99,16 +99,28 @@ class AuthorizationProvisioner {
         }
     }
 
-    private Challenge selectChallenge(Authorization authorization) {
-        // HTTP challenges have priority
-        if (authorization.hasChallenge("http-01")) {
-            final var challenge = authorization.getChallenge("http-01");
-            LOG.info("provisioning challenge {}", challenge);
+    /**
+     * Selects the first valid challenge.
+     *
+     * @param authorization authorization that is valid
+     */
+    private Challenge selectValidChallenge(Authorization authorization) {
+        return authorization.challenges().stream()
+                .filter(challenge -> challenge.status() == ChallengeStatus.VALID)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no valid challenges found for authorization " + authorization));
+    }
+
+    private Challenge selectChallenge(Authorization authorization, AuthorizationProvisioningStrategy strategy) {
+        // DNS challenges have priority
+        if (authorization.hasChallenge("dns-01") && strategy.isDnsProvisioningSupported()) {
+            final var challenge = authorization.getChallenge("dns-01");
+            LOG.info("provisioning DNS challenge {}", challenge);
             return challenge;
         }
-        else if (authorization.hasChallenge("dns-01")) {
-            final var challenge = authorization.getChallenge("dns-01");
-            LOG.info("provisioning challenge {}", challenge);
+        else if (authorization.hasChallenge("http-01") && strategy.isHttpProvisioningSupported()) {
+            final var challenge = authorization.getChallenge("http-01");
+            LOG.info("provisioning HTTP challenge {}", challenge);
             return challenge;
         }
         else {

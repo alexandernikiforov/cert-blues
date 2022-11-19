@@ -36,9 +36,9 @@ import java.util.List;
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
+import ch.alni.certblues.api.CertificateRequest;
+import ch.alni.certblues.api.KeyType;
 import ch.alni.certblues.certbot.CertBot;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;

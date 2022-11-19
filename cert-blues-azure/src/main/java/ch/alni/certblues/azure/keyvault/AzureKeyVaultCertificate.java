@@ -35,6 +35,7 @@ import com.azure.security.keyvault.certificates.models.CertificateKeyType;
 import com.azure.security.keyvault.certificates.models.CertificateKeyUsage;
 import com.azure.security.keyvault.certificates.models.CertificatePolicy;
 import com.azure.security.keyvault.certificates.models.CertificatePolicyAction;
+import com.azure.security.keyvault.certificates.models.CertificateProperties;
 import com.azure.security.keyvault.certificates.models.LifetimeAction;
 import com.azure.security.keyvault.certificates.models.MergeCertificateOptions;
 import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
@@ -124,6 +125,8 @@ public class AzureKeyVaultCertificate implements CertificateStore {
         return certificateOperationFlux.next()
                 .doOnError(throwable -> LOG.warn("error while checking if certificate operation is complete: " + throwable.getMessage()))
                 .then(mergeCertificateMono)
+                // disable the previous versions if any
+                .then(disablePreviousVersionsMono(certificateName))
                 .onErrorResume(throwable -> Mono.empty());
     }
 
@@ -156,5 +159,28 @@ public class AzureKeyVaultCertificate implements CertificateStore {
                 .onErrorResume(throwable -> certificateOperationFlux)
                 .next()
                 .map(response -> response.getValue().getCsr());
+    }
+
+    private Mono<Void> disablePreviousVersionsMono(String certificateName) {
+        return client.getCertificate(certificateName)
+                .flatMap(current -> client.listPropertiesOfCertificateVersions(certificateName)
+                        // select only enabled versions
+                        .filter(CertificateProperties::isEnabled)
+                        // exclude the current version
+                        .filter(properties -> !properties.getVersion().equals(current.getProperties().getVersion()))
+                        .flatMap(this::disableCertificateVersionMono)
+                        .then()
+                );
+    }
+
+    private Mono<CertificateProperties> disableCertificateVersionMono(CertificateProperties properties) {
+        return client.updateCertificateProperties(properties.setEnabled(false))
+                .doOnSuccess(certificate -> LOG.info("Successfully disabled version {} of certificate {}",
+                        properties.getVersion(), properties.getName()))
+                .doOnError(throwable -> LOG.error("Cannot disable version {} of certificate {}",
+                        properties.getVersion(), properties.getName(), throwable))
+                .then(Mono.just(properties))
+                // suppress errors
+                .onErrorResume(throwable -> Mono.just(properties));
     }
 }

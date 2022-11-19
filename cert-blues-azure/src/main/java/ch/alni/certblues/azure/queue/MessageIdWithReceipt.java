@@ -25,7 +25,7 @@
 
 package ch.alni.certblues.azure.queue;
 
-import ch.alni.certblues.certbot.queue.MessageId;
+import ch.alni.certblues.storage.queue.MessageId;
 
 public class MessageIdWithReceipt implements MessageId {
 

@@ -23,30 +23,11 @@
  *
  */
 
-package ch.alni.certblues.certbot.queue;
+package ch.alni.certblues.api;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-public interface Queue {
-
-    /**
-     * Returns some pending messages from this queue. The queue implementation defines how many messages are returned.
-     */
-    Flux<QueuedMessage> getMessages();
-
-    /**
-     * Puts the given message into the queue.
-     *
-     * @param payload what to put into the queue
-     * @return mono of the message ID
-     */
-    Mono<MessageId> put(String payload);
-
-    /**
-     * Deletes the message with the given message ID from this queue.
-     */
-    Mono<Void> delete(MessageId messageId);
-
+/**
+ * Type of keys.
+ */
+public enum KeyType {
+    RSA, EC;
 }
-

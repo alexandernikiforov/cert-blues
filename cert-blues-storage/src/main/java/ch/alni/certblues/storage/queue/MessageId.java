@@ -23,11 +23,10 @@
  *
  */
 
-package ch.alni.certblues.certbot;
+package ch.alni.certblues.storage.queue;
 
 /**
- * Type of keys.
+ * Message ID to be implemented by a particular implementation.
  */
-public enum KeyType {
-    RSA, EC;
+public interface MessageId {
 }

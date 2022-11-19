@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import ch.alni.certblues.acme.protocol.Identifier;
 import ch.alni.certblues.acme.protocol.OrderRequest;
-import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.api.CertificateRequest;
 
 final class OrderRequests {
 

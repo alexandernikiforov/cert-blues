@@ -23,21 +23,29 @@
  *
  */
 
-package ch.alni.certblues.certbot.queue;
+package ch.alni.certblues.api;
 
-import com.google.auto.value.AutoValue;
+import org.junit.jupiter.api.Test;
 
-/**
- * Represents a message from a queue.
- */
-@AutoValue
-public abstract class QueuedMessage {
+import java.util.List;
 
-    public static QueuedMessage create(MessageId messageId, String payload) {
-        return new AutoValue_QueuedMessage(messageId, payload);
+import static org.assertj.core.api.Assertions.assertThat;
+
+class CertificateRequestTest {
+
+    @Test
+    void testWriting() {
+        final var certificateRequest = CertificateRequest.builder()
+                .keySize(2048)
+                .keyType(KeyType.RSA)
+                .dnsNames(List.of("*.cloudalni.com", "cloudalni.com"))
+                .validityInMonths(3)
+                .certificateName("cloudalni.com")
+                .subjectDn("CH=cloudalni.com")
+                .storageEndpointUrl("storageEndpointUrl")
+                .build();
+
+        final String json = certificateRequest.toJson();
+        assertThat(CertificateRequest.of(json)).isEqualTo(certificateRequest);
     }
-
-    public abstract MessageId messageId();
-
-    public abstract String payload();
 }

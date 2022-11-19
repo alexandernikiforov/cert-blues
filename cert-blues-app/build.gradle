@@ -25,6 +25,7 @@ dependencies {
 
     implementation project(':cert-blues-acme')
     implementation project(':cert-blues-certbot')
+    implementation project(':cert-blues-storage')
     implementation project(':cert-blues-azure')
 
     runtimeOnly 'ch.qos.logback:logback-classic'

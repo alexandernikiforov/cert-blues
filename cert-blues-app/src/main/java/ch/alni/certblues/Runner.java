@@ -35,8 +35,8 @@ import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
 import ch.alni.certblues.certbot.CertBot;
-import ch.alni.certblues.certbot.StorageService;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
+import ch.alni.certblues.storage.StorageService;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;

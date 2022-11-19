@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Configuration;
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
 import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultCertificate;
 import ch.alni.certblues.azure.keyvault.AzureKeyVaultKey;
 import ch.alni.certblues.azure.provision.AuthenticatedDnsZoneManager;
@@ -45,9 +46,8 @@ import ch.alni.certblues.azure.provision.AzureDnsChallengeProvisioner;
 import ch.alni.certblues.azure.provision.AzureHttpChallengeProvisioner;
 import ch.alni.certblues.azure.queue.AzureQueue;
 import ch.alni.certblues.certbot.AuthorizationProvisionerFactory;
-import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.CertificateStore;
-import ch.alni.certblues.certbot.queue.Queue;
+import ch.alni.certblues.storage.queue.Queue;
 
 /**
  * Configures the Azure-based implementation of the components used by the cert bot.

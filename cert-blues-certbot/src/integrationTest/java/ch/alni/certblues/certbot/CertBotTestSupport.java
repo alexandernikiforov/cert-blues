@@ -33,7 +33,7 @@ import org.springframework.test.context.TestPropertySource;
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
-import ch.alni.certblues.certbot.queue.Queue;
+import ch.alni.certblues.storage.queue.Queue;
 
 @ContextConfiguration(classes = CertBotTestConfiguration.class)
 @TestPropertySource("/test.properties")

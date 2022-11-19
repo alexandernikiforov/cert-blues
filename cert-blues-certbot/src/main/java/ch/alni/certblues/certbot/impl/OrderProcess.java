@@ -30,8 +30,8 @@ import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 
 import ch.alni.certblues.acme.protocol.Order;
+import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.certbot.CertBotException;
-import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.events.OrderCheckNeededEvent;
 import ch.alni.certblues.certbot.events.OrderCreatedEvent;
 import ch.alni.certblues.certbot.events.OrderReadyEvent;

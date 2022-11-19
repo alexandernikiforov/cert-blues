@@ -23,32 +23,30 @@
  *
  */
 
-package ch.alni.certblues.certbot.certbot;
+package ch.alni.certblues.storage.queue;
 
-import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
+public interface Queue {
 
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
+    /**
+     * Returns some pending messages from this queue. The queue implementation defines how many messages are returned.
+     */
+    Flux<QueuedMessage> getMessages();
 
-import static org.assertj.core.api.Assertions.assertThat;
+    /**
+     * Puts the given message into the queue.
+     *
+     * @param payload what to put into the queue
+     * @return mono of the message ID
+     */
+    Mono<MessageId> put(String payload);
 
-class CertificateRequestTest {
+    /**
+     * Deletes the message with the given message ID from this queue.
+     */
+    Mono<Void> delete(MessageId messageId);
 
-    @Test
-    void testWriting() {
-        final var certificateRequest = CertificateRequest.builder()
-                .keySize(2048)
-                .keyType(KeyType.RSA)
-                .dnsNames(List.of("*.cloudalni.com", "cloudalni.com"))
-                .validityInMonths(3)
-                .certificateName("cloudalni.com")
-                .subjectDn("CH=cloudalni.com")
-                .storageEndpointUrl("storageEndpointUrl")
-                .build();
-
-        final String json = certificateRequest.toJson();
-        assertThat(CertificateRequest.of(json)).isEqualTo(certificateRequest);
-    }
 }
+

@@ -40,7 +40,7 @@ import java.security.KeyPair;
 
 import javax.security.auth.x500.X500Principal;
 
-import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.certbot.CertificateStore;
 import reactor.core.publisher.Mono;
 

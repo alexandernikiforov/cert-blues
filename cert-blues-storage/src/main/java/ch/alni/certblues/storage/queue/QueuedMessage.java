@@ -23,26 +23,21 @@
  *
  */
 
-package ch.alni.certblues.certbot;
+package ch.alni.certblues.storage.queue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.auto.value.AutoValue;
 
-import ch.alni.certblues.common.json.ObjectMapperFactory;
+/**
+ * Represents a message from a queue.
+ */
+@AutoValue
+public abstract class QueuedMessage {
 
-public interface JsonTransform {
-
-    /**
-     * Serializes this object as JSON.
-     *
-     * @return this object as JSON string
-     * @throws IllegalStateException if an error occurs
-     */
-    default String toJson() {
-        try {
-            return ObjectMapperFactory.getObjectMapper().writeValueAsString(this);
-        }
-        catch (JsonProcessingException e) {
-            throw new IllegalStateException("cannot write this object as JSON", e);
-        }
+    public static QueuedMessage create(MessageId messageId, String payload) {
+        return new AutoValue_QueuedMessage(messageId, payload);
     }
+
+    public abstract MessageId messageId();
+
+    public abstract String payload();
 }

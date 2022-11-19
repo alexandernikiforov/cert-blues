@@ -23,28 +23,27 @@
  *
  */
 
-package ch.alni.certblues.certbot.impl;
+package ch.alni.certblues.storage.impl;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.StorageService;
-import ch.alni.certblues.certbot.queue.MessageId;
-import ch.alni.certblues.certbot.queue.Queue;
+import ch.alni.certblues.api.CertificateRequest;
+import ch.alni.certblues.storage.StorageService;
+import ch.alni.certblues.storage.queue.MessageId;
+import ch.alni.certblues.storage.queue.Queue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import static org.slf4j.LoggerFactory.getLogger;
-
 @Service
 class StorageServiceImpl implements StorageService {
-    private static final Logger LOG = getLogger(StorageServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StorageServiceImpl.class);
 
     // the maps will keep growing, but this is not very bad as not so many requests are expected
     // in th worst case a clean-up thread can be implemented in a later step

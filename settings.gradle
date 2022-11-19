@@ -10,10 +10,12 @@ includeBuild 'cert-blues-conventions'
 
 include 'cert-blues-acme',
         'cert-blues-app',
+        'cert-blues-api',
         'cert-blues-deployment',
         'cert-blues-functions',
         'cert-blues-platform',
         'cert-blues-azure',
         'cert-blues-certbot',
+        'cert-blues-storage',
         'cert-blues-common',
         'cert-blues-test-common'

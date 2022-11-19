@@ -41,6 +41,7 @@ import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.key.rsa.SimpleRsaKeyEntry;
 import ch.alni.certblues.acme.key.rsa.SimpleRsaKeyPair;
+import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.certbot.certificate.SimpleCertEntry;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;

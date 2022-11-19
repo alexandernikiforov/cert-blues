@@ -26,14 +26,12 @@
 package ch.alni.certblues.certbot;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
-import ch.alni.certblues.storage.queue.Queue;
 
 @ContextConfiguration(classes = CertBotTestConfiguration.class)
 @TestPropertySource("/test.properties")
@@ -50,7 +48,4 @@ public class CertBotTestSupport {
 
     @Autowired
     protected CertificateStore certificateStore;
-
-    @MockBean
-    protected Queue queue;
 }

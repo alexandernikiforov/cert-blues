@@ -29,6 +29,9 @@ import com.google.common.base.Preconditions;
 
 import org.slf4j.Logger;
 
+import java.util.List;
+
+import ch.alni.certblues.acme.protocol.Authorization;
 import ch.alni.certblues.acme.protocol.Order;
 import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.certbot.CertBotException;
@@ -40,6 +43,7 @@ import ch.alni.certblues.certbot.events.OrderStateListener;
 import ch.alni.certblues.certbot.events.OrderValidEvent;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.util.function.Tuple2;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -94,7 +98,7 @@ public class OrderProcess {
                 break;
             case READY:
                 LOG.info("all authorizations are valid for {}", order);
-                publish(new OrderReadyEvent(this, order.finalizeUrl()));
+                publish(new OrderReadyEvent(this, order.finalizeUrl(), orderUrl));
                 break;
             case VALID:
                 LOG.info("certificate issued and is ready for download for {}", order);
@@ -112,8 +116,11 @@ public class OrderProcess {
         publish(new OrderCheckNeededEvent(this, orderUrl));
     }
 
-    public synchronized void onOrderChanged(Order order) {
+    public synchronized void onOrderChanged(Tuple2<Order, List<Authorization>> orderWithAuthorizations) {
         Preconditions.checkNotNull(orderUrl, "order URL is not known");
+
+        final Order order = orderWithAuthorizations.getT1();
+        final List<Authorization> authorizations = orderWithAuthorizations.getT2();
 
         switch (order.status()) {
             case PENDING:
@@ -121,7 +128,7 @@ public class OrderProcess {
                 publish(new OrderCheckNeededEvent(this, orderUrl));
                 break;
             case INVALID:
-                LOG.error("error while processing the order {}", order);
+                LOG.error("error while processing the order {}\nAuthorizations: {}", order, authorizations);
                 subject.tryEmitError(new CertBotException("order processing error: " + order.error()));
                 break;
             case PROCESSING:
@@ -130,7 +137,7 @@ public class OrderProcess {
                 break;
             case READY:
                 LOG.info("all authorizations are valid for {}", order);
-                publish(new OrderReadyEvent(this, order.finalizeUrl()));
+                publish(new OrderReadyEvent(this, order.finalizeUrl(), orderUrl));
                 break;
             case VALID:
                 LOG.info("certificate is issued and ready for download for {}", order);

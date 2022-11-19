@@ -33,10 +33,12 @@ import ch.alni.certblues.certbot.impl.OrderProcess;
 public class OrderReadyEvent extends OrderStateEvent {
 
     private final String finalizeUrl;
+    private final String orderUrl;
 
-    public OrderReadyEvent(OrderProcess process, String finalizeUrl) {
+    public OrderReadyEvent(OrderProcess process, String finalizeUrl, String orderUrl) {
         super(process);
         this.finalizeUrl = finalizeUrl;
+        this.orderUrl = orderUrl;
     }
 
     @Override
@@ -48,4 +50,7 @@ public class OrderReadyEvent extends OrderStateEvent {
         return finalizeUrl;
     }
 
+    public String getOrderUrl() {
+        return orderUrl;
+    }
 }

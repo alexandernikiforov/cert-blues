@@ -49,10 +49,28 @@ public class AccountAccessor {
         this.requestHandler = requestHandler;
     }
 
+    /**
+     * Creates a new ore returns an existing account.
+     *
+     * @param newAccountUrl   "new-account" URL of the ACME directory
+     * @param resourceRequest request handling details of how to get the account
+     */
     public Mono<? extends CreatedResource<Account>> getAccount(String newAccountUrl, AccountRequest resourceRequest) {
         return nonceSource.getNonce()
                 .flatMap(nonce -> payloadSigner.sign(newAccountUrl, resourceRequest, nonce))
                 .flatMap(jwsObject -> requestHandler.create(newAccountUrl, jwsObject, nonceSource, Account.class))
+                .retryWhen(retryHandler.getRetry());
+    }
+
+    /**
+     * Returns account object with a GET-as-POST request to the given URL.
+     *
+     * @param accountUrl URL of the account to return
+     */
+    public Mono<Account> getAccount(String accountUrl) {
+        return nonceSource.getNonce()
+                .flatMap(nonce -> payloadSigner.sign(accountUrl, accountUrl, "", nonce))
+                .flatMap(jwsObject -> requestHandler.request(accountUrl, jwsObject, nonceSource, Account.class))
                 .retryWhen(retryHandler.getRetry());
     }
 }

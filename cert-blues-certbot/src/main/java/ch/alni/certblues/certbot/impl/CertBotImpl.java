@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import ch.alni.certblues.acme.client.request.CreatedResource;
 import ch.alni.certblues.acme.facade.AcmeSession;
 import ch.alni.certblues.acme.facade.AuthorizationProvisioningStrategy;
+import ch.alni.certblues.acme.protocol.Authorization;
 import ch.alni.certblues.acme.protocol.Challenge;
 import ch.alni.certblues.acme.protocol.Order;
 import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
@@ -52,6 +53,7 @@ import ch.alni.certblues.certbot.events.OrderValidEvent;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -84,7 +86,9 @@ class CertBotImpl implements CertBot {
 
             final Mono<List<Challenge>> authorizationMono = session.provision(order.authorizations(), strategy)
                     // submit the returned challenges
-                    .flatMap(session::submitChallenges);
+                    .flatMap(session::submitChallenge)
+                    // and collect them as list
+                    .collectList();
 
             authorizationMono
                     .subscribeOn(internal)
@@ -104,7 +108,7 @@ class CertBotImpl implements CertBot {
 
             Mono.just(orderUrl)
                     .delayElement(Duration.ofSeconds(2L))
-                    .flatMap(session::getOrder)
+                    .flatMap(session::getOrderWithAuthorizations)
                     .subscribeOn(internal)
                     .subscribe(process::onOrderChanged,
                             throwable -> {
@@ -123,8 +127,9 @@ class CertBotImpl implements CertBot {
                     .map(csr -> Base64.getUrlEncoder().withoutPadding().encodeToString(csr))
                     .map(encodedCsr -> OrderFinalizationRequest.builder().csr(encodedCsr).build());
 
-            final Mono<Order> orderMono = finalizationRequestMono
-                    .flatMap(request -> session.finalizeOrder(finalizeUrl, request));
+            final Mono<Tuple2<Order, List<Authorization>>> orderMono = finalizationRequestMono
+                    .flatMap(request -> session.finalizeOrder(finalizeUrl, request))
+                    .flatMap(order -> session.getOrderWithAuthorizations(event.getOrderUrl()));
 
             orderMono
                     .subscribeOn(internal)

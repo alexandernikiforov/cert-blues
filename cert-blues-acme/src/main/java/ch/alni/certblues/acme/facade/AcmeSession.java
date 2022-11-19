@@ -47,7 +47,10 @@ import ch.alni.certblues.acme.protocol.Directory;
 import ch.alni.certblues.acme.protocol.Order;
 import ch.alni.certblues.acme.protocol.OrderFinalizationRequest;
 import ch.alni.certblues.acme.protocol.OrderRequest;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Client session against the ACME server.
@@ -65,6 +68,7 @@ public class AcmeSession {
     private final Mono<String> publicKeyThumbprintMono;
 
     private final AuthorizationProvisioner authorizationProvisioner;
+
     /**
      * Creates a new instance.
      *
@@ -114,10 +118,16 @@ public class AcmeSession {
     }
 
     /**
-     * Return order object by the given order URL.
+     * Return order object by the given order URL together with authorizations.
      */
-    public synchronized Mono<Order> getOrder(String orderUrl) {
-        return accountUrlMono.flatMap(accountUrl -> orderAccessor.getOrder(accountUrl, orderUrl));
+    public Mono<Tuple2<Order, List<Authorization>>> getOrderWithAuthorizations(String orderUrl) {
+        return accountUrlMono.flatMap(accountUrl -> orderAccessor
+                .getOrder(accountUrl, orderUrl)
+                .flatMap(order -> Flux.fromIterable(order.authorizations())
+                        .flatMap(this::getAuthorization)
+                        .collectList()
+                        .flatMap(authorizations -> Mono.just(Tuples.of(order, authorizations)))
+                ));
     }
 
     public Mono<Authorization> getAuthorization(String authorizationUrl) {
@@ -129,10 +139,14 @@ public class AcmeSession {
     /**
      * Provisions the challenges of the authorizations identified by the given URLs.
      *
-     * @return list of provisioned challenges (as mono)
+     * @return flux over provisioned challenges
      */
-    public Mono<List<Challenge>> provision(List<String> authorizationUrls, AuthorizationProvisioningStrategy strategy) {
-
+    public Flux<Challenge> provision(List<String> authorizationUrls, AuthorizationProvisioningStrategy strategy) {
+        return Flux.fromIterable(authorizationUrls)
+                // wait for completion of each authorization
+                // this is needed to avoid overriding DNS challenges
+                .concatMap(authorizationUrl -> provision(authorizationUrl, strategy));
+/*
         return accountUrlMono.map(accountUrl ->
                         authorizationUrls.stream()
                                 .map(authorizationUrl -> authorizationAccessor.getAuthorization(accountUrl, authorizationUrl)
@@ -141,7 +155,20 @@ public class AcmeSession {
                 // zip waits for all challenge provisions to complete
                 .flatMap(monoList -> Mono.zip(monoList, List::of))
                 // cast back to Challenge objects
-                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));
+                .map(objects -> objects.stream().map(Challenge.class::cast).collect(Collectors.toList()));*/
+    }
+
+    /**
+     * Provision the given authorization.
+     *
+     * @param authorizationUrl URL that identifies the authorization
+     * @param strategy         the authorization strategy for the current order request
+     * @return mono over the provisioned challenge
+     */
+    public Mono<Challenge> provision(String authorizationUrl, AuthorizationProvisioningStrategy strategy) {
+        return accountUrlMono.flatMap(accountUrl -> authorizationAccessor
+                .getAuthorization(accountUrl, authorizationUrl)
+                .flatMap(authorization -> authorizationProvisioner.process(authorization, strategy)));
     }
 
     /**

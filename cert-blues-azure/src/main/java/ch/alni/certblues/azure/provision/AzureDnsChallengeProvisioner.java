@@ -25,6 +25,7 @@
 
 package ch.alni.certblues.azure.provision;
 
+import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.dns.fluent.RecordSetsClient;
 import com.azure.resourcemanager.dns.fluent.models.RecordSetInner;
 import com.azure.resourcemanager.dns.models.RecordType;
@@ -32,8 +33,10 @@ import com.azure.resourcemanager.dns.models.TxtRecord;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import reactor.core.publisher.Mono;
 
 /**
@@ -42,6 +45,7 @@ import reactor.core.publisher.Mono;
 public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
 
     public static final String RECORD_SET_NAME_ACME_CHALLENGE = "_acme-challenge";
+    public static final int MAX_RECORD_SIZE = 4;
 
     private final AuthenticatedDnsZoneManager dnsZoneManager;
     private final String resourceGroupName;
@@ -60,32 +64,29 @@ public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
                 .serviceClient()
                 .getRecordSets();
 
+        final TxtRecord txtRecord = new TxtRecord().withValue(List.of(value));
+
         return recordSetsClient.getWithResponseAsync(
                         resourceGroupName,
                         dnsZoneName,
                         getRecordSetName(host),
                         RecordType.TXT
                 )
-                .flatMap(response -> {
-                    final TxtRecord txtRecord = new TxtRecord().withValue(List.of(value));
+                .map(response -> {
+                    // add a new record into the existing record set
+                    final List<TxtRecord> txtRecords = response.getValue().txtRecords();
 
-                    if (response.getValue() == null) {
-                        // there is no such record set with this name yet, it should be created
-                        return updateRecordSet(recordSetsClient, host, List.of(txtRecord));
-                    }
-                    else {
-                        // add a new record into the existing record set
-                        final List<TxtRecord> txtRecords = response.getValue().txtRecords();
-                        final int size = txtRecords.size();
+                    final List<TxtRecord> updatedRecordSet = new ArrayList<>();
+                    updatedRecordSet.add(txtRecord);
+                    updatedRecordSet.addAll(txtRecords);
 
-                        // leave at most 5 records in the record set
-                        final List<TxtRecord> updatedRecordSet = new ArrayList<>();
-                        updatedRecordSet.add(txtRecord);
-                        updatedRecordSet.addAll(txtRecords.subList(0, Math.min(size, 5)));
-
-                        return updateRecordSet(recordSetsClient, host, updatedRecordSet);
-                    }
-                });
+                    // restrict the size of the record
+                    final int size = updatedRecordSet.size();
+                    return updatedRecordSet.subList(0, Math.min(size, MAX_RECORD_SIZE));
+                })
+                // in case of 404 error return a set consisting of just the new record
+                .onErrorReturn(isRecordNotFound(), List.of(txtRecord))
+                .flatMap(updatedRecordSet -> updateRecordSet(recordSetsClient, host, updatedRecordSet));
     }
 
     private Mono<Void> updateRecordSet(RecordSetsClient recordSetsClient, String host, List<TxtRecord> txtRecords) {
@@ -107,5 +108,17 @@ public class AzureDnsChallengeProvisioner implements DnsChallengeProvisioner {
             final String recordName = host.replace("." + dnsZoneName, "");
             return RECORD_SET_NAME_ACME_CHALLENGE + "." + recordName;
         }
+    }
+
+    private Predicate<Throwable> isRecordNotFound() {
+        return throwable -> {
+            if (throwable instanceof ManagementException) {
+                final ManagementException e = (ManagementException) throwable;
+                return e.getResponse().getStatusCode() == HttpResponseStatus.NOT_FOUND.code();
+            }
+            else {
+                return false;
+            }
+        };
     }
 }

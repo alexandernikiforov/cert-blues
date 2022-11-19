@@ -26,6 +26,15 @@
 plugins {
     id 'java-library'
     id 'project-java-conventions'
+    id 'org.unbroken-dome.test-sets'
+}
+
+testSets {
+    integrationTest
+}
+
+integrationTest {
+    useJUnitPlatform()
 }
 
 dependencies {

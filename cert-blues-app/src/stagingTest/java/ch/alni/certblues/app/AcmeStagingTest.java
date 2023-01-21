@@ -43,6 +43,10 @@ import ch.alni.certblues.certbot.impl.CertBotFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Staging test that issues a wildcard certificate for test.cloudalni.com and its possible subdomains. This certificate
+ * is written to the entry cloudalni5. Acme staging directory is used.
+ */
 @SpringBootTest
 @ActiveProfiles(profiles = "dev")
 class AcmeStagingTest {

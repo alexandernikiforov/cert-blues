@@ -46,11 +46,11 @@ class AzureDnsChallengeProvisionerTest {
 
     @Test
     void provisionDns() {
-        provisioner.provisionDns("test.cloudalni.com", "value1").block(Duration.ofSeconds(100));
-        provisioner.provisionDns("test.cloudalni.com", "value2").block(Duration.ofSeconds(100));
-        provisioner.provisionDns("test.cloudalni.com", "value3").block(Duration.ofSeconds(100));
-        provisioner.provisionDns("test.cloudalni.com", "value4").block(Duration.ofSeconds(100));
-        provisioner.provisionDns("test.cloudalni.com", "value5").block(Duration.ofSeconds(100));
-        provisioner.provisionDns("test.cloudalni.com", "value6").block(Duration.ofSeconds(100));
+        provisioner.provisionDns("test.cloudalni.com", "value1").block(Duration.ofSeconds(10));
+        provisioner.provisionDns("test.cloudalni.com", "value2").block(Duration.ofSeconds(10));
+        provisioner.provisionDns("test.cloudalni.com", "value3").block(Duration.ofSeconds(10));
+        provisioner.provisionDns("test.cloudalni.com", "value4").block(Duration.ofSeconds(10));
+        provisioner.provisionDns("test.cloudalni.com", "value5").block(Duration.ofSeconds(10));
+        provisioner.provisionDns("test.cloudalni.com", "value6").block(Duration.ofSeconds(10));
     }
 }

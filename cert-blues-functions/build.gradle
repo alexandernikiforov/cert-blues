@@ -38,6 +38,8 @@ dependencies {
     implementation project(':cert-blues-app')
 }
 
+description = 'Azure Functions backend, it is disabled in favor of running the bot as a Spring Boot application'
+
 azurefunctions {
     appName = 'cert-blues'
     allowTelemetry = false

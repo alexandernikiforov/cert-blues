@@ -15,3 +15,10 @@ spring:
   sql:
     init:
       mode: never
+
+  application:
+    name: cert-blues
+
+cert-blues:
+  max-execution-time: 10m
+  renewal-interval: 60d

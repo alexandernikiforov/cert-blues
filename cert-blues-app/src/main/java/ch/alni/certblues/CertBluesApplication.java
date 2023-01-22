@@ -27,8 +27,10 @@ package ch.alni.certblues;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
+import java.time.Clock;
 import java.time.Duration;
 
 import io.netty.handler.logging.LogLevel;
@@ -37,6 +39,7 @@ import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
 @SpringBootApplication
+@EnableConfigurationProperties(CertBluesProperties.class)
 public class CertBluesApplication {
 
     public static void main(String[] args) {
@@ -58,5 +61,10 @@ public class CertBluesApplication {
                 .protocol(HttpProtocol.HTTP11, HttpProtocol.H2)
                 .wiretap("reactor.netty.http.client.HttpClient", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
                 .responseTimeout(Duration.ofSeconds(30));
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemDefaultZone();
     }
 }

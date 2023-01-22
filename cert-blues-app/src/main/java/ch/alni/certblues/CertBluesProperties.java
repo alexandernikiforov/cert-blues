@@ -23,30 +23,39 @@
  *
  */
 
-package ch.alni.certblues.certbot;
+package ch.alni.certblues;
 
-import ch.alni.certblues.api.CertificateRequest;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
-public interface CertificateStore {
+import java.time.Duration;
 
-    /**
-     * Creates a new certificate sign request. If the certificate with the name in the request does not exist, it will
-     * be created.
-     */
-    Mono<byte[]> createCsr(CertificateRequest certificateRequest);
+@ConfigurationProperties(prefix = "cert-blues")
+@ConstructorBinding
+public class CertBluesProperties {
 
     /**
-     * Uploads certificate in PEM format to this certificate store.
-     *
-     * @param name        the name of the certificate in the store
-     * @param certificate certificate in PEM format
+     * After this time the application will start the renewal of the certificate.
      */
-    Mono<Void> upload(String name, String certificate);
+    private final Duration renewalInterval;
 
     /**
-     * Returns information about certificates from this store.
+     * How long the application can be executed before the execution is aborted.
      */
-    Flux<CertificateInfo> getCertificates();
+    private final Duration maxExecutionTime;
+
+    public CertBluesProperties(@DefaultValue("60d") Duration renewalInterval,
+                               @DefaultValue("10m") Duration maxExecutionTime) {
+        this.renewalInterval = renewalInterval;
+        this.maxExecutionTime = maxExecutionTime;
+    }
+
+    public Duration getRenewalInterval() {
+        return renewalInterval;
+    }
+
+    public Duration getMaxExecutionTime() {
+        return maxExecutionTime;
+    }
 }

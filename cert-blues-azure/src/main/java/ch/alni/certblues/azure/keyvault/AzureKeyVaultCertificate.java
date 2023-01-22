@@ -44,10 +44,11 @@ import org.slf4j.Logger;
 
 import java.util.List;
 
-import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.api.KeyType;
+import ch.alni.certblues.certbot.CertificateInfo;
 import ch.alni.certblues.certbot.CertificateStore;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -79,18 +80,6 @@ public class AzureKeyVaultCertificate implements CertificateStore {
         this(credential, null, keyVaultUrl);
     }
 
-    private static String toSignatureAlg(CertificateKeyType keyType) {
-        if (keyType.equals(CertificateKeyType.RSA) || keyType.equals(CertificateKeyType.RSA_HSM)) {
-            return "RS256";
-        }
-        else if (keyType.equals(CertificateKeyType.EC) || keyType.equals(CertificateKeyType.EC_HSM)) {
-            return "ES256";
-        }
-        else {
-            throw new IllegalArgumentException("unsupported key type " + keyType);
-        }
-    }
-
     private static boolean isCertificateCreated(Throwable throwable) {
         if (throwable instanceof HttpResponseException) {
             final var exception = (HttpResponseException) throwable;
@@ -103,13 +92,6 @@ public class AzureKeyVaultCertificate implements CertificateStore {
 
     private static CertificateKeyType toCertificateKeyType(KeyType keyType) {
         return CertificateKeyType.fromString(keyType.toString());
-    }
-
-    public Mono<SigningKeyPair> getSigningKeyPair(String certificateName) {
-        return client.getCertificate(certificateName)
-                .map(keyVaultCertificateWithPolicy -> new AzureKeyVaultKey(
-                        credential, keyVaultCertificateWithPolicy.getKeyId(), toSignatureAlg(keyVaultCertificateWithPolicy.getPolicy().getKeyType())
-                ));
     }
 
     @Override
@@ -128,6 +110,15 @@ public class AzureKeyVaultCertificate implements CertificateStore {
                 // disable the previous versions if any
                 .then(disablePreviousVersionsMono(certificateName))
                 .onErrorResume(throwable -> Mono.empty());
+    }
+
+    @Override
+    public Flux<CertificateInfo> getCertificates() {
+        return client.listPropertiesOfCertificates()
+                .map(certificateProperties -> CertificateInfo.builder()
+                        .certificateName(certificateProperties.getName())
+                        .expiresOn(certificateProperties.getExpiresOn().toInstant())
+                        .build());
     }
 
     @Override

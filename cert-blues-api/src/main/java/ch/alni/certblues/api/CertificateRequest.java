@@ -54,6 +54,7 @@ public abstract class CertificateRequest implements JsonTransform {
 
     public static Builder builder() {
         return new AutoValue_CertificateRequest.Builder()
+                .forceRequestCreation(false)
                 .keySize(DEFAULT_KEY_SIZE)
                 .keyType(DEFAULT_KEY_TYPE)
                 .validityInMonths(DEFAULT_VALIDITY_IN_MONTHS);
@@ -113,9 +114,10 @@ public abstract class CertificateRequest implements JsonTransform {
 
     /**
      * URL of the storage endpoint. It points to the blob container that holds the server's WEB content and thus used
-     * for HTTP challenges.
+     * for HTTP challenges. It can be null if HTTP challenges are not used.
      */
     @JsonGetter
+    @Nullable
     public abstract String storageEndpointUrl();
 
     /**
@@ -132,6 +134,13 @@ public abstract class CertificateRequest implements JsonTransform {
     @JsonGetter
     @Nullable
     public abstract String dnsZone();
+
+    /**
+     * Returns true, if this certificate request should be used for certificate renewal on the next cert bot run.
+     */
+    public abstract boolean forceRequestCreation();
+
+    public abstract Builder toBuilder();
 
     @AutoValue.Builder
     @JsonPOJOBuilder(withPrefix = "")
@@ -168,6 +177,9 @@ public abstract class CertificateRequest implements JsonTransform {
 
         @JsonSetter
         public abstract Builder dnsZone(String value);
+
+        @JsonSetter
+        public abstract Builder forceRequestCreation(boolean value);
 
         public abstract CertificateRequest build();
     }

@@ -41,7 +41,9 @@ import java.security.KeyPair;
 import javax.security.auth.x500.X500Principal;
 
 import ch.alni.certblues.api.CertificateRequest;
+import ch.alni.certblues.certbot.CertificateInfo;
 import ch.alni.certblues.certbot.CertificateStore;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -92,5 +94,10 @@ public class SimpleCertEntry implements CertificateStore {
     @Override
     public Mono<Void> upload(String name, String certificate) {
         return Mono.empty();
+    }
+
+    @Override
+    public Flux<CertificateInfo> getCertificates() {
+        return Flux.empty();
     }
 }

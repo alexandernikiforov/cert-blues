@@ -25,28 +25,37 @@
 
 package ch.alni.certblues.certbot;
 
-import ch.alni.certblues.api.CertificateRequest;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import com.google.auto.value.AutoValue;
 
-public interface CertificateStore {
+import java.time.Instant;
 
-    /**
-     * Creates a new certificate sign request. If the certificate with the name in the request does not exist, it will
-     * be created.
-     */
-    Mono<byte[]> createCsr(CertificateRequest certificateRequest);
+/**
+ * Certificate information.
+ */
+@AutoValue
+public abstract class CertificateInfo {
 
-    /**
-     * Uploads certificate in PEM format to this certificate store.
-     *
-     * @param name        the name of the certificate in the store
-     * @param certificate certificate in PEM format
-     */
-    Mono<Void> upload(String name, String certificate);
+    public static Builder builder() {
+        return new AutoValue_CertificateInfo.Builder();
+    }
 
     /**
-     * Returns information about certificates from this store.
+     * How long this certificate is valid.
      */
-    Flux<CertificateInfo> getCertificates();
+    public abstract Instant expiresOn();
+
+    /**
+     * Unique name to be given to this certificate.
+     */
+    public abstract String certificateName();
+
+    @AutoValue.Builder
+    public static abstract class Builder {
+
+        public abstract Builder expiresOn(Instant value);
+
+        public abstract Builder certificateName(String value);
+
+        public abstract CertificateInfo build();
+    }
 }

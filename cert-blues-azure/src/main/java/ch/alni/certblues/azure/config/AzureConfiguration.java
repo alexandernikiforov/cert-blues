@@ -98,8 +98,14 @@ public class AzureConfiguration {
 
             @Override
             public HttpChallengeProvisioner createHttpChallengeProvisioner(CertificateRequest certificateRequest) {
-                return new AzureHttpChallengeProvisioner(credential, httpClient,
-                        certificateRequest.storageEndpointUrl());
+                if (certificateRequest.storageEndpointUrl() != null) {
+                    return new AzureHttpChallengeProvisioner(credential, httpClient,
+                            certificateRequest.storageEndpointUrl());
+                }
+                else {
+                    // HTTP challenges are not supported
+                    return null;
+                }
             }
 
             @Override

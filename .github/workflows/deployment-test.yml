@@ -19,7 +19,7 @@ jobs:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
             type=raw,value={{tag}},enable=${{ contains(github.ref, 'refs/tags/') }},priority=200
-            type=raw,value={{sha}},priority=100
+            type=ref,event=branch,priority=100
 
       - name: Deploy to TEST
         uses: azure/CLI@v1

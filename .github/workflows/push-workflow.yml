@@ -75,7 +75,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
@@ -83,7 +83,7 @@ jobs:
             type=ref,event=branch
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: cert-blues-app
           build-args: |

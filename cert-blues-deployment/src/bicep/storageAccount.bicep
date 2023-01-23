@@ -10,8 +10,8 @@ param sku string = 'Standard_LRS'
 @description('The tags used for this deployment')
 param tags object = {}
 
-@description('The name of the queue storing certificate requests')
-param queueName string = 'requests'
+@description('The name of the table storing certificate requests')
+param tableName string = 'requests'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: name
@@ -23,18 +23,20 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   properties: {
     accessTier: 'Hot'
     allowBlobPublicAccess: false
+    minimumTlsVersion: 'TLS1_2'
   }
 
   tags: tags
 
-  // queues
-  resource queues 'queueServices' = {
+  // table storage
+  resource tables 'tableServices' = {
     name: 'default'
 
-    // request queue
-    resource requestQueue 'queues' = {
-      name: queueName
+    // request table
+    resource requestQueue 'tables' = {
+      name: tableName
     }
   }
+  
 }
 

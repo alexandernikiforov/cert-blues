@@ -64,11 +64,19 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
         attributes: {
           expiryTime: accountKeyValidity
         }
-        // notify 30 days before expiry
+        // rotate 30 days before expiry
         lifetimeActions: [
           {
             action: {
               type: 'rotate'
+            }
+            trigger: {
+              timeBeforeExpiry: 'P30D'
+            }
+          }
+          {
+            action: {
+              type: 'notify'
             }
             trigger: {
               timeBeforeExpiry: 'P30D'

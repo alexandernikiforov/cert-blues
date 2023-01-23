@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.api;
+package ch.alni.certblues.certbot;
 
 import org.junit.jupiter.api.Test;
 

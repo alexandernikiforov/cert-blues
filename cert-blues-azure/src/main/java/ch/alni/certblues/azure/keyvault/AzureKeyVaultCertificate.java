@@ -44,10 +44,10 @@ import org.slf4j.Logger;
 
 import java.util.List;
 
-import ch.alni.certblues.api.CertificateRequest;
-import ch.alni.certblues.api.KeyType;
 import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.CertificateStore;
+import ch.alni.certblues.certbot.KeyType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

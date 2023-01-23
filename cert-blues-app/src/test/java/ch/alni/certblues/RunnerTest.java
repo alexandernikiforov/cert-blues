@@ -31,9 +31,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import ch.alni.certblues.api.CertificateRequest;
-import ch.alni.certblues.api.KeyType;
 import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

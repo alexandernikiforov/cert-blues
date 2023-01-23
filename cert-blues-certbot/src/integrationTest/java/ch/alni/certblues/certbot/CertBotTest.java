@@ -33,8 +33,6 @@ import java.time.Duration;
 import java.util.List;
 
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.api.CertificateRequest;
-import ch.alni.certblues.api.KeyType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

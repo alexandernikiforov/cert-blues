@@ -41,13 +41,13 @@ public class AzureConfigurationProperties {
 
     private final KeyVaultProperties keyVault;
 
-    private final QueueStorageProperties queueStorage;
+    private final TableStorageProperties tableStorage;
 
     public AzureConfigurationProperties(AccountKeyProperties accountKey, KeyVaultProperties keyVault,
-                                        QueueStorageProperties queueStorage) {
+                                        TableStorageProperties tableStorage) {
         this.accountKey = accountKey;
         this.keyVault = keyVault;
-        this.queueStorage = queueStorage;
+        this.tableStorage = tableStorage;
     }
 
     public AccountKeyProperties getAccountKey() {
@@ -58,8 +58,8 @@ public class AzureConfigurationProperties {
         return keyVault;
     }
 
-    public QueueStorageProperties getQueueStorage() {
-        return queueStorage;
+    public TableStorageProperties getTableStorage() {
+        return tableStorage;
     }
 
     public static class AccountKeyProperties {
@@ -107,13 +107,13 @@ public class AzureConfigurationProperties {
     /**
      * Properties for the storage account to hold the certificate requests.
      */
-    public static class QueueStorageProperties {
+    public static class TableStorageProperties {
         private final String serviceUrl;
-        private final String requestQueueName;
+        private final String requestTableName;
 
-        public QueueStorageProperties(String serviceUrl, String requestQueueName) {
+        public TableStorageProperties(String serviceUrl, String requestTableName) {
             this.serviceUrl = serviceUrl;
-            this.requestQueueName = requestQueueName;
+            this.requestTableName = requestTableName;
         }
 
         /**
@@ -124,10 +124,10 @@ public class AzureConfigurationProperties {
         }
 
         /**
-         * The name of the queue to pass the certificate requests into.
+         * The name of the table that holds the certificate requests.
          */
-        public String getRequestQueueName() {
-            return requestQueueName;
+        public String getRequestTableName() {
+            return requestTableName;
         }
     }
 }

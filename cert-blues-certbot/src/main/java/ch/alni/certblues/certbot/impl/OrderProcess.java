@@ -33,8 +33,8 @@ import java.util.List;
 
 import ch.alni.certblues.acme.protocol.Authorization;
 import ch.alni.certblues.acme.protocol.Order;
-import ch.alni.certblues.api.CertificateRequest;
 import ch.alni.certblues.certbot.CertBotException;
+import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.events.OrderCheckNeededEvent;
 import ch.alni.certblues.certbot.events.OrderCreatedEvent;
 import ch.alni.certblues.certbot.events.OrderReadyEvent;

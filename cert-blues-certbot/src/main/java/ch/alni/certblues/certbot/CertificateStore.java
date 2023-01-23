@@ -25,7 +25,6 @@
 
 package ch.alni.certblues.certbot;
 
-import ch.alni.certblues.api.CertificateRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

@@ -23,7 +23,7 @@
  *
  */
 
-package ch.alni.certblues.api;
+package ch.alni.certblues.certbot;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;

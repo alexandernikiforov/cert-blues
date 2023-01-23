@@ -26,19 +26,23 @@
 package ch.alni.certblues.app;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.util.List;
 
+import ch.alni.certblues.CertBluesApplication;
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.api.CertificateRequest;
-import ch.alni.certblues.api.KeyType;
 import ch.alni.certblues.certbot.CertBot;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,7 +51,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Staging test that issues a wildcard certificate for test.cloudalni.com and its possible subdomains. This certificate
  * is written to the entry cloudalni5. Acme staging directory is used.
  */
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = CertBluesApplication.class, initializers = ConfigDataApplicationContextInitializer.class)
 @ActiveProfiles(profiles = "dev")
 class AcmeStagingTest {
 

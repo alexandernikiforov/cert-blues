@@ -4,9 +4,9 @@ azure:
     signature-alg: RS256
   key-vault:
     url: https://cert-blues-dev.vault.azure.net
-  queue-storage:
-    service-url: https://certbluesdev.queue.core.windows.net
-    request-queue-name: requests
+  table-storage:
+    service-url: https://certbluesdev.table.core.windows.net
+    request-table-name: requests
 
 lets-encrypt:
   directory-url: https://acme-v02.api.letsencrypt.org/directory

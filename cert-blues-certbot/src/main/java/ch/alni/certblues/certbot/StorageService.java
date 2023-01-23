@@ -23,21 +23,25 @@
  *
  */
 
-package ch.alni.certblues.storage.queue;
+package ch.alni.certblues.certbot;
 
-import com.google.auto.value.AutoValue;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-/**
- * Represents a message from a queue.
- */
-@AutoValue
-public abstract class QueuedMessage {
+public interface StorageService {
 
-    public static QueuedMessage create(MessageId messageId, String payload) {
-        return new AutoValue_QueuedMessage(messageId, payload);
-    }
+    /**
+     * Removes the given order so that it is not available anymore.
+     *
+     * @param certificateRequest
+     * @return empty mono if completed
+     */
+    Mono<Void> reset(CertificateRequest certificateRequest);
 
-    public abstract MessageId messageId();
-
-    public abstract String payload();
+    /**
+     * Returns a flux over the pending certificate requests.
+     *
+     * @return
+     */
+    Flux<CertificateRequest> getCertificateRequests();
 }

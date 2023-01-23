@@ -27,7 +27,6 @@ package ch.alni.certblues.certbot;
 
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
 import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
-import ch.alni.certblues.api.CertificateRequest;
 
 public interface AuthorizationProvisionerFactory {
 

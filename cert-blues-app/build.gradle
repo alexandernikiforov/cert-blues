@@ -25,7 +25,6 @@ dependencies {
 
     implementation project(':cert-blues-acme')
     implementation project(':cert-blues-certbot')
-    implementation project(':cert-blues-storage')
     implementation project(':cert-blues-azure')
 
     runtimeOnly 'ch.qos.logback:logback-classic'
@@ -73,7 +72,7 @@ tasks.register('buildImage', Exec) {
     ]
 }
 
-task runContainer(type: Exec) {
+tasks.register('runContainer', Exec) {
     description = 'Runs container with the app JAR locally in Docker'
     executable = 'docker'
 

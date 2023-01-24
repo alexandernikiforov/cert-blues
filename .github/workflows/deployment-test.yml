@@ -24,6 +24,11 @@ jobs:
       - name: Deploy to TEST
         uses: azure/CLI@v1
         env:
+          DOCKER_METADATA_OUTPUT_VERSION: ""
+          DOCKER_METADATA_OUTPUT_TAGS: ""
+          DOCKER_METADATA_OUTPUT_LABELS: ""
+          DOCKER_METADATA_OUTPUT_JSON: ""
+          DOCKER_METADATA_OUTPUT_BAKE_FILE: ""
 
         with:
           inlineScript: |
@@ -34,5 +39,5 @@ jobs:
             
             az deployment group create \
               --resource-group cert-blues-dev \
-              --parameters image=${{ env.DOCKER_METADATA_OUTPUT_VERSION }} \
+              --parameters image=${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
               --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

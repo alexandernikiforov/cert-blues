@@ -24,12 +24,12 @@ jobs:
       - name: Deploy to TEST
         uses: azure/CLI@v1
         env:
+          # remove environment variables set by the meta action because they are breaking the azure cli action
           DOCKER_METADATA_OUTPUT_VERSION: ""
           DOCKER_METADATA_OUTPUT_TAGS: ""
           DOCKER_METADATA_OUTPUT_LABELS: ""
           DOCKER_METADATA_OUTPUT_JSON: ""
           DOCKER_METADATA_OUTPUT_BAKE_FILE: ""
-
         with:
           inlineScript: |
             az login --service-principal \

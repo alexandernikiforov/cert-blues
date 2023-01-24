@@ -14,7 +14,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ghcr.io/alexandernikiforov/cert-blues-app
           tags: |
@@ -23,6 +23,13 @@ jobs:
 
       - name: Deploy to PROD
         uses: azure/CLI@v1
+        env:
+          # remove environment variables set by the meta action because they are breaking the azure cli action
+          DOCKER_METADATA_OUTPUT_VERSION: ""
+          DOCKER_METADATA_OUTPUT_TAGS: ""
+          DOCKER_METADATA_OUTPUT_LABELS: ""
+          DOCKER_METADATA_OUTPUT_JSON: ""
+          DOCKER_METADATA_OUTPUT_BAKE_FILE: ""
         with:
           inlineScript: |
             az login --service-principal \

@@ -23,6 +23,8 @@ jobs:
 
       - name: Deploy to TEST
         uses: azure/CLI@v1
+        env:
+
         with:
           inlineScript: |
             az login --service-principal \
@@ -32,5 +34,5 @@ jobs:
             
             az deployment group create \
               --resource-group cert-blues-dev \
-              --parameters image=${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
+              --parameters image=${{ env.DOCKER_METADATA_OUTPUT_VERSION }} \
               --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

@@ -40,4 +40,6 @@ jobs:
             az deployment group create \
               --resource-group cert-blues-dev \
               --parameters image=${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
+                           logAnalyticsWorkspaceId=${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }} \
+                           logAnalyticsWorkspaceKey=${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }} \
               --template-file cert-blues-deployment/src/bicep/aci-deployment-test.bicep

@@ -10,6 +10,13 @@ param tenantId string = subscription().tenantId
 @description('Docker image to deploy to the container group')
 param image string
 
+@description('ID of the log analytics workspace')
+param logAnalyticsWorkspaceId string
+
+@description('Key of the log analytics workspace')
+@secure()
+param logAnalyticsWorkspaceKey string
+
 var seed = resourceGroup().id
 
 var containerGroupName = 'cert-blues-prod-${uniqueString(seed)}'
@@ -21,6 +28,8 @@ module containerGroupModule 'containerInstances.bicep' = {
     name: containerGroupName
     identity: identity
     location: location
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceKey: logAnalyticsWorkspaceKey
     environment: [
       {
         name: 'SPRING_PROFILES_ACTIVE'

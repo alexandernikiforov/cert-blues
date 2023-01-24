@@ -13,6 +13,13 @@ param environment array
 @description('The full name of the Docker image to pull to create the running container')
 param appImage string
 
+@description('ID of the log analytics workspace')
+param logAnalyticsWorkspaceId string
+
+@description('Key of the log analytics workspace')
+@secure()
+param logAnalyticsWorkspaceKey string
+
 // existing user-assigned identity will be assigned to the container group
 resource certBluesIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: identity
@@ -45,6 +52,13 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01'
         }
       }
     ]
+    diagnostics: {
+      logAnalytics:{
+        logType: 'ContainerInstanceLogs'
+        workspaceId: logAnalyticsWorkspaceId
+        workspaceKey: logAnalyticsWorkspaceKey
+      }
+    }
     osType: 'Linux'
     restartPolicy: 'Never'
   }

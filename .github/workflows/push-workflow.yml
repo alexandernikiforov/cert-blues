@@ -27,7 +27,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Execute Gradle build
         run: ./gradlew build copyContextDeps
@@ -92,3 +92,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+

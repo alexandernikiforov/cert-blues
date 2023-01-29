@@ -101,7 +101,7 @@ public class Runner implements CommandLineRunner {
                         .filter(certificateRequest -> shouldBeIncluded(request, certificateInfos))))
                 .doOnNext(request -> LOG.info("certificate request found {}", request))
                 // and then pass each remaining request to the certbot
-                .map(request -> certBot.submit(request)
+                .flatMap(request -> certBot.submit(request)
                         .then(storageService.reset(request))
                         .then(Mono.just(request)))
                 .onErrorStop()

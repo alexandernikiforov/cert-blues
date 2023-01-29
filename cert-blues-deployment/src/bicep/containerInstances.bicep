@@ -41,7 +41,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-07-01' existing 
   name: subnetName
 }
 
-resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01' = {
+resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2022-09-01' = {
   name: name
   location: location
   // assign the user-managed identity to this container group

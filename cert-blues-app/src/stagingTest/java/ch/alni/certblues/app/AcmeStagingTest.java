@@ -64,7 +64,7 @@ class AcmeStagingTest {
             .storageEndpointUrl("https://cloudalnitest.blob.core.windows.net/$web")
             .keyType(KeyType.RSA)
             .keySize(2048)
-            .dnsNames(List.of("test.cloudalni.com", "*.test.cloudalni.com"))
+            .dnsNames(List.of("test.cloudalni.com", "www.test.cloudalni.com"))
             .validityInMonths(12)
             .build();
 

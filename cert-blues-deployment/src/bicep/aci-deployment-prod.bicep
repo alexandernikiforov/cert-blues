@@ -20,7 +20,7 @@ param logAnalyticsWorkspaceKey string
 var seed = resourceGroup().id
 
 var containerGroupName = 'cert-blues-prod-${uniqueString(seed)}'
-var identity = 'cert-blues-prod'
+var identity = 'cert-blues-${uniqueString(seed)}'
 
 module containerGroupModule 'containerInstances.bicep' = {
   name: 'containers'

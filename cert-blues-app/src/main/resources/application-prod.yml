@@ -1,9 +1,9 @@
 azure:
   account-key:
-    id: https://cert-blues-kjcce3rlfa45m.vault.azure.net/keys/account-key-kjcce3rlfa45m
+    id: https://cert-blues-kjcce3rlfa45m.vault.azure.net/keys/account-key
     signature-alg: RS256
-  key-vault:
-    url: https://cert-blues-kjcce3rlfa45m.vault.azure.net
+  certificate-key-vault:
+    url: https://cloudalni.vault.azure.net
   table-storage:
     service-url: https://certblueskjcce3rlfa45m.table.core.windows.net
     request-table-name: requests

@@ -1,13 +1,19 @@
 @description('The name of the container group to run container with the cert bot, must be unique in Azure')
 param name string
 
+@description('The location of the container image resource')
+param location string
+
 @description('The name of the user-managed identity to assign to this container group')
 param identity string
 
-@description('The location of the storage account resource')
-param location string
+@description('The name virtual network this container group should be deployed into')
+param vnetName string = resourceGroup().name
 
-@description('The location of the storage account resource')
+@description('The name of the user-managed identity to assign to this container group')
+param subnetName string = 'aci-subnet'
+
+@description('Array of key-value pairs to be set up into the container\'s environment')
 param environment array
 
 @description('The full name of the Docker image to pull to create the running container')
@@ -25,6 +31,16 @@ resource certBluesIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@202
   name: identity
 }
 
+// subnet this container group should be deployed into
+resource vnet 'Microsoft.Network/virtualNetworks@2022-07-01' existing = {
+  name: vnetName
+}
+
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-07-01' existing = {
+  parent: vnet
+  name: subnetName
+}
+
 resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01' = {
   name: name
   location: location
@@ -36,6 +52,11 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2021-10-01'
     }
   }
   properties: {
+    subnetIds: [
+      {
+        id: subnet.id
+      }
+    ]
     containers: [
       {
         name: 'cert-blues-app'

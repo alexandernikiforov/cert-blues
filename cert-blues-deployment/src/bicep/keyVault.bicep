@@ -7,6 +7,9 @@ param location string
 @description('The tags used for this deployment')
 param tags object = {}
 
+// @description('Which subnets are allowed to access this key vault')
+// param allowedSubnetIds array
+
 @description('The name of the account key')
 param accountKeyName string = 'accountKey'
 
@@ -26,15 +29,15 @@ param accountKeySize int = 2048
 param accountKeyAlg string = 'RSA'
 
 @description(''' 
-    Validity of the account key as duration, default it 3 month (P3M)
+    Validity of the account key as duration, default it 6 month (P6M)
     See https://en.wikipedia.org/wiki/ISO_8601#Durations
   ''')
-param accountKeyValidity string = 'P3M'
+param accountKeyValidity string = 'P6M'
 
 // @description('Expiration time of the account key')
 // param accountKeyExpiration int = dateTimeToEpoch(dateTimeAdd(utcNow(), accountKeyValidity))
 
-resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   location: location
   name: name
   properties: {
@@ -42,14 +45,22 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
       family: 'A'
       name: 'standard'
     }
-    accessPolicies: [
-    ]
+    enableRbacAuthorization: true
+    publicNetworkAccess: 'Enabled'
+    // networkAcls: {
+    //   bypass: 'AzureServices'
+    //   defaultAction: 'Deny'
+    //   virtualNetworkRules: [for allowedSubnetId in allowedSubnetIds: {
+    //     ignoreMissingVnetServiceEndpoint: false
+    //     id: allowedSubnetId
+    //   }]
+    // }
     tenantId: subscription().tenantId
   }
   tags: tags
 
   // account key
-  resource accountKey 'keys@2021-06-01-preview' = {
+  resource accountKey 'keys@2022-07-01' = {
     name: accountKeyName
     properties: {
       keySize: accountKeySize
@@ -92,3 +103,4 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
 }
 
 output keyVaultUri string = keyVault.properties.vaultUri
+output keyVaultId string = keyVault.id

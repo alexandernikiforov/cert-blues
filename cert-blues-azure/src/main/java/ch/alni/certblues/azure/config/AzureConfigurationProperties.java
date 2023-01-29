@@ -39,14 +39,14 @@ public class AzureConfigurationProperties {
 
     private final AccountKeyProperties accountKey;
 
-    private final KeyVaultProperties keyVault;
+    private final KeyVaultProperties certificateKeyVault;
 
     private final TableStorageProperties tableStorage;
 
-    public AzureConfigurationProperties(AccountKeyProperties accountKey, KeyVaultProperties keyVault,
+    public AzureConfigurationProperties(AccountKeyProperties accountKey, KeyVaultProperties certificateKeyVault,
                                         TableStorageProperties tableStorage) {
         this.accountKey = accountKey;
-        this.keyVault = keyVault;
+        this.certificateKeyVault = certificateKeyVault;
         this.tableStorage = tableStorage;
     }
 
@@ -54,8 +54,8 @@ public class AzureConfigurationProperties {
         return accountKey;
     }
 
-    public KeyVaultProperties getKeyVault() {
-        return keyVault;
+    public KeyVaultProperties getCertificateKeyVault() {
+        return certificateKeyVault;
     }
 
     public TableStorageProperties getTableStorage() {

@@ -1,8 +1,8 @@
 azure:
   account-key:
-    id: https://cert-blues-dev.vault.azure.net/keys/account-key-ellpjdvnj4ijs
+    id: https://cert-blues-dev.vault.azure.net/keys/account-key
     signature-alg: RS256
-  key-vault:
+  certificate-key-vault:
     url: https://cert-blues-dev.vault.azure.net
   table-storage:
     service-url: https://certbluesdev.table.core.windows.net

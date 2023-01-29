@@ -1,16 +1,16 @@
 param location string = resourceGroup().location
 
 var tags = {
-  environment: 'prod'
+  application: 'cert-blues'
 }
 
 var seed = resourceGroup().id
 
 var keyVaultName = 'cert-blues-${uniqueString(seed)}'
 var storageAccountName = 'certblues${uniqueString(seed)}'
-
-var accountKeyName = 'account-key-${uniqueString(seed)}'
-var identityName = 'cert-blues-prod'
+var identityName = 'cert-blues-${uniqueString(seed)}'
+var accountKeyName = 'account-key'
+var vnetName = resourceGroup().name
 
 module identityModule 'identity.bicep' = {
   name: 'certBluesIdentity'
@@ -20,6 +20,17 @@ module identityModule 'identity.bicep' = {
   }
 }
 
+// define the network with a subnet for the ACI to be deployed into
+module networkModule 'network.bicep' = {
+  name: 'vnet'
+  params: {
+    location: location
+    name: vnetName
+    tags: tags
+  }
+}
+
+// access to the key vault and the storage account is restricted to the just created subnet
 module keyVaultModule 'keyVault.bicep' = {
   name: 'keyVault'
   params: {
@@ -30,6 +41,7 @@ module keyVaultModule 'keyVault.bicep' = {
   }
 }
 
+// access to the key vault and the storage account is restricted to the just created subnet
 module storageAccountModule 'storageAccount.bicep' = {
   name: 'storageAccount'
   params: {
@@ -39,36 +51,18 @@ module storageAccountModule 'storageAccount.bicep' = {
   }
 }
 
-// roles for the container group, read the ID of the managed identity
+// assign roles for the container group, read the ID of the managed identity
 var principalId = identityModule.outputs.managedIdentityId
 
-module dnsZoneRolesModule 'dnsZone.bicep' = {
-  name: 'dnsZoneRoles'
-  scope: resourceGroup('mydomainnames')
-  params: {
-    name: 'cloudalni.com'
-    principalId: principalId
-  }
-}
-
-module storageAccountRolesModule 'storageAccountRoles.bicep' = {
-  name: 'storageAccountRoles'
+module roleAssignmentModule 'roleAssignment.bicep' = {
+  name: 'roleAssignment'
   dependsOn: [
     storageAccountModule
-  ]
-  params: {
-    name: storageAccountName
-    principalId: principalId
-  }
-}
-
-module keyVaultRolesModule 'keyVaultRoles.bicep' = {
-  name: 'keyVaultRoles'
-  dependsOn: [
     keyVaultModule
   ]
   params: {
-    name: keyVaultName
+    storageAccountName: storageAccountName
+    keyVaultName: keyVaultName
     principalId: principalId
   }
 }

@@ -87,7 +87,7 @@ public class AzureConfiguration {
 
     @Bean
     public CertificateStore certificateStore(TokenCredential credential, HttpClient httpClient) {
-        return new AzureKeyVaultCertificate(credential, httpClient, properties.getKeyVault().getUrl());
+        return new AzureKeyVaultCertificate(credential, httpClient, properties.getCertificateKeyVault().getUrl());
     }
 
     @Bean

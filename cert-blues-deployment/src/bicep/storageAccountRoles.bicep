@@ -11,16 +11,16 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing 
 // roles for service principal
 
 // see https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
-var storageTableDataContributorId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3' // storage table data contributor 
+var storageBlobDataContributorId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // storage blob data contributor 
 
-// storage table data contributor to read certificate requests from the table
-var storageTableDataContributorRoleDefinitionId = extensionResourceId(subscription().id, 'Microsoft.Authorization/roleDefinitions', storageTableDataContributorId)
-resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
+// storage blob data contributor to write the HTTP challenge tokens to the storage
+var storageBlobDataContributorRoleDefinitionId = extensionResourceId(subscription().id, 'Microsoft.Authorization/roleDefinitions', storageBlobDataContributorId)
+resource storageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
   scope: storageAccount
-  name: guid(storageAccount.id, principalId, storageTableDataContributorId)
+  name: guid(storageAccount.id, principalId, storageBlobDataContributorId)
   properties: {
     principalId: principalId
-    roleDefinitionId: storageTableDataContributorRoleDefinitionId
+    roleDefinitionId: storageBlobDataContributorRoleDefinitionId
     principalType: 'ServicePrincipal'
   }
 }

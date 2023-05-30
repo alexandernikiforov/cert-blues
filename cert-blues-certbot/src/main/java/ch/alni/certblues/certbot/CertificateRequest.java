@@ -25,21 +25,18 @@
 
 package ch.alni.certblues.certbot;
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
-
+import ch.alni.certblues.common.json.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-
-import ch.alni.certblues.common.json.ObjectMapperFactory;
 
 /**
  * Request information to create/renew certificate.

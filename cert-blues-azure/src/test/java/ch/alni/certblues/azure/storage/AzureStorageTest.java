@@ -23,24 +23,24 @@
  *
  */
 
-package ch.alni.certblues;
+package ch.alni.certblues.azure.storage;
 
+import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import ch.alni.certblues.certbot.CertificateInfo;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class RunnerTest {
+class AzureStorageTest {
 
     public static final String CERTIFICATE_NAME_1 = "certificateName1";
     public static final String CERTIFICATE_NAME_2 = "certificateName2";
+    public static final String CERTIFICATE_NAME_3 = "certificateName3";
+
     private static final CertificateRequest CERTIFICATE_REQUEST = CertificateRequest.builder()
             .subjectDn("CN=test.cloudalni.com")
             .certificateName("cloudalni5")
@@ -60,10 +60,6 @@ class RunnerTest {
 
         final List<CertificateInfo> certificateInfos = List.of(
                 CertificateInfo.builder()
-                        .expiresOn(in20days.plus(1, ChronoUnit.DAYS))
-                        .certificateName(CERTIFICATE_NAME_1)
-                        .build(),
-                CertificateInfo.builder()
                         .expiresOn(in20days.minus(1, ChronoUnit.DAYS))
                         .certificateName(CERTIFICATE_NAME_2)
                         .build()
@@ -78,12 +74,12 @@ class RunnerTest {
                 .build();
 
         final CertificateRequest request3 = CERTIFICATE_REQUEST.toBuilder()
-                .certificateName(CERTIFICATE_NAME_1)
+                .certificateName(CERTIFICATE_NAME_3)
                 .forceRequestCreation(true)
                 .build();
 
-        assertThat(Runner.shouldBeIncluded(request1, certificateInfos, in20days)).isFalse();
-        assertThat(Runner.shouldBeIncluded(request2, certificateInfos, in20days)).isTrue();
-        assertThat(Runner.shouldBeIncluded(request3, certificateInfos, in20days)).isTrue();
+        Assertions.assertThat(AzureStorage.shouldBeIncluded(request1, certificateInfos)).isFalse();
+        Assertions.assertThat(AzureStorage.shouldBeIncluded(request2, certificateInfos)).isTrue();
+        Assertions.assertThat(AzureStorage.shouldBeIncluded(request3, certificateInfos)).isTrue();
     }
 }

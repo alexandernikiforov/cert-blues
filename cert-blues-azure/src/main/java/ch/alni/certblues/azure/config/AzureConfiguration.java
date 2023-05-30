@@ -26,15 +26,6 @@
 package ch.alni.certblues.azure.config;
 
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-import com.azure.identity.DefaultAzureCredentialBuilder;
-
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
 import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
@@ -48,6 +39,15 @@ import ch.alni.certblues.certbot.AuthorizationProvisionerFactory;
 import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.CertificateStore;
 import ch.alni.certblues.certbot.StorageService;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
 
 /**
  * Configures the Azure-based implementation of the components used by the cert bot.
@@ -56,9 +56,12 @@ import ch.alni.certblues.certbot.StorageService;
 @EnableConfigurationProperties(AzureConfigurationProperties.class)
 public class AzureConfiguration {
 
+    private final Clock clock;
+
     private final AzureConfigurationProperties properties;
 
-    public AzureConfiguration(AzureConfigurationProperties properties) {
+    public AzureConfiguration(Clock clock, AzureConfigurationProperties properties) {
+        this.clock = clock;
         this.properties = properties;
     }
 
@@ -80,14 +83,14 @@ public class AzureConfiguration {
 
     @Bean
     public StorageService storageService(TokenCredential credential, HttpClient httpClient) {
-        return new AzureStorage(credential, httpClient,
-                properties.getTableStorage().getServiceUrl(), properties.getTableStorage().getRequestTableName()
+        return new AzureStorage(credential, httpClient, properties.getTableStorage().getServiceUrl(),
+                properties.getTableStorage().getRequestTableName()
         );
     }
 
     @Bean
     public CertificateStore certificateStore(TokenCredential credential, HttpClient httpClient) {
-        return new AzureKeyVaultCertificate(credential, httpClient, properties.getCertificateKeyVault().getUrl());
+        return new AzureKeyVaultCertificate(clock, credential, httpClient, properties.getCertificateKeyVault().getUrl());
     }
 
     @Bean

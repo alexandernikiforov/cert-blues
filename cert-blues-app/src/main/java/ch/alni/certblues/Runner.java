@@ -25,24 +25,19 @@
 
 package ch.alni.certblues;
 
-import org.slf4j.Logger;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.util.List;
-
 import ch.alni.certblues.acme.facade.AcmeClient;
 import ch.alni.certblues.acme.key.SigningKeyPair;
 import ch.alni.certblues.acme.protocol.AccountRequest;
 import ch.alni.certblues.certbot.CertBot;
-import ch.alni.certblues.certbot.CertificateInfo;
-import ch.alni.certblues.certbot.CertificateRequest;
 import ch.alni.certblues.certbot.CertificateStore;
 import ch.alni.certblues.certbot.StorageService;
 import ch.alni.certblues.certbot.impl.CertBotFactory;
+import org.slf4j.Logger;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -58,7 +53,6 @@ public class Runner implements CommandLineRunner {
     private final CertificateStore certificateStore;
     private final SigningKeyPair accountKeyPair;
     private final AcmeClient acmeClient;
-    private final Clock clock;
     private final CertBluesProperties properties;
 
     public Runner(CertBotFactory certBotFactory,
@@ -66,22 +60,13 @@ public class Runner implements CommandLineRunner {
                   CertificateStore certificateStore,
                   SigningKeyPair accountKeyPair,
                   AcmeClient acmeClient,
-                  Clock clock,
                   CertBluesProperties properties) {
         this.certBotFactory = certBotFactory;
         this.storageService = storageService;
         this.certificateStore = certificateStore;
         this.accountKeyPair = accountKeyPair;
         this.acmeClient = acmeClient;
-        this.clock = clock;
         this.properties = properties;
-    }
-
-    static boolean shouldBeIncluded(CertificateRequest request, List<CertificateInfo> certificateInfos, Instant earliestValidity) {
-        return request.forceRequestCreation() || certificateInfos.stream()
-                .filter(certificateInfo -> certificateInfo.certificateName().equals(request.certificateName()))
-                // there is one certificate with the same name that will expire earlier than 20 days from now
-                .anyMatch(certificateInfo -> certificateInfo.expiresOn().isBefore(earliestValidity));
     }
 
     @Override
@@ -93,12 +78,12 @@ public class Runner implements CommandLineRunner {
         final CertBot certBot = certBotFactory.create(acmeSession);
 
         // read available certificates
-        final Mono<List<CertificateInfo>> certificatesMono = certificateStore.getCertificates().collectList().share();
+        final Duration renewalInterval = properties.getRenewalInterval();
 
-        storageService.getCertificateRequests()
+        certificateStore.getExpiringCertificates(renewalInterval)
+                .collectList().flux()
                 // check each request against the list of available certificates
-                .flatMap(request -> certificatesMono.flatMap(certificateInfos -> Mono.just(request)
-                        .filter(certificateRequest -> shouldBeIncluded(request, certificateInfos))))
+                .flatMap(storageService::getPendingCertificateRequests)
                 .doOnNext(request -> LOG.info("certificate request found {}", request))
                 // and then pass each remaining request to the certbot
                 .flatMap(request -> certBot.submit(request)
@@ -113,9 +98,4 @@ public class Runner implements CommandLineRunner {
         LOG.info("Certificate request processing ended");
     }
 
-    boolean shouldBeIncluded(CertificateRequest request, List<CertificateInfo> certificateInfos) {
-        final Instant now = Instant.now(clock);
-        final Instant renewal = now.plus(properties.getRenewalInterval());
-        return shouldBeIncluded(request, certificateInfos, renewal);
-    }
 }

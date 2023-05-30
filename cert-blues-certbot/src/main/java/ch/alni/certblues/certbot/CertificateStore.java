@@ -28,6 +28,8 @@ package ch.alni.certblues.certbot;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 public interface CertificateStore {
 
     /**
@@ -45,7 +47,7 @@ public interface CertificateStore {
     Mono<Void> upload(String name, String certificate);
 
     /**
-     * Returns information about certificates from this store.
+     * Returns information about expiring certificates from this store.
      */
-    Flux<CertificateInfo> getCertificates();
+    Flux<CertificateInfo> getExpiringCertificates(Duration renewalInterval);
 }

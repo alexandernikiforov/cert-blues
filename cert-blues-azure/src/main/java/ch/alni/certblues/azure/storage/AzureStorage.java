@@ -25,42 +25,41 @@
 
 package ch.alni.certblues.azure.storage;
 
+import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
+import ch.alni.certblues.certbot.StorageService;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.data.tables.TableAsyncClient;
 import com.azure.data.tables.TableServiceAsyncClient;
 import com.azure.data.tables.TableServiceClientBuilder;
-import com.azure.data.tables.models.TableEntity;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
-import ch.alni.certblues.certbot.StorageService;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 public class AzureStorage implements StorageService {
 
-    private final TableAsyncClient tableClient;
+    private final TableAsyncClient requestTableClient;
 
-    public AzureStorage(TokenCredential credential, HttpClient httpClient, String tableServiceUrl, String tableName) {
+    public AzureStorage(TokenCredential credential,
+                        HttpClient httpClient,
+                        String tableServiceUrl,
+                        String requestTableName) {
         TableServiceAsyncClient tableServiceClient = new TableServiceClientBuilder()
                 .credential(credential).httpClient(httpClient).endpoint(tableServiceUrl)
                 .buildAsyncClient();
 
-        tableClient = tableServiceClient.getTableClient(tableName);
+        requestTableClient = tableServiceClient.getTableClient(requestTableName);
     }
 
-    public AzureStorage(TokenCredential credential, String tableServiceUrl, String tableName) {
-        this(credential, null, tableServiceUrl, tableName);
-    }
-
-    private static TableEntity reset(TableEntity tableEntity) {
-        tableEntity.addProperty("forceRequestCreation", false);
-        return tableEntity;
+    public AzureStorage(TokenCredential credential,
+                        String tableServiceUrl,
+                        String requestTableName) {
+        this(credential, null, tableServiceUrl, requestTableName);
     }
 
     private static List<String> toDnsNames(String value) {
@@ -73,17 +72,22 @@ public class AzureStorage implements StorageService {
         return result;
     }
 
+    static boolean shouldBeIncluded(CertificateRequest request, List<CertificateInfo> certificateInfos) {
+        return request.forceRequestCreation() || certificateInfos.stream()
+                .anyMatch(certificateInfo -> certificateInfo.certificateName().equals(request.certificateName()));
+    }
+
     @Override
     public Mono<Void> reset(CertificateRequest certificateRequest) {
-        return tableClient.getEntity("certificateRequest", certificateRequest.certificateName())
-                .map(AzureStorage::reset)
-                .flatMap(tableClient::updateEntity)
+        return requestTableClient.getEntity("certificateRequest", certificateRequest.certificateName())
+                .map(tableEntity -> tableEntity.addProperty("forceRequestCreation", true))
+                .flatMap(requestTableClient::updateEntity)
                 .then();
     }
 
     @Override
-    public Flux<CertificateRequest> getCertificateRequests() {
-        return tableClient.listEntities()
+    public Flux<CertificateRequest> getPendingCertificateRequests(List<CertificateInfo> expiringCertificates) {
+        return requestTableClient.listEntities()
                 .map(tableEntity -> CertificateRequest.builder()
                         .certificateName(tableEntity.getRowKey())
                         .keySize((Integer) tableEntity.getProperty("keySize"))
@@ -95,6 +99,8 @@ public class AzureStorage implements StorageService {
                         .dnsZone((String) tableEntity.getProperty("dnsZone"))
                         .storageEndpointUrl((String) tableEntity.getProperty("storageEndpointUrl"))
                         .forceRequestCreation((Boolean) tableEntity.getProperty("forceRequestCreation"))
-                        .build());
+                        .build())
+                .filter(certificateRequest -> shouldBeIncluded(certificateRequest, expiringCertificates));
     }
+
 }

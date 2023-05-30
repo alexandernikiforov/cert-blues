@@ -25,6 +25,9 @@
 
 package ch.alni.certblues.certbot.certificate;
 
+import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.CertificateStore;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
@@ -34,17 +37,13 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-
-import java.io.IOException;
-import java.security.KeyPair;
-
-import javax.security.auth.x500.X500Principal;
-
-import ch.alni.certblues.certbot.CertificateInfo;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.CertificateStore;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import javax.security.auth.x500.X500Principal;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.time.Duration;
 
 /**
  * Simple implementation of the certificate store for test purposes.
@@ -97,7 +96,7 @@ public class SimpleCertEntry implements CertificateStore {
     }
 
     @Override
-    public Flux<CertificateInfo> getCertificates() {
+    public Flux<CertificateInfo> getExpiringCertificates(Duration renewalInterval) {
         return Flux.empty();
     }
 }

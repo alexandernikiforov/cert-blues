@@ -25,31 +25,24 @@
 
 package ch.alni.certblues.azure.keyvault;
 
+import ch.alni.certblues.certbot.CertificateInfo;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.CertificateStore;
+import ch.alni.certblues.certbot.KeyType;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.exception.HttpResponseException;
 import com.azure.core.http.HttpClient;
 import com.azure.security.keyvault.certificates.CertificateAsyncClient;
 import com.azure.security.keyvault.certificates.CertificateClientBuilder;
-import com.azure.security.keyvault.certificates.models.CertificateContentType;
-import com.azure.security.keyvault.certificates.models.CertificateKeyType;
-import com.azure.security.keyvault.certificates.models.CertificateKeyUsage;
-import com.azure.security.keyvault.certificates.models.CertificatePolicy;
-import com.azure.security.keyvault.certificates.models.CertificatePolicyAction;
-import com.azure.security.keyvault.certificates.models.CertificateProperties;
-import com.azure.security.keyvault.certificates.models.LifetimeAction;
-import com.azure.security.keyvault.certificates.models.MergeCertificateOptions;
-import com.azure.security.keyvault.certificates.models.SubjectAlternativeNames;
-
+import com.azure.security.keyvault.certificates.models.*;
 import org.slf4j.Logger;
-
-import java.util.List;
-
-import ch.alni.certblues.certbot.CertificateInfo;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.CertificateStore;
-import ch.alni.certblues.certbot.KeyType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -62,13 +55,14 @@ public class AzureKeyVaultCertificate implements CertificateStore {
 
     private static final String SERVER_CERTIFICATE_KEY_USAGE = "1.3.6.1.5.5.7.3.1";
 
-    private final CertificateAsyncClient client;
-    private final TokenCredential credential;
+    private final Clock clock;
 
-    public AzureKeyVaultCertificate(TokenCredential credential,
+    private final CertificateAsyncClient client;
+
+    public AzureKeyVaultCertificate(Clock clock, TokenCredential credential,
                                     HttpClient httpClient,
                                     String keyVaultUrl) {
-        this.credential = credential;
+        this.clock = clock;
         this.client = new CertificateClientBuilder()
                 .credential(credential)
                 .vaultUrl(keyVaultUrl)
@@ -76,16 +70,15 @@ public class AzureKeyVaultCertificate implements CertificateStore {
                 .buildAsyncClient();
     }
 
-    public AzureKeyVaultCertificate(TokenCredential credential, String keyVaultUrl) {
-        this(credential, null, keyVaultUrl);
+    public AzureKeyVaultCertificate(TokenCredential credential, String keyVaultUrl, Clock clock) {
+        this(clock, credential, null, keyVaultUrl);
     }
 
     private static boolean isCertificateCreated(Throwable throwable) {
         if (throwable instanceof HttpResponseException) {
             final var exception = (HttpResponseException) throwable;
             return exception.getResponse().getStatusCode() == 201;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -113,12 +106,17 @@ public class AzureKeyVaultCertificate implements CertificateStore {
     }
 
     @Override
-    public Flux<CertificateInfo> getCertificates() {
+    public Flux<CertificateInfo> getExpiringCertificates(Duration renewalInterval) {
+        final Instant now = Instant.now(clock);
+        final Instant earliestValidity = now.plus(renewalInterval);
+
         return client.listPropertiesOfCertificates()
                 .map(certificateProperties -> CertificateInfo.builder()
                         .certificateName(certificateProperties.getName())
                         .expiresOn(certificateProperties.getExpiresOn().toInstant())
-                        .build());
+                        .build())
+                // certificates that will expire earlier than 20 days from now
+                .filter(certificateInfo -> certificateInfo.expiresOn().isBefore(earliestValidity));
     }
 
     @Override

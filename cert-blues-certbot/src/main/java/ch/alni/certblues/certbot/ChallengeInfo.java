@@ -25,27 +25,58 @@
 
 package ch.alni.certblues.certbot;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 
+import java.time.Instant;
 import java.util.List;
 
-public interface StorageService {
+/**
+ * Information about current challenges.
+ */
+@AutoValue
+public abstract class ChallengeInfo {
+
+    public static Builder builder() {
+        return new AutoValue_ChallengeInfo.Builder()
+                .challengeUrls(List.of());
+    }
+
+    public abstract String certificateName();
 
     /**
-     * Removes the given order so that it is not available anymore.
-     *
-     * @param certificateRequest
-     * @return empty mono if completed
+     * The URL of the challenge.
      */
-    Mono<Void> reset(CertificateRequest certificateRequest);
+    public abstract ImmutableList<String> challengeUrls();
 
     /**
-     * Returns a flux over the pending certificate requests. The available certificate requests will be checked
-     * against the given list of expiring certificates.
-     *
-     * @param expiringCertificates certificates that have either expired or will expire soon
+     * How long this challenge remains valid.
      */
-    Flux<CertificateRequest> getPendingCertificateRequests(List<CertificateInfo> expiringCertificates);
+    public abstract Instant expiresOn();
 
+    /**
+     * Form what time this challenge should be submitted.
+     */
+    public abstract Instant submitNotBefore();
+
+    /**
+     * The URL of the order these challenge is created for.
+     */
+    public abstract String orderUrl();
+
+    @AutoValue.Builder
+    public static abstract class Builder {
+
+        public abstract Builder certificateName(String value);
+
+        public abstract Builder expiresOn(Instant value);
+
+        public abstract Builder submitNotBefore(Instant value);
+
+        public abstract Builder challengeUrls(List<String> value);
+
+        public abstract Builder orderUrl(String value);
+
+        public abstract ChallengeInfo build();
+    }
 }

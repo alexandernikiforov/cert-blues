@@ -26,15 +26,12 @@
 package ch.alni.certblues.azure.config;
 
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 
 /**
  * Properties to configure Azure-based components.
  */
 @ConfigurationProperties(prefix = "azure")
-@ConstructorBinding
 public class AzureConfigurationProperties {
 
     private final AccountKeyProperties accountKey;
@@ -62,21 +59,14 @@ public class AzureConfigurationProperties {
         return tableStorage;
     }
 
-    public static class AccountKeyProperties {
-
-        private final String id;
-        private final String signatureAlg;
-
-        public AccountKeyProperties(String id, String signatureAlg) {
-            this.id = id;
-            this.signatureAlg = signatureAlg;
-        }
+    public record AccountKeyProperties(String id, String signatureAlg) {
 
         /**
          * ID of the key in the key vault that represents the account key. This is the full path representing the key
          * resource within the key vault.
          */
-        public String getId() {
+        @Override
+        public String id() {
             return id;
         }
 
@@ -84,22 +74,19 @@ public class AzureConfigurationProperties {
          * Returns the signature algorithm to be used by the key to sign content. See {@link SignatureAlgorithm} for
          * possible names.
          */
-        public String getSignatureAlg() {
+        @Override
+        public String signatureAlg() {
             return signatureAlg;
         }
     }
 
-    public static class KeyVaultProperties {
-        private final String url;
-
-        public KeyVaultProperties(String url) {
-            this.url = url;
-        }
+    public record KeyVaultProperties(String url) {
 
         /**
          * URL of the key vault.
          */
-        public String getUrl() {
+        @Override
+        public String url() {
             return url;
         }
     }
@@ -107,26 +94,21 @@ public class AzureConfigurationProperties {
     /**
      * Properties for the storage account to hold the certificate requests.
      */
-    public static class TableStorageProperties {
-        private final String serviceUrl;
-        private final String requestTableName;
-
-        public TableStorageProperties(String serviceUrl, String requestTableName) {
-            this.serviceUrl = serviceUrl;
-            this.requestTableName = requestTableName;
-        }
+    public record TableStorageProperties(String serviceUrl, String requestTableName) {
 
         /**
          * The service URL of the storage account.
          */
-        public String getServiceUrl() {
+        @Override
+        public String serviceUrl() {
             return serviceUrl;
         }
 
         /**
          * The name of the table that holds the certificate requests.
          */
-        public String getRequestTableName() {
+        @Override
+        public String requestTableName() {
             return requestTableName;
         }
     }

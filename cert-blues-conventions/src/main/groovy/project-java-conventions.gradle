@@ -8,8 +8,15 @@ repositories {
 }
 
 java {
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+compileJava {
+    // somehow this is needed by Spring Boot 3 to ensure
+    // that the properties can be used as parameters to other properties
+    options.compilerArgs += ['-parameters']
+    options.encoding = 'UTF-8'
 }
 
 test {

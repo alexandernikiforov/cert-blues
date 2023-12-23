@@ -78,19 +78,19 @@ public class AzureConfiguration {
     @Bean
     public SigningKeyPair signingKeyPair(TokenCredential credential, HttpClient httpClient) {
         return new AzureKeyVaultKey(credential, httpClient,
-                properties.getAccountKey().getId(), properties.getAccountKey().getSignatureAlg());
+                properties.getAccountKey().id(), properties.getAccountKey().signatureAlg());
     }
 
     @Bean
     public StorageService storageService(TokenCredential credential, HttpClient httpClient) {
-        return new AzureStorage(credential, httpClient, properties.getTableStorage().getServiceUrl(),
-                properties.getTableStorage().getRequestTableName()
+        return new AzureStorage(credential, httpClient, properties.getTableStorage().serviceUrl(),
+                properties.getTableStorage().requestTableName()
         );
     }
 
     @Bean
     public CertificateStore certificateStore(TokenCredential credential, HttpClient httpClient) {
-        return new AzureKeyVaultCertificate(clock, credential, httpClient, properties.getCertificateKeyVault().getUrl());
+        return new AzureKeyVaultCertificate(clock, credential, httpClient, properties.getCertificateKeyVault().url());
     }
 
     @Bean

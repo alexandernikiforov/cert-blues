@@ -25,6 +25,14 @@
 
 package ch.alni.certblues.app;
 
+import ch.alni.certblues.CertBluesApplication;
+import ch.alni.certblues.acme.facade.AcmeClient;
+import ch.alni.certblues.acme.key.SigningKeyPair;
+import ch.alni.certblues.acme.protocol.AccountRequest;
+import ch.alni.certblues.certbot.CertBot;
+import ch.alni.certblues.certbot.CertificateRequest;
+import ch.alni.certblues.certbot.KeyType;
+import ch.alni.certblues.certbot.impl.CertBotFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,15 +43,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.util.List;
-
-import ch.alni.certblues.CertBluesApplication;
-import ch.alni.certblues.acme.facade.AcmeClient;
-import ch.alni.certblues.acme.key.SigningKeyPair;
-import ch.alni.certblues.acme.protocol.AccountRequest;
-import ch.alni.certblues.certbot.CertBot;
-import ch.alni.certblues.certbot.CertificateRequest;
-import ch.alni.certblues.certbot.KeyType;
-import ch.alni.certblues.certbot.impl.CertBotFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

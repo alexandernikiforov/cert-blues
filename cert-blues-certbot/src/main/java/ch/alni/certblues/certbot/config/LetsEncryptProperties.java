@@ -26,14 +26,14 @@
 package ch.alni.certblues.certbot.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "lets-encrypt")
-@ConstructorBinding
 public class LetsEncryptProperties {
 
     private final String directoryUrl;
 
+    @ConstructorBinding
     public LetsEncryptProperties(String directoryUrl) {
         this.directoryUrl = directoryUrl;
     }

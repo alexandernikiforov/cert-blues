@@ -10,27 +10,19 @@ javaPlatform {
 
 dependencies {
     constraints {
-        api 'com.google.auto.value:auto-value-annotations:1.8.2'
-        api 'com.google.auto.value:auto-value:1.8.2'
+        api 'com.google.auto.value:auto-value-annotations:1.10.1'
+        api 'com.google.auto.value:auto-value:1.10.1'
 
-        api 'org.jetbrains:annotations:22.0.0'
+        api 'org.jetbrains:annotations:24.0.1'
 
         api(group: 'com.google.guava', name: 'guava', version: '31.0.1-jre')
 
         api 'com.microsoft.azure.functions:azure-functions-java-library:1.4.2'
-        api 'com.azure.resourcemanager:azure-resourcemanager-dns:2.10.0'
-
-        api 'org.slf4j:slf4j-api:1.7.32'
-        runtime 'ch.qos.logback:logback-classic:1.2.9'
-        runtime 'ch.qos.logback:logback-core:1.2.9'
-
-        api 'org.junit.jupiter:junit-jupiter:5.8.2'
-        api 'org.assertj:assertj-core:3.21.0'
-        api 'org.mockito:mockito-core:4.1.0'
+        api 'com.azure.resourcemanager:azure-resourcemanager-dns:2.28.0'
     }
 
-    api platform('io.projectreactor:reactor-bom:2020.0.20')
-    api platform('com.azure:azure-sdk-bom:1.2.2')
-    api platform('com.fasterxml.jackson:jackson-bom:2.13.1')
+    api platform('io.projectreactor:reactor-bom:2023.0.1')
+    api platform('com.azure:azure-sdk-bom:1.2.14')
+    api platform('com.fasterxml.jackson:jackson-bom:2.15.3')
     api platform(SpringBootPlugin.BOM_COORDINATES)
 }

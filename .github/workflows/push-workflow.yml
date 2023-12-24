@@ -85,7 +85,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: cert-blues-app
+          context: ./cert-blues-app
           build-args: |
             APP_VERSION=${{ steps.get-version.outputs.VERSION }}
           push: true

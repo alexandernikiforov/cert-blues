@@ -1,6 +1,6 @@
 azure:
   account-key:
-    id: https://cert-blues-dev.vault.azure.net/keys/account-key-ellpjdvnj4ijs
+    id: https://cert-blues-dev.vault.azure.net/keys/account-key
     signature-alg: RS256
   certificate-key-vault:
     url: https://cert-blues-dev.vault.azure.net

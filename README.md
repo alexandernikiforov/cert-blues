@@ -9,20 +9,18 @@ Both HTTP and DNS challenges are supported with HTTP challenges taking precedenc
 This project may be forked and adapted to existing infrastructure. See below how to do this.
 
 <!-- TOC -->
-
 * [cert-blues](#cert-blues)
 * [Development](#development)
-    * [Dev Environment](#dev-environment)
-        * [Key Vault](#key-vault)
-        * [Storage Account / Table Storage](#storage-account--table-storage)
-        * [DNS](#dns)
-        * [Target Storage Account](#target-storage-account)
-        * [Target Key Vault](#target-key-vault)
-        * [Environment Variables](#environment-variables)
-        * [Integration Tests](#integration-tests)
-        * [Staging Tests](#staging-tests)
+  * [Dev Environment](#dev-environment)
+    * [Key Vault](#key-vault)
+    * [Storage Account / Table Storage](#storage-account--table-storage)
+    * [DNS](#dns)
+    * [Target Storage Account](#target-storage-account)
+    * [Target Key Vault](#target-key-vault)
+    * [Environment Variables](#environment-variables)
+    * [Integration Tests](#integration-tests)
+    * [Staging Tests](#staging-tests)
 * [Known Issues](#known-issues)
-
 <!-- TOC -->
 
 # Development

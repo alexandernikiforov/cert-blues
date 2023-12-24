@@ -77,7 +77,7 @@ class AcmeStagingTest {
     private CertBotFactory certBotFactory;
 
     @Test
-    void getDirectory() {
+    void createTestCertificate() {
         final var accountRequest = AccountRequest.builder().termsOfServiceAgreed(true).build();
         final var session = acmeClient.login(accountKeyPair, accountRequest);
 

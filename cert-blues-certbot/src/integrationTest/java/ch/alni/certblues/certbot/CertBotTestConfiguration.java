@@ -25,17 +25,6 @@
 
 package ch.alni.certblues.certbot;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.time.Duration;
-
-import javax.net.ssl.TrustManagerFactory;
-
 import ch.alni.certblues.acme.facade.DnsChallengeProvisioner;
 import ch.alni.certblues.acme.facade.HttpChallengeProvisioner;
 import ch.alni.certblues.acme.key.SigningKeyPair;
@@ -46,10 +35,19 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
+
+import javax.net.ssl.TrustManagerFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.time.Duration;
 
 @Configuration
 @ComponentScan
@@ -126,6 +124,4 @@ public class CertBotTestConfiguration {
             throw new IllegalStateException(e);
         }
     }
-
-
 }

@@ -25,15 +25,9 @@
 
 package ch.alni.certblues.acme.facade;
 
-import org.slf4j.Logger;
-
 import ch.alni.certblues.acme.key.Thumbprints;
-import ch.alni.certblues.acme.protocol.Authorization;
-import ch.alni.certblues.acme.protocol.Challenge;
-import ch.alni.certblues.acme.protocol.ChallengeStatus;
-import ch.alni.certblues.acme.protocol.DnsChallenge;
-import ch.alni.certblues.acme.protocol.HttpChallenge;
-import ch.alni.certblues.acme.protocol.Identifier;
+import ch.alni.certblues.acme.protocol.*;
+import org.slf4j.Logger;
 import reactor.core.publisher.Mono;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -112,15 +106,14 @@ class AuthorizationProvisioner {
     }
 
     private Challenge selectChallenge(Authorization authorization, AuthorizationProvisioningStrategy strategy) {
-        // DNS challenges have priority
-        if (authorization.hasChallenge("dns-01") && strategy.isDnsProvisioningSupported()) {
-            final var challenge = authorization.getChallenge("dns-01");
-            LOG.info("provisioning DNS challenge {}", challenge);
-            return challenge;
-        }
-        else if (authorization.hasChallenge("http-01") && strategy.isHttpProvisioningSupported()) {
+        // HTTP challenges have priority
+        if (authorization.hasChallenge("http-01") && strategy.isHttpProvisioningSupported()) {
             final var challenge = authorization.getChallenge("http-01");
             LOG.info("provisioning HTTP challenge {}", challenge);
+            return challenge;
+        } else if (authorization.hasChallenge("dns-01") && strategy.isDnsProvisioningSupported()) {
+            final var challenge = authorization.getChallenge("dns-01");
+            LOG.info("provisioning DNS challenge {}", challenge);
             return challenge;
         }
         else {

@@ -10,7 +10,7 @@ RUN jlink \
     --output /opt/java/jdk
 
 ARG APP_VERSION
-COPY build/context/cert-blues-app-${APP_VERSION}.jar /cert-blues-app-${APP_VERSION}/lib/
+COPY ./build/context/cert-blues-app-${APP_VERSION}.jar /cert-blues-app-${APP_VERSION}/lib/
 
 RUN jpackage \
     --runtime-image /opt/java/jdk \

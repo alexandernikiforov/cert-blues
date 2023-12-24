@@ -10,20 +10,18 @@ This project may be forked and adapted to existing infrastructure. See below how
 
 
 <!-- TOC -->
-
 * [cert-blues](#cert-blues)
 * [Development](#development)
-    * [Dev Environment](#dev-environment)
-        * [Key Vault](#key-vault)
-        * [Storage Account / Table Storage](#storage-account--table-storage)
-        * [DNS](#dns)
-        * [Target Storage Account](#target-storage-account)
-        * [Target Key Vault](#target-key-vault)
-        * [Environment Variables](#environment-variables)
-        * [Integration Tests](#integration-tests)
-        * [Staging Tests](#staging-tests)
+  * [Dev Environment](#dev-environment)
+    * [Key Vault](#key-vault)
+    * [Storage Account / Table Storage](#storage-account--table-storage)
+    * [DNS](#dns)
+    * [Target Storage Account](#target-storage-account)
+    * [Target Key Vault](#target-key-vault)
+    * [Environment Variables](#environment-variables)
+    * [Integration Tests](#integration-tests)
+    * [Staging Tests](#staging-tests)
 * [Known Issues](#known-issues)
-
 <!-- TOC -->
 
 # Development
@@ -112,6 +110,8 @@ start the following Docker Compose configuration `cert-blues-acme/docker-compose
 The main staging test that is also run from the GitHub Action workflow
 is `cert-blues-app/src/stagingTest/java/ch/alni/certblues/app/AcmeStagingTest.java`.
 It is run from the development machine (or from the pipeline) but it actually access resources on Azure .
+
+# Deployment
 
 # Known Issues
 

@@ -18,7 +18,7 @@ RUN jpackage \
     --input /cert-blues-app-${APP_VERSION}/lib  \
     --name cert-blues  \
     --main-jar cert-blues-app-${APP_VERSION}.jar  \
-    --main-class org.springframework.boot.loader.JarLauncher  \
+    --main-class org.springframework.boot.loader.launch.JarLauncher  \
     --verbose \
     --dest /opt/image
 

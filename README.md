@@ -9,6 +9,7 @@ Both HTTP and DNS challenges are supported with HTTP challenges taking precedenc
 This project may be forked and adapted to existing infrastructure. See below how to do this.
 
 <!-- TOC -->
+
 * [cert-blues](#cert-blues)
 * [Development](#development)
     * [Dev Environment](#dev-environment)
@@ -21,6 +22,7 @@ This project may be forked and adapted to existing infrastructure. See below how
         * [Integration Tests](#integration-tests)
         * [Staging Tests](#staging-tests)
 * [Known Issues](#known-issues)
+
 <!-- TOC -->
 
 # Development

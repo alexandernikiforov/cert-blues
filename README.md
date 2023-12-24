@@ -10,6 +10,7 @@ This project may be forked and adapted to existing infrastructure. See below how
 
 
 <!-- TOC -->
+
 * [cert-blues](#cert-blues)
 * [Development](#development)
   * [Dev Environment](#dev-environment)
@@ -22,6 +23,7 @@ This project may be forked and adapted to existing infrastructure. See below how
     * [Integration Tests](#integration-tests)
     * [Staging Tests](#staging-tests)
 * [Known Issues](#known-issues)
+
 <!-- TOC -->
 
 # Development
@@ -112,6 +114,24 @@ is `cert-blues-app/src/stagingTest/java/ch/alni/certblues/app/AcmeStagingTest.ja
 It is run from the development machine (or from the pipeline) but it actually access resources on Azure .
 
 # Deployment
+
+Deployment to TEST and PROD environments is executed via GitHub Actions. In order to execute the deployment workflows
+a special service principal should be established that can provision all necessary resources. In practice, the needed
+resources are provisioned in the Azure resource groups `cert-blues-dev` (for TEST) and `cert-blues-prod` (for PROD).
+The service principal should be assigned the following role on the level of both resource groups:
+
+* Owner
+
+The client ID and the client secret of the deployment service principal are passed as the GitHub Actions secrets:
+
+* DEPLOYMENT_AZURE_CLIENT_ID
+* DEPLOYMENT_AZURE_CLIENT_SECRET
+
+The certificate bot in TEST and PROD environments is run in an Azure Container Instance with Log Analytics enabled.
+The analytics workspace ID and key are provided in the following GitHub Actions secrets:
+
+* LOG_ANALYTICS_WORKSPACE_ID
+* LOG_ANALYTICS_WORKSPACE_KEY
 
 # Known Issues
 
